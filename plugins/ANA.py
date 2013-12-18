@@ -10,7 +10,7 @@ import re, time
 
 from ginga import GingaPlugin
 from ginga import AstroImage
-from ginga import wcs
+from ginga.util import wcs
 
 from ginga.misc import Future, Bunch
 import remoteObjects as ro

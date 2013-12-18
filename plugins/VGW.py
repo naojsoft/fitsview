@@ -529,6 +529,9 @@ class VGW(GingaPlugin.GlobalPlugin):
             self.fv.ds.raise_tab('DSS')
 
         def get_dss_image(p):
+            pluginInfo = chinfo.opmon.getPluginInfo('AgAutoSelect')
+            pluginObj = pluginInfo.obj
+
             # Assume square image?
             wd_deg = dss_fov_deg
             ht_deg = dss_fov_deg
@@ -547,7 +550,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     params = dict(ra=ra_txt, dec=dec_txt, width=wd, height=ht)
 
                     server = dss_mode + self.dss_server_sfx
-                    fitspath = self.fv.get_sky_image(server, params)
+                    fitspath = pluginObj.get_sky_image(server, params)
                     image = self.fv.load_file(fitspath, chname=chinfo.name)
                 else:
                     # make blank image
@@ -999,6 +1002,9 @@ class VGW(GingaPlugin.GlobalPlugin):
             self.fv.ds.raise_tab('DSS')
 
         def get_dss_image(p):
+            pluginInfo = chinfo.opmon.getPluginInfo('AgAutoSelect')
+            pluginObj = pluginInfo.obj
+
             # Assume square image?
             wd_deg = dss_fov_deg
             ht_deg = dss_fov_deg
@@ -1015,7 +1021,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     params = dict(ra=ra_txt, dec=dec_txt, width=wd, height=ht)
 
                     server = dss_mode + self.dss_server_sfx
-                    fitspath = self.fv.get_sky_image(server, params)
+                    fitspath = pluginObj.get_sky_image(server, params)
                     image = self.fv.load_file(fitspath, chname=chinfo.name)
                 else:
                     # make blank image
@@ -1583,7 +1589,6 @@ class VGW(GingaPlugin.GlobalPlugin):
             # Only raise for a draw
             self.fv.ds.raise_tab(chname)
 
-    
         
     def __str__(self):
         return 'vgw'
