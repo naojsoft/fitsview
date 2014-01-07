@@ -37,7 +37,8 @@ class FocusFit(GingaPlugin.LocalPlugin):
         # Paned container is just to provide a way to size the graph
         # to a reasonable size
         box = gtk.VPaned()
-        container.pack_start(box, expand=True, fill=True)
+        cw = container.get_widget()
+        cw.pack_start(box, expand=True, fill=True)
         
         self.fontdesc = pango.FontDescription("Helvetica Bold 18")
 
@@ -82,11 +83,11 @@ class FocusFit(GingaPlugin.LocalPlugin):
         btn = gtk.Button("Close")
         btn.connect('clicked', lambda w: self.close())
         btns.add(btn)
-        container.pack_start(btns, padding=4, fill=True, expand=False)
+        cw.pack_start(btns, padding=4, fill=True, expand=False)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_operation_channel(chname, str(self))
+        self.fv.stop_local_plugin(chname, str(self))
         return True
         
     def clear(self):

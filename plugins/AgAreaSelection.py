@@ -182,7 +182,8 @@ class AgAreaSelection(QDASPlugin):
         vbox.pack_start(btns, fill=True, expand=False)
         vbox.show_all()
         
-        container.pack_start(sw, padding=0, fill=True, expand=True)
+        cw = container.get_widget()
+        cw.pack_start(sw, padding=0, fill=True, expand=True)
 
     def set_message(self, msg):
         buf = self.tw.get_buffer()
@@ -190,9 +191,9 @@ class AgAreaSelection(QDASPlugin):
         self.tw.modify_font(self.msgFont)
             
     def instructions(self):
-        self.set_message("""Please select a guide star manually.
+        self.set_message("""Please select an area manually.
 
-Draw (or redraw) a region with the right mouse button.  Move the region with the left mouse button.  Press Ok or Cancel to finish.""")
+Draw (or redraw) an area with the right mouse button.  Move the area with the left mouse button.  Press Ok or Cancel to finish.""")
             
     def start(self, future=None):
         self.callerInfo = future
@@ -250,7 +251,7 @@ Draw (or redraw) a region with the right mouse button.  Move the region with the
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_operation_channel(chname, str(self))
+        self.fv.stop_local_plugin(chname, str(self))
         return True
         
     def release_caller(self):

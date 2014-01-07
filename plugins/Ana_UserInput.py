@@ -46,11 +46,12 @@ class Ana_UserInput(GingaPlugin.LocalPlugin):
         vbox1.pack_start(btns, padding=4, fill=True, expand=False)
 
         vbox1.show_all()
-        container.pack_start(vbox1, padding=0, fill=True, expand=False)
+        cw = container.get_widget()
+        cw.pack_start(vbox1, padding=0, fill=True, expand=False)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_operation_channel(chname, str(self))
+        self.fv.stop_local_plugin(chname, str(self))
         return True
         
     def start(self, future=None):

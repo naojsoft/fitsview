@@ -184,8 +184,9 @@ class Region_Selection(QDASPlugin):
         btns.add(btn)
         vbox.pack_start(btns, fill=True, expand=False)
         vbox.show_all()
-        
-        container.pack_start(sw, padding=0, fill=True, expand=True)
+
+        cw = container.get_widget()
+        cw.pack_start(sw, padding=0, fill=True, expand=True)
 
     def set_message(self, msg):
         buf = self.tw.get_buffer()
@@ -243,7 +244,7 @@ Draw (or redraw) a region with the right mouse button.  Move the region with the
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_operation_channel(chname, str(self))
+        self.fv.stop_local_plugin(chname, str(self))
         return True
         
     def release_caller(self):

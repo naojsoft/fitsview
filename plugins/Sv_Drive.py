@@ -2,7 +2,7 @@
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Dec 13 12:23:57 HST 2013
+#  Last edit: Tue Jan  7 13:02:31 HST 2014
 #]
 #
 import gtk
@@ -289,7 +289,8 @@ class Sv_Drive(QDASPlugin):
         vbox.pack_start(btns, fill=True, expand=False)
         vbox.show_all()
         
-        container.pack_start(sw, padding=0, fill=True, expand=True)
+        cw = container.get_widget()
+        cw.pack_start(sw, padding=0, fill=True, expand=True)
         self.have_gui = True
 
     def set_message(self, msg):
@@ -375,7 +376,7 @@ class Sv_Drive(QDASPlugin):
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_operation_channel(chname, str(self))
+        self.fv.stop_local_plugin(chname, str(self))
         self.have_gui = False
         return True
         

@@ -204,7 +204,7 @@ class ReceiveFITS(object):
         future.freeze(None, *args, **kwdargs)
         future.add_callback('resolved', self.result_cb)
         
-        self.fv.gui_do(self.fv.start_operation_channel,
+        self.fv.gui_do(self.fv.start_local_plugin,
                             chname, cmdName, future)
         # Wait for result
         return future.wait()

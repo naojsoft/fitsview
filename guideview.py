@@ -82,16 +82,16 @@ default_layout = ['seq', {},
                     ]]
 
 global_plugins = [
-    Bunch(module='Pan', tab='Pan', ws='uleft', raisekey='i'),
-    Bunch(module='Info', tab='Info', ws='lleft', raisekey='i'),
-    Bunch(module='Header', tab='Header', ws='left', raisekey='h'),
-    Bunch(module='Zoom', tab='Zoom', ws='sub4', raisekey='z'),
-    Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='t'),
-    Bunch(module='Contents', tab='Contents', ws='right', raisekey='c'),
+    Bunch(module='Pan', tab='_pan', ws='uleft', raisekey=None),
+    Bunch(module='Info', tab='_info', ws='lleft', raisekey=None),
+    Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
+    Bunch(module='Zoom', tab='Zoom', ws='sub4', raisekey='Z'),
+    Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
+    Bunch(module='Contents', tab='Contents', ws='right', raisekey='C'),
     Bunch(module='WBrowser', tab='Help', ws='right', raisekey='?'),
     Bunch(module='Errors', tab='Errors', ws='right'),
-    Bunch(module='Log', tab='Log', ws='right'),
-    Bunch(module='Debug', tab='Debug', ws='right'),
+    Bunch(module='Log', tab='Log', ws='right', start=False),
+    Bunch(module='Debug', tab='Debug', ws='right', start=False),
     ]
 
 local_plugins = [
@@ -226,8 +226,13 @@ def main(options, args):
     t_ = prefs.createCategory('general')
     t_.setDefaults(shareReadout=False)
 
-    childDir = os.path.join(moduleHome, 'ginga', 'misc', 'plugins')
+    # TEMP: ginga needs to find its plugins
+    gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]
+    childDir = os.path.join(gingaHome, 'gtkw', 'plugins')
     sys.path.insert(0, childDir)
+    childDir = os.path.join(gingaHome, 'misc', 'plugins')
+    sys.path.insert(0, childDir)
+
     childDir = os.path.join(basedir, 'plugins')
     sys.path.insert(0, childDir)
 
@@ -280,6 +285,10 @@ def main(options, args):
         ginga.add_global_plugin(spec)
 
     ginga.update_pending()
+
+    # TEMP?
+    ginga.ds.raise_tab('Info')
+    ginga.ds.raise_tab('Thumbs')
 
     # Load modules for "local" (per-channel) plug ins
     for spec in local_plugins:
