@@ -69,29 +69,29 @@ default_layout = ['seq', {},
                     ]]
 
 global_plugins = [
-    Bunch(module='Pan', tab='Pan', ws='uleft', raisekey='i'),
-    Bunch(module='Info', tab='Info', ws='lleft', raisekey='i'),
-    Bunch(module='Header', tab='Header', ws='left', raisekey='h'),
-    Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='z'),
-    Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='t'),
+    Bunch(module='Pan', tab='Pan', ws='uleft', raisekey='I'),
+    Bunch(module='Info', tab='Info', ws='lleft', raisekey='I'),
+    Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
+    Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='Z'),
+    Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
     Bunch(module='Contents', tab='Contents', ws='right', raisekey='c'),
-    Bunch(module='WBrowser', tab='Help', ws='right', raisekey='?'),
-    Bunch(module='Errors', tab='Errors', ws='right'),
-    Bunch(module='Log', tab='Log', ws='right'),
-    Bunch(module='Debug', tab='Debug', ws='right'),
+    Bunch(module='WBrowser', tab='Help', ws='channels', raisekey='?', start=False),
+    Bunch(module='Errors', tab='Errors', ws='right', start=True),
+    Bunch(module='Log', tab='Log', ws='right', start=False),
+    Bunch(module='Debug', tab='Debug', ws='right', start=False),
     ]
 
 local_plugins = [
-    Bunch(module='Pick', ws='dialogs', startkey='f1'),
-    Bunch(module='Ruler', ws='dialogs', startkey='f2'),
-    Bunch(module='MultiDim', ws='dialogs', startkey='f4'), 
-    Bunch(module='Cuts', ws='dialogs', startkey='f5'),
-    Bunch(module='Histogram', ws='dialogs', startkey='f6'),
-    Bunch(module='PixTable', ws='dialogs', startkey='f7'),
-    Bunch(module='Preferences', ws='dialogs', startkey='f9'),
-    Bunch(module='Catalogs', ws='dialogs', startkey='f10'),
-    Bunch(module='Drawing', ws='dialogs', startkey='f11'),
-    Bunch(module='FBrowser', ws='dialogs', startkey='f12'), 
+    Bunch(module='Pick', ws='dialogs', shortkey='f1'),
+    Bunch(module='Ruler', ws='dialogs', shortkey='f2'),
+    Bunch(module='MultiDim', ws='dialogs', shortkey='f4'),
+    Bunch(module='Cuts', ws='dialogs', shortkey='f5'),
+    Bunch(module='Histogram', ws='dialogs', shortkey='f6'),
+    Bunch(module='PixTable', ws='dialogs', shortkey='f7'),
+    Bunch(module='Preferences', ws='dialogs', shortkey='f9'),
+    Bunch(module='Catalogs', ws='dialogs', shortkey='f10'),
+    Bunch(module='Drawing', ws='dialogs', shortkey='f11'),
+    Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
     ]
 
 
@@ -191,6 +191,11 @@ def main(options, args):
 
     sys.path.insert(0, basedir)
     prefs = Settings.Preferences(basefolder=basedir, logger=logger)
+    settings = prefs.createCategory('general')
+    settings.load(onError='silent')
+    settings.setDefaults(useMatplotlibColormaps=False,
+                         widgetSet='choose',
+                         WCSpkg='astropy', FITSpkg='astropy')
 
     childDir = os.path.join(moduleHome, 'ginga', 'misc', 'plugins')
     sys.path.insert(0, childDir)
@@ -225,11 +230,11 @@ def main(options, args):
     # Build desired layout
     ginga.build_toplevel()
 
-    # Did user specify geometry
+    # Did user specify a particular geometry?
     if options.geometry:
         ginga.setGeometry(options.geometry)
 
-    # Add desired tabs
+    # Add desired global plugins
     for spec in global_plugins:
         ginga.add_global_plugin(spec)
 
@@ -239,7 +244,7 @@ def main(options, args):
     guiHdlr.setFormatter(ssdlog.get_formatter())
     logger.addHandler(guiHdlr)
 
-    # Add any custom modules
+    # Load any custom modules
     if options.modules:
         modules = options.modules.split(',')
         for pluginName in modules:
@@ -253,7 +258,7 @@ def main(options, args):
     for spec in local_plugins:
         ginga.add_local_plugin(spec)
 
-    # Add any custom plugins
+    # Load any custom plugins
     if options.plugins:
         plugins = options.plugins.split(',')
         for pluginName in plugins:
@@ -351,8 +356,8 @@ def main(options, args):
         
 
 if __name__ == "__main__":
-   
-    # Parse command line options with nifty new optparse module
+
+    # Parse command line options with nifty optparse module
     from optparse import OptionParser
 
     usage = "usage: %prog [options] cmd [args]"
