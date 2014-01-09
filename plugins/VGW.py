@@ -24,6 +24,7 @@ import astro.radec as radec
 import astro.wcs as astro_wcs
 import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
+#from Gen2.starlist.starfilter import StarSelection
 
 # Local application imports
 from util import AGCCDPositions
@@ -68,15 +69,16 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.colorcalc = 'cyan'
         self.qdaschname = 'QDAS_VGW'
 
-        bank = self.fv.get_ServerBank()
-        self.starcat = bank.getCatalogServer('usnob@subaru')
+        self.catalogs = self.fv.get_ServerBank()
+        #self.starfilter = StarSelection(logger=self.logger)
 
-        # special hack needed for parallel search
-        threadPool = self.fv.get_threadPool()
-        self.starcat.reset_conn(threadPool)
-        #self.starcat.reset_conn()
+        # load preferences
+        prefs = self.fv.get_preferences()
+        self.settings = prefs.createCategory('plugin_VGW')
+        self.settings.load(onError='silent')
 
-        self.dss_server_sfx = '@subaru'
+        self.dss_server_sfx = self.settings.get('dss_server_suffix',
+                                                '@subaru')
         
         # For drawing HSC guide CCDs
         self.hscguideinfo = AGCCDPositions.SCAGCCDPositions()
@@ -549,7 +551,11 @@ class VGW(GingaPlugin.GlobalPlugin):
                 if dss_mode != 'off':
                     params = dict(ra=ra_txt, dec=dec_txt, width=wd, height=ht)
 
-                    server = dss_mode + self.dss_server_sfx
+                    # Get the DSS server name
+                    default_server = dss_mode + self.dss_server_sfx
+                    server = self.settings.get('dss_server', default_server)
+
+                    # Query the server and download file
                     fitspath = pluginObj.get_sky_image(server, params)
                     image = self.fv.load_file(fitspath, chname=chinfo.name)
                 else:
@@ -622,7 +628,12 @@ class VGW(GingaPlugin.GlobalPlugin):
             
         def query_catalogs(p):
             try:
-                query_result = self.starcat.search_ag(
+                # Get preferred guide star catalog for AG
+                catname = self.settings.get('AG_catalog', 'ag@subaru')
+                starcat = self.catalogs.getCatalogServer(catname)
+
+                # Query catalog
+                query_result = starcat.search_ag(
                     ra_deg=p.ra_deg, dec_deg=p.dec_deg, fov_deg=p.cat_fov_deg,
                     probe_ra_deg=probe_ra_deg, probe_dec_deg=probe_dec_deg,
                     focus=f_select0, inst_name=p.instrument_name,
@@ -632,7 +643,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     fov_pattern=p.fov_pattern, equinox=p.equinox,
                     )
 
-                info, starlist = self.starcat.process_result(query_result)
+                info, starlist = starcat.process_result(query_result)
                 p.info = info
                 self.logger.debug("info=%s" % (str(info)))
                 p.starlist = starlist
@@ -833,11 +844,16 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         def query_catalogs(p):
             try:
-                query_result = self.starcat.search_sh(
+                # Get preferred guide star catalog for SH
+                catname = self.settings.get('SH_catalog', 'sh@subaru')
+                starcat = self.catalogs.getCatalogServer(catname)
+
+                # Query catalog
+                query_result = starcat.search_sh(
                     ra_deg=ra_deg, dec_deg=dec_deg, equinox=2000.0,
                     fov_deg=cat_fov, upper_mag=13.0)
 
-                info, starlist = self.starcat.process_result(query_result)
+                info, starlist = starcat.process_result(query_result)
                 p.info = info
                 self.logger.debug("info=%s" % (str(info)))
                 p.starlist = starlist
@@ -1020,7 +1036,11 @@ class VGW(GingaPlugin.GlobalPlugin):
                 if dss_mode != 'off':
                     params = dict(ra=ra_txt, dec=dec_txt, width=wd, height=ht)
 
-                    server = dss_mode + self.dss_server_sfx
+                    # Get image server name
+                    default_server = dss_mode + self.dss_server_sfx
+                    server = self.settings.get('dss_server', default_server)
+
+                    # Query the server and download file
                     fitspath = pluginObj.get_sky_image(server, params)
                     image = self.fv.load_file(fitspath, chname=chinfo.name)
                 else:
@@ -1158,10 +1178,15 @@ class VGW(GingaPlugin.GlobalPlugin):
             # TODO: make these database searches concurrent
             all_stars = []
             try:
+                # Get preferred guide star catalog for HSC
+                catname = self.settings.get('HSC_catalog', 'hsc@subaru')
+                starcat = self.catalogs.getCatalogServer(catname)
+
+                # Query catalog
                 for (ra, dec, radius) in queries:
                     self.logger.debug("Querying star catalog (ccd %d): ra=%f dec=%f r=%f" % (
                         i, ra, dec, radius_deg))
-                    starlist, info = self.starcat.search(
+                    starlist, info = starcat.search(
                         ra=str(ra), dec=str(dec), r1=str(0.0), r2=str(radius),
                         catalog='', m2=str(p.limitmag), m1=str(p.goodmag))
 

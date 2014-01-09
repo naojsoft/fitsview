@@ -3,8 +3,6 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
-import remoteObjects as ro
-
 from ginga.util import wcs
 from ginga.util import catalog as StarCatalog
 from ginga.misc import Bunch, Task
@@ -16,8 +14,6 @@ from Gen2.starlist import starfilter
 class CatalogServer(object):
 
     def __init__(self, logger, full_name, key, dbhost, description):
-        ## super(CatalogServer, self).__init__(logger, full_name, key, None,
-        ##                                         description)
         self.logger = logger
         self.full_name = full_name
         self.short_name = key
@@ -62,10 +58,8 @@ class CatalogServer(object):
         # add anything here for one time setup
         self.catalog = starlist.CatalogSearch(dbhost=self.dbhost, logger=self.logger, threadpool=self.threadPool)
 
-    def search(self, **params):
-        """For compatibility with 'regular' star catalogs."""
+    def get_search_params(self, params):
 
-        print "search params=%s" % params
         ra, dec = params['ra'], params['dec']
         if not (':' in ra):
             # Assume RA and DEC are in degrees
@@ -101,6 +95,8 @@ class CatalogServer(object):
                        catalog=catalog)
         self.logger.debug("search params are %s" % (str(kwdargs)))
 
+    def search(self, **params):
+        kwdargs = self.get_search_params(params)
 
         query_result = self.catalog.search_starcatalog(ra=kwdargs['ra'], dec=kwdargs['dec'], fov=kwdargs['fov'], lowermag=kwdargs['lowermag'], uppermag=kwdargs['uppermag'], catalog=kwdargs['catalog'])
         #print "QUERY RESULT=", query_result
@@ -123,55 +119,6 @@ class CatalogServer(object):
                            num_preferred=1)
         return starlist, info
 
-
-    def search_sh(self, ra_deg=None, dec_deg=None, equinox=None,
-                  fov_deg=None, upper_mag=13.0):
-        # For SH:
-        # note: limitmag=13.0 is fixed value for sh
-        params = dict(ra=ra_deg, dec=dec_deg, fov=fov_deg, equinox=equinox,
-                      limitmag=upper_mag)
-
-        self.logger.debug("querying the server %s, params=%s" % (
-            self.svcname, str(params)))
-
-        starlist = self.catalog.search_starcatalog(ra=params['ra'], dec=params['dec'], fov=params['fov'], lowermag=0, uppermag=params['limitmag'])
-
-        
-        star_select = starfilter.StarSelection(logger=self.logger)
-        starlist = star_select.select_sh_stars(kargs=params, starlist=starlist)
-
-        result = { 'selected_stars': starlist, 'prefered_num': len(starlist) }
-        return result
-
-
-    def search_ag(self, ra_deg=None, dec_deg=None, fov_deg=None,
-                  probe_ra_deg=None, probe_dec_deg=None, equinox=None,
-                  focus=None, inst_name=None,  probe_r=None, probe_theta=None,
-                  probe_x=None, probe_y=None, pos_ang_deg=None, upper_mag=None,
-                  pref_mag=None, fov_pattern=None):
-
-        # For AG:
-        # focus in { CS, NS_IR, NS_OPT, P_OPT, P_IR }
-        # inst in { MOIRCS, etc. }
-        # note: ra, dec, fov, probe_ra, probe_dec, pa are in degrees
-        params = dict(ra=ra_deg, dec=dec_deg, fov=fov_deg, equinox=equinox,
-                      probe_ra=probe_ra_deg, probe_dec=probe_dec_deg, 
-                      focus=focus, ins=inst_name, probe_r=probe_r, 
-                      probe_theta=probe_theta, probe_x=probe_x,
-                      probe_y=probe_y, pa=pos_ang_deg, limitmag=upper_mag,
-                      goodmag=pref_mag, fov_pattern=fov_pattern)
-
-        self.logger.debug("querying the server %s, params=%s" % (
-            self.svcname, str(params)))
-
-        # CHANGE vvvvvv
-        starlist = self.catalog.search_starcatalog(ra=params['ra'], dec=params['dec'], fov=params['fov'], lowermag=0, uppermag=params['limitmag'], pa=params['pa'], focus=params['focus'])
-     
-        star_select = starfilter.StarSelection(logger=self.logger)
-        starlist = star_select.select_ag_stars(kargs=params, starlist=starlist)
-
-        result = { 'selected_stars': starlist, 'prefered_num': len(starlist) }         
-        return result
 
     def process_starlist(self, starlist):
 
@@ -250,4 +197,82 @@ class CatalogServer(object):
         results = self.process_starlist(starlist)
         return info, results
 
+
+class AgCatalogServer(CatalogServer):
+
+    def search_ag(self, ra_deg=None, dec_deg=None, fov_deg=None,
+                  probe_ra_deg=None, probe_dec_deg=None, equinox=None,
+                  focus=None, inst_name=None,  probe_r=None, probe_theta=None,
+                  probe_x=None, probe_y=None, pos_ang_deg=None, upper_mag=None,
+                  pref_mag=None, fov_pattern=None):
+
+        # For AG:
+        # focus in { CS, NS_IR, NS_OPT, P_OPT, P_IR }
+        # inst in { MOIRCS, etc. }
+        # note: ra, dec, fov, probe_ra, probe_dec, pa are in degrees
+        params = dict(ra=ra_deg, dec=dec_deg, fov=fov_deg, equinox=equinox,
+                      probe_ra=probe_ra_deg, probe_dec=probe_dec_deg, 
+                      focus=focus, ins=inst_name, probe_r=probe_r, 
+                      probe_theta=probe_theta, probe_x=probe_x,
+                      probe_y=probe_y, pa=pos_ang_deg, limitmag=upper_mag,
+                      goodmag=pref_mag, fov_pattern=fov_pattern)
+
+        self.logger.debug("querying the server %s, params=%s" % (
+            self.svcname, str(params)))
+
+        # CHANGE vvvvvv
+        starlist = self.catalog.search_starcatalog(ra=params['ra'], dec=params['dec'], fov=params['fov'], lowermag=0, uppermag=params['limitmag'], pa=params['pa'], focus=params['focus'])
+     
+        star_select = starfilter.StarSelection(logger=self.logger)
+        starlist = star_select.select_ag_stars(kargs=params, starlist=starlist)
+        
+        result = { 'selected_stars': starlist, 'prefered_num': len(starlist) }         
+        return result
+
+    def search(self, **params):
+
+        p = params.copy()
+        
+        query_result = starcat.search_ag(
+            ra_deg=p.ra_deg, dec_deg=p.dec_deg, fov_deg=p.cat_fov_deg,
+            probe_ra_deg=probe_ra_deg, probe_dec_deg=probe_dec_deg,
+            focus=f_select0, inst_name=p.instrument_name,
+            probe_r=p.probe_r, probe_theta=p.probe_theta,
+            probe_x=p.probe_x, probe_y=p.probe_y, pos_ang_deg=p.ag_pa,
+            upper_mag=p.limitmag, pref_mag=p.goodmag,
+            fov_pattern=p.fov_pattern, equinox=p.equinox,
+            )
+
+        return self.process_result(query_result)
+        
+
+class ShCatalogServer(CatalogServer):
+
+    def search_sh(self, ra_deg=None, dec_deg=None, equinox=None,
+                  fov_deg=None, upper_mag=13.0):
+        # For SH:
+        # note: limitmag=13.0 is fixed value for sh
+        params = dict(ra=ra_deg, dec=dec_deg, fov=fov_deg, equinox=equinox,
+                      limitmag=upper_mag)
+
+        self.logger.debug("querying the server %s, params=%s" % (
+            self.svcname, str(params)))
+
+        starlist = self.catalog.search_starcatalog(ra=params['ra'], dec=params['dec'], fov=params['fov'], lowermag=0, uppermag=params['limitmag'])
+
+        
+        star_select = starfilter.StarSelection(logger=self.logger)
+        starlist = star_select.select_sh_stars(kargs=params, starlist=starlist)
+
+        result = { 'selected_stars': starlist, 'prefered_num': len(starlist) }
+        return result
+
+    def search(self, **params):
+
+        query_result = self.search_sh(ra_deg=ra_deg, dec_deg=dec_deg,
+                                      equinox=2000.0,
+                                      fov_deg=cat_fov, upper_mag=13.0)
+        
+        return self.process_result(query_result)
+        
 #END
