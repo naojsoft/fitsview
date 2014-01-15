@@ -24,7 +24,6 @@ import astro.radec as radec
 import astro.wcs as astro_wcs
 import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
-#from Gen2.starlist.starfilter import StarSelection
 
 # Local application imports
 from util import AGCCDPositions
@@ -70,7 +69,6 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.qdaschname = 'QDAS_VGW'
 
         self.catalogs = self.fv.get_ServerBank()
-        #self.starfilter = StarSelection(logger=self.logger)
 
         # load preferences
         prefs = self.fv.get_preferences()
@@ -625,6 +623,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         f_select0 = p.f_select.upper()
         if f_select0 in ('CS_OPT', 'CS_IR'):
             f_select0 = 'CS'
+        radius = p.cat_fov_deg * 60.0
             
         def query_catalogs(p):
             try:
@@ -633,15 +632,27 @@ class VGW(GingaPlugin.GlobalPlugin):
                 starcat = self.catalogs.getCatalogServer(catname)
 
                 # Query catalog
-                query_result = starcat.search_ag(
-                    ra_deg=p.ra_deg, dec_deg=p.dec_deg, fov_deg=p.cat_fov_deg,
-                    probe_ra_deg=probe_ra_deg, probe_dec_deg=probe_dec_deg,
-                    focus=f_select0, inst_name=p.instrument_name,
-                    probe_r=p.probe_r, probe_theta=p.probe_theta,
-                    probe_x=p.probe_x, probe_y=p.probe_y, pos_ang_deg=p.ag_pa,
-                    upper_mag=p.limitmag, pref_mag=p.goodmag,
-                    fov_pattern=p.fov_pattern, equinox=p.equinox,
-                    )
+                ## query_result = starcat.search_ag(
+                ##     ra_deg=p.ra_deg, dec_deg=p.dec_deg, fov_deg=p.cat_fov_deg,
+                ##     probe_ra_deg=probe_ra_deg, probe_dec_deg=probe_dec_deg,
+                ##     focus=f_select0, inst_name=p.instrument_name,
+                ##     probe_r=p.probe_r, probe_theta=p.probe_theta,
+                ##     probe_x=p.probe_x, probe_y=p.probe_y, pos_ang_deg=p.ag_pa,
+                ##     upper_mag=p.limitmag, pref_mag=p.goodmag,
+                ##     fov_pattern=p.fov_pattern, equinox=p.equinox,
+                ##     )
+                query_result = starcat.search(
+                    ra=str(p.ra_deg), dec=str(p.dec_deg), equinox=p.equinox,
+                    r1=str(0.0), r2=str(radius),
+                    m2=str(p.limitmag), m1=str(p.goodmag),
+                    focus=f_select0, pa=p.ag_pa,
+                    inst_name=p.instrument_name,
+                    probe_ra_deg=probe_ra_deg,
+                    probe_dec_deg=probe_dec_deg,
+                    probe_r=p.probe_r,
+                    probe_theta=p.probe_theta,
+                    probe_x=p.probe_x, probe_y=p.probe_y,
+                    fov_pattern=p.fov_pattern)
 
                 info, starlist = starcat.process_result(query_result)
                 p.info = info
@@ -848,10 +859,14 @@ class VGW(GingaPlugin.GlobalPlugin):
                 catname = self.settings.get('SH_catalog', 'sh@subaru')
                 starcat = self.catalogs.getCatalogServer(catname)
 
+                radius = cat_fov * 60.0
                 # Query catalog
-                query_result = starcat.search_sh(
-                    ra_deg=ra_deg, dec_deg=dec_deg, equinox=2000.0,
-                    fov_deg=cat_fov, upper_mag=13.0)
+                # query_result = starcat.search(
+                #     ra_deg=ra_deg, dec_deg=dec_deg, equinox=2000.0,
+                #     fov_deg=cat_fov, upper_mag=13.0)
+                query_result = starcat.search(
+                    ra=ra_deg, dec=dec_deg, equinox=2000.0,
+                    r1=0.0, r2=radius, m1=0.0, m2=13.0)
 
                 info, starlist = starcat.process_result(query_result)
                 p.info = info
@@ -1179,7 +1194,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             all_stars = []
             try:
                 # Get preferred guide star catalog for HSC
-                catname = self.settings.get('HSC_catalog', 'hsc@subaru')
+                catname = self.settings.get('HSC_catalog', 'hscag@subaru')
                 starcat = self.catalogs.getCatalogServer(catname)
 
                 # Query catalog
@@ -2029,8 +2044,6 @@ class HSCfov(object):
 
         return all_stars
 
-
-        
         # updated_stars = []
 
         # self.logger.info('Ps=%s' %str(p))

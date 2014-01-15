@@ -196,7 +196,9 @@ def main(options, args):
                                   options.monport)
 
     # monitor channels we are interested in
-    channels = options.monchannels.split(',')
+    channels = []
+    if len(options.monchannels) > 0:
+        channels = options.monchannels.split(',')
 
     # Create a local pub sub instance
     mymon = Monitor.Monitor(myMonName, logger,
@@ -340,7 +342,8 @@ def main(options, args):
 
         if options.monitor:
             # subscribe our monitor to the central monitor hub
-            mymon.subscribe_remote(options.monitor, channels, {})
+            if len(channels) > 0:
+                mymon.subscribe_remote(options.monitor, channels, {})
             # publishing for remote command executions
             mymon.publish_to(options.monitor, ['sound', 'g2task'], {})
 
