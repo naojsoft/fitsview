@@ -4,7 +4,6 @@
 # Takeshi Inagaki
 # Eric Jeschke (eric@naoj.org)
 #
-import gtk, gobject
 import os, pwd
 import re, time
 
@@ -153,9 +152,11 @@ class ANA(GingaPlugin.GlobalPlugin):
             p.result = 'ok'
             future.resolve(0)
 
-        msecs = 1000 * sleep_time
-        # Don't block the GUI thread!
-        gobject.timeout_add(msecs, _sleep, future)
+        # TODO: Don't block the GUI thread!
+        #gobject.timeout_add(msecs, _sleep, future)
+        time.sleep(sleep_time)
+
+        _sleep(future)
 
 
     def show_fits(self, fitspath):

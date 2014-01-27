@@ -32,9 +32,7 @@ import Gen2.soundsink as SoundSink
 from ginga.misc import ModuleManager, Datasrc, Settings
 from ginga.misc.Bunch import Bunch
 from ginga.Control import GingaControl, GuiLogHandler
-from ginga import toolkit
-toolkit.use('gtk2')
-from ginga.gtkw.GingaGtk import GingaView
+import ginga.toolkit as ginga_toolkit
 
 # Local application imports
 from util import Receive
@@ -77,6 +75,8 @@ global_plugins = [
     Bunch(module='Contents', tab='Contents', ws='right', raisekey='c'),
     Bunch(module='WBrowser', tab='Help', ws='channels', raisekey='?', start=False),
     Bunch(module='Errors', tab='Errors', ws='right', start=True),
+    Bunch(module='RC', tab='RC', ws='right', start=False),
+    Bunch(module='SAMP', tab='SAMP', ws='right', start=False),
     Bunch(module='Log', tab='Log', ws='right', start=False),
     Bunch(module='Debug', tab='Debug', ws='right', start=False),
     ]
@@ -94,50 +94,52 @@ local_plugins = [
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
     ]
 
-
-class DisplayFITS(GingaControl, GingaView):
-    """This class manages the creation and handling of a FITS viewer GUI.
-    The class is constructed with a data source and it reads images from the
-    source and displays them.
-    """
-     
-    def __init__(self, logger, threadPool, module_manager, preferences,
-                 soundsink, ev_quit=None):
-
-        self.controller = None
-        self.soundsink = soundsink
-        
-        GingaView.__init__(self, logger, ev_quit=ev_quit)
-        GingaControl.__init__(self, logger, threadPool, module_manager,
-                              preferences, ev_quit=ev_quit)
-
-
-    def load_file(self, fitspath, chname=None, wait=True):
-        """Loads a command file from _fitspath_ into the commands window.
+def get_displayfits(viewKlass):
+    class DisplayFITS(GingaControl, viewKlass):
+        """This class manages the creation and handling of a FITS viewer GUI.
+        The class is constructed with a data source and it reads images from the
+        source and displays them.
         """
-        try:
-            image = self.controller.open_fits(fitspath, channel=chname,
-                                              wait=wait)
-            return image
 
-        except Exception as e:
-            errmsg = "Unable to open '%s': %s" % (
-                fitspath, str(e))
-            self.show_error(errmsg)
-            return ro.ERROR
+        def __init__(self, logger, threadPool, module_manager, preferences,
+                     soundsink, ev_quit=None):
+
+            self.controller = None
+            self.soundsink = soundsink
+
+            viewKlass.__init__(self, logger, ev_quit=ev_quit)
+            GingaControl.__init__(self, logger, threadPool, module_manager,
+                                  preferences, ev_quit=ev_quit)
 
 
-    def play_soundfile(self, filepath, format=None, priority=20):
-        self.soundsink.playFile(filepath, format=format,
-                                priority=priority)
-        
-    def gui_load_file(self):
-        """Runs dialog to read in a command file into the command window.
-        """
-        initialdir = os.environ['DATAHOME']
-        
-        super(DisplayFITS, self).gui_load_file(initialdir=initialdir)
-        
+        def load_file(self, fitspath, chname=None, wait=True):
+            """Loads a command file from _fitspath_ into the commands window.
+            """
+            try:
+                image = self.controller.open_fits(fitspath, channel=chname,
+                                                  wait=wait)
+                return image
+
+            except Exception as e:
+                errmsg = "Unable to open '%s': %s" % (
+                    fitspath, str(e))
+                self.show_error(errmsg)
+                return ro.ERROR
+
+
+        def play_soundfile(self, filepath, format=None, priority=20):
+            self.soundsink.playFile(filepath, format=format,
+                                    priority=priority)
+
+        def gui_load_file(self):
+            """Runs dialog to read in a command file into the command window.
+            """
+            initialdir = os.environ['DATAHOME']
+
+            super(DisplayFITS, self).gui_load_file(initialdir=initialdir)
+
+    return DisplayFITS
+
         
 def main(options, args):
     """Implements the display server.  Creates a DisplayFITS object
@@ -145,6 +147,9 @@ def main(options, args):
     them together.  It runs until a ^C is used to terminate the server.
     """
 
+    # default of 1000 is a little too small
+    sys.setrecursionlimit(2000)
+    
     # Create top level logger.
     logger = ssdlog.make_logger(options.svcname, options)
 
@@ -199,10 +204,34 @@ def main(options, args):
                          widgetSet='choose',
                          WCSpkg='astropy', FITSpkg='astropy')
 
+    # Choose a toolkit
+    if options.toolkit:
+        toolkit = options.toolkit
+    else:
+        toolkit = settings.get('widgetSet', 'choose')
+
+    ginga_toolkit.use(toolkit)
+    tkname = ginga_toolkit.get_family()
+    
+    if tkname == 'gtk':
+        from ginga.gtkw.GingaGtk import GingaView
+    elif tkname == 'qt':
+        from ginga.qtw.GingaQt import GingaView
+    else:
+        try:
+            from ginga.qtw.GingaQt import GingaView
+        except ImportError:
+            try:
+                from ginga.gtkw.GingaGtk import GingaView
+            except ImportError:
+                print("You need python-gtk or python-qt4 to run Ginga!")
+                sys.exit(1)
+
     # TEMP: ginga needs to find its plugins
     gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]
-    childDir = os.path.join(gingaHome, 'gtkw', 'plugins')
-    sys.path.insert(0, childDir)
+    ## widgetDir = tkname + 'w'
+    ## childDir = os.path.join(gingaHome, widgetDir, 'plugins')
+    ## sys.path.insert(0, childDir)
     childDir = os.path.join(gingaHome, 'misc', 'plugins')
     sys.path.insert(0, childDir)
 
@@ -212,8 +241,9 @@ def main(options, args):
     mm = ModuleManager.ModuleManager(logger)
     
     # Start up the display engine
-    ginga = DisplayFITS(logger, threadPool, mm, prefs,
-                        sndsink, ev_quit=ev_quit)
+    disp_klass = get_displayfits(GingaView)
+    ginga = disp_klass(logger, threadPool, mm, prefs,
+                       sndsink, ev_quit=ev_quit)
     ginga.set_layout(default_layout)
     ginga.followFocus(True)
 
@@ -417,6 +447,9 @@ if __name__ == "__main__":
     optprs.add_option("--svcname", dest="svcname", metavar="NAME",
                       default=defaultServiceName,
                       help="Register using NAME as service name")
+    optprs.add_option("-t", "--toolkit", dest="toolkit", metavar="NAME",
+                      default=None,
+                      help="Prefer GUI toolkit (gtk|qt)")
     ssdlog.addlogopts(optprs)
 
     (options, args) = optprs.parse_args(sys.argv[1:])

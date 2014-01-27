@@ -3,11 +3,8 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
-import gtk
-import pango
-from ginga.gtkw import GtkHelp
-
 from ginga import GingaPlugin
+from ginga.misc import Widgets
 
 class Ana_UserInput(GingaPlugin.LocalPlugin):
 
@@ -16,38 +13,37 @@ class Ana_UserInput(GingaPlugin.LocalPlugin):
         super(Ana_UserInput, self).__init__(fv, fitsimage)
 
     def build_gui(self, container, future=None):
-        vbox1 = gtk.VBox()
-        vbox = gtk.VBox()
+        vbox1 = Widgets.VBox()
+        vbox = Widgets.VBox()
         
-        fr = gtk.Frame()
-        fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        fr.set_label_align(0.1, 0.5)
-        fr.add(vbox)
+        fr = Widgets.Frame()
+        fr.set_widget(vbox)
         
-        self.lbl = gtk.Label()
-        vbox.pack_start(self.lbl, padding=4, fill=True, expand=True)
+        self.lbl = Widgets.Label()
+        vbox.add_widget(self.lbl, stretch=0)
 
-        vbox2 = gtk.VBox()
+        vbox2 = Widgets.VBox()
         self.entries = vbox2
-        vbox.pack_start(vbox2, padding=4, fill=True, expand=False)
+        vbox.add_widget(vbox2, stretch=1)
 
-        vbox1.pack_start(fr, padding=4, fill=True, expand=True)
+        vbox1.add_widget(fr, stretch=0)
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(3)
+        btns = Widgets.HBox()
+        btns.set_spacing(4)
+        btns.set_border_width(4)
 
-        btn = gtk.Button("Ok")
-        btn.connect('clicked', lambda w: self.ok())
-        btns.add(btn)
-        btn = gtk.Button("Cancel")
-        btn.connect('clicked', lambda w: self.cancel())
-        btns.add(btn)
-        vbox1.pack_start(btns, padding=4, fill=True, expand=False)
+        btn = Widgets.Button("Ok")
+        btn.add_callback('activated', lambda w: self.ok())
+        btns.add_widget(btn)
+        btn = Widgets.Button("Cancel")
+        btn.add_callback('activated', lambda w: self.cancel())
+        btns.add_widget(btn)
+        vbox1.add_widget(btns, stretch=0)
 
-        vbox1.show_all()
-        cw = container.get_widget()
-        cw.pack_start(vbox1, padding=0, fill=True, expand=False)
+        # stretch/spacer
+        vbox1.add_widget(Widgets.Label(""), stretch=1)
+
+        container.add_widget(vbox1, stretch=0)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
@@ -62,30 +58,29 @@ class Ana_UserInput(GingaPlugin.LocalPlugin):
         self.lbl.set_text(p.title)
 
         # Remove previous entries
-        for w in self.entries.get_children():
-            self.entries.remove(w)
+        self.entries.remove_all()
 
         p.resDict = {}
 
-        tbl = gtk.Table(rows=len(p.itemlist), columns=2)
-        tbl.set_row_spacings(2)
-        tbl.set_col_spacings(2)
+        tbl = Widgets.GridBox(rows=len(p.itemlist), columns=2)
+        tbl.set_row_spacing(2)
+        tbl.set_column_spacing(2)
 
         row = 0
         for name, val in p.itemlist:
-            lbl = gtk.Label(name)
-            lbl.set_alignment(1.0, 0.5)
-            ent = gtk.Entry()
+            lbl = Widgets.Label(name)
+            #lbl.set_alignment(1.0, 0.5)
+            ent = Widgets.TextEntry()
+            ent.set_length(100)
             val_s = str(val)
             ent.set_text(val_s)
             p.resDict[name] = ent
 
-            tbl.attach(lbl, 0, 1, row, row+1, xoptions=gtk.FILL)
-            tbl.attach(ent, 1, 2, row, row+1, xoptions=gtk.EXPAND|gtk.FILL)
+            tbl.add_widget(lbl, 0, row, stretch=0)
+            tbl.add_widget(ent, 1, row, stretch=1)
             row += 1
 
-        tbl.show_all()
-        self.entries.pack_start(tbl, fill=True, expand=False, padding=2)
+        self.entries.add_widget(tbl, stretch=0)
 
     def resume(self):
         pass

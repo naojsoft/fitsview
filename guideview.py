@@ -173,6 +173,9 @@ def main(options, args):
     them together.  It runs until a ^C is used to terminate the server.
     """
 
+    # default of 1000 is a little too small
+    sys.setrecursionlimit(2000)
+    
     # Create top level logger.
     svcname = options.svcname
     logger = ssdlog.make_logger(svcname, options)

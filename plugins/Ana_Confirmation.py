@@ -3,10 +3,8 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
-import gtk
-from ginga.gtkw import GtkHelp
-
 from ginga import GingaPlugin
+from ginga.misc import Widgets
 
 class Ana_Confirmation(GingaPlugin.LocalPlugin):
 
@@ -15,37 +13,37 @@ class Ana_Confirmation(GingaPlugin.LocalPlugin):
         super(Ana_Confirmation, self).__init__(fv, fitsimage)
 
     def build_gui(self, container, future=None):
-        vbox1 = gtk.VBox()
-        vbox = gtk.VBox()
+        vbox1 = Widgets.VBox()
+        vbox = Widgets.VBox()
         
-        fr = gtk.Frame()
-        fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        fr.set_label_align(0.1, 0.5)
-        fr.add(vbox)
+        fr = Widgets.Frame()
+        fr.set_widget(vbox)
         
-        self.lbl = gtk.Label()
-        vbox.pack_start(self.lbl, padding=4, fill=True, expand=True)
+        self.lbl = Widgets.Label()
+        vbox.add_widget(self.lbl, stretch=0)
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(3)
+        btns = Widgets.HBox()
+        btns.set_spacing(4)
+        btns.set_border_width(4)
         self.btns = btns
-        vbox.pack_start(btns, padding=4, fill=True, expand=False)
+        vbox.add_widget(btns, stretch=0)
 
-        vbox1.pack_start(fr, padding=4, fill=True, expand=True)
+        vbox1.add_widget(fr, stretch=0)
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(3)
+        btns = Widgets.HBox()
+        btns.set_spacing(4)
+        btns.set_border_width(4)
 
-        btn = gtk.Button("Cancel")
-        btn.connect('clicked', lambda w: self.cancel())
-        btns.add(btn)
-        vbox1.pack_start(btns, padding=4, fill=True, expand=False)
+        btn = Widgets.Button("Cancel")
+        btn.add_callback('activated', lambda w: self.cancel())
+        btns.add_widget(btn)
+        btns.add_widget(Widgets.Label(''), stretch=1)
+        vbox1.add_widget(btns, stretch=0)
 
-        vbox1.show_all()
-        cw = container.get_widget()
-        cw.pack_start(vbox1, padding=0, fill=True, expand=False)
+        # stretch/spacer
+        vbox1.add_widget(Widgets.Label(""), stretch=1)
+
+        container.add_widget(vbox1, stretch=0)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
@@ -60,8 +58,7 @@ class Ana_Confirmation(GingaPlugin.LocalPlugin):
         self.lbl.set_text(p.title)
 
         # Remove previous buttons
-        for w in self.btns.get_children():
-            self.btns.remove(w)
+        self.btns.remove_all()
 
         def cb(index):
             return lambda w: self.ok(index)
@@ -69,10 +66,11 @@ class Ana_Confirmation(GingaPlugin.LocalPlugin):
         items = p.dialog.split()
         index = 1
         for name in items:
-            btn = gtk.Button(name)
-            btn.connect('clicked', cb(index))
-            self.btns.add(btn)
+            btn = Widgets.Button(name)
+            btn.add_callback('activated', cb(index))
+            self.btns.add_widget(btn, stretch=0)
             index += 1
+        #self.btns.add_widget(Widgets.Label(''), stretch=1)
 
     def resume(self):
         pass
