@@ -77,6 +77,7 @@ global_plugins = [
     Bunch(module='Errors', tab='Errors', ws='right', start=True),
     Bunch(module='RC', tab='RC', ws='right', start=False),
     Bunch(module='SAMP', tab='SAMP', ws='right', start=False),
+    Bunch(module='IRAF', tab='IRAF', ws='right', start=False),
     Bunch(module='Log', tab='Log', ws='right', start=False),
     Bunch(module='Debug', tab='Debug', ws='right', start=False),
     ]
