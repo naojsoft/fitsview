@@ -38,7 +38,8 @@ class ReceiveFITS(object):
         self.insconfig = INSconfig.INSdata()
 
         self._rlock = threading.RLock()
-        
+
+        self.fv.enable_callback('file-notify')
 
     def open_fits(self, filepath, frameid=None, channel=None, wait=False):
 
@@ -170,6 +171,11 @@ class ReceiveFITS(object):
                     fitspath, str(e)))
             return ro.ERROR
 
+        return ro.OK
+
+
+    def file_notify(self, filepath):
+        self.fv.make_callback('file-notify', filepath)
         return ro.OK
 
 
@@ -344,11 +350,12 @@ class ReceiveFITS(object):
                 return
 
             try:
-                with self._rlock:
-                    self.logger.debug("Attempting to display '%s'" % (
-                        fitspath))
-                    self.display_fitsfile(fitspath, frameid=frameid)
-
+                # with self._rlock:
+                #     self.logger.debug("Attempting to display '%s'" % (
+                #         fitspath))
+                #     self.display_fitsfile(fitspath, frameid=frameid)
+                self.fv.make_callback('file-notify', fitspath)
+                
             except Exception, e:
                 self.logger.error("Error displaying '%s': %s" % (
                     fitspath, str(e)))

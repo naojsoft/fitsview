@@ -93,6 +93,7 @@ local_plugins = [
     Bunch(module='Catalogs', ws='dialogs', shortkey='f10'),
     Bunch(module='Drawing', ws='dialogs', shortkey='f11'),
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
+    Bunch(module='SPCAM', ws='dialogs'),
     ]
 
 def get_displayfits(viewKlass):

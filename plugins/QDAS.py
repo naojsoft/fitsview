@@ -404,6 +404,9 @@ class QDAS(GingaPlugin.GlobalPlugin):
         except Exception, e:
             p.setvals(result='error', errmsg=str(e))
 
+        # Function objects cannot be marshalled
+        p.load_frame = None
+
         self.logger.debug("telescope move cb terminating: res=%s" % (str(p)))
         future.resolve(0)
         
