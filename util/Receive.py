@@ -18,6 +18,8 @@ from ginga.misc import Bunch, Future
 from ginga import AstroImage, RGBImage
 from ginga.util import wcs
 
+from astro.frame import Frame
+
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.Archiver$')
 
@@ -39,7 +41,7 @@ class ReceiveFITS(object):
 
         self._rlock = threading.RLock()
 
-        self.fv.enable_callback('file-notify')
+        self.fv.set_callback('file-notify', self.file_notify_cb)
 
     def open_fits(self, filepath, frameid=None, channel=None, wait=False):
 
@@ -174,11 +176,34 @@ class ReceiveFITS(object):
         return ro.OK
 
 
+    def file_notify_cb(self, fv, filepath):
+        """
+        This gets called when we are being notified of a new file.
+        """
+
+        self.logger.info("Notified of new file: %s" % (filepath))
+        frame = Frame(path=filepath)
+
+        if frame.inscode in ('HSC', 'SUP'):
+            # Don't display raw HSC frames; mosaic plugin will display them
+            return
+        
+        frameid = str(frame)
+
+        try:
+            with self._rlock:
+                self.logger.debug("Attempting to display '%s'" % (
+                    filepath))
+                self.display_fitsfile(filepath, frameid=frameid)
+
+        except Exception, e:
+            self.logger.error("Error displaying '%s': %s" % (
+                filepath, str(e)))
+
     def file_notify(self, filepath):
-        self.fv.make_callback('file-notify', filepath)
-        return ro.OK
-
-
+        self.file_notify_cb(self.fv, filepath)
+        return 0
+    
     ## def executeCmd(self, subsys, tag, cmdName, args, kwdargs):
 
     ##     self.logger.debug("Command received: subsys=%s command=%s args=%s kwdargs=%s tag=%s" % (
@@ -349,16 +374,8 @@ class ReceiveFITS(object):
             except KeyError:
                 return
 
-            try:
-                # with self._rlock:
-                #     self.logger.debug("Attempting to display '%s'" % (
-                #         fitspath))
-                #     self.display_fitsfile(fitspath, frameid=frameid)
-                self.fv.make_callback('file-notify', fitspath)
-                
-            except Exception, e:
-                self.logger.error("Error displaying '%s': %s" % (
-                    fitspath, str(e)))
+            self.fv.make_callback('file-notify', fitspath)
+
 
     def arr_taskinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
