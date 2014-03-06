@@ -45,7 +45,7 @@ default_layout = ['seq', {},
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', {},
-                     ['ws', dict(name='left', width=340, group=2),
+                     ['ws', dict(name='left', width=300, group=2),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,

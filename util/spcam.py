@@ -7,11 +7,15 @@
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
 #
-import os.path
+import os
+import re
 import numpy
 
+from ginga import AstroImage
 from ginga.misc import Bunch
-from ginga.util import dp
+from ginga.util import dp, mosaic, io_fits
+
+from astro.frame import Frame
 
 
 def get_regions(image, pfx='S'):
@@ -132,49 +136,123 @@ def subtract_overscan_np(data_np, d, pfx='S', header=None):
     return out
 
 
-## def make_flat_v1(flatlist, bias=None, pfx='S'):
+def make_flat(flatlist, bias=None, pfx='S'):
 
-##     flats = []
-##     for path in flatlist:
-##         image = AstroImage.AstroImage()
-##         image.load_file(path)
+    flats = []
+    for path in flatlist:
+        image = AstroImage.AstroImage()
+        image.load_file(path)
 
-##         data_np = image.get_data()
-##         # TODO: subtract optional bias image
+        data_np = image.get_data()
+        # TODO: subtract optional bias image
 
-##         # subtract overscan and trim
-##         d = get_regions(image, pfx=pfx)
-##         header = {}
-##         newarr = subtract_overscan_np(data_np, d, header=header)
+        # subtract overscan and trim
+        d = get_regions(image, pfx=pfx)
+        header = {}
+        newarr = subtract_overscan_np(data_np, d, header=header)
         
-##         flats.append(newarr)
+        flats.append(newarr)
 
-##     # Take the median of the individual frames
-##     flat = numpy.median(numpy.array(flats), axis=0)
-##     #print flat.shape
+    # Take the median of the individual frames
+    flat = numpy.median(numpy.array(flats), axis=0)
+    #print flat.shape
 
-##     # Normalize flat
-##     flat = flat / numpy.mean(flat.flat)
+    # Normalize flat
+    #flat = flat / numpy.mean(flat.flat)
 
-##     img_flat = dp.make_image(flat, image, header)
-##     return img_flat
+    img_flat = dp.make_image(flat, image, header)
+    return img_flat
 
 
-## def make_flats(datadir, explist, pfx='S'):
+def make_mosaic_flat(logger, datadir, explist, pfx='S', num_ccd=10,
+                     fov_deg=0.72, outfile=None):
 
-##     flats = []
-##     for i in xrange(10):
-##         flatlist = []
-##         for exp in explist:
-##             path = os.path.join(datadir, exp.upper()+'.fits')
-##             frame = Frame(path=path)
-##             frame.number += i
-##             flatlist.append(os.path.join(datadir, str(frame)+'.fits'))
+    # Get the median values for each CCD image
+    flats = []
+    for i in xrange(num_ccd):
+        flatlist = []
+        for exp in explist:
+            path = os.path.join(datadir, exp.upper()+'.fits')
+            if not os.path.exists(path):
+                continue
+            frame = Frame(path=path)
+            frame.number += i
+            flatlist.append(os.path.join(datadir, str(frame)+'.fits'))
 
-##         flats.append(make_flat(flatlist, pfx=pfx))
+        flats.append(make_flat(flatlist, pfx=pfx))
 
-##     return flats
-            
+    # Normalize the flats
+    flatarr = numpy.array([ image.get_data() for image in flats ])
+    mval = numpy.median(flatarr.flat)
+
+    for image in flats:
+        flat = image.get_data()
+        flat /= mval
+
+    # Construct mosaic
+    mosaic_flat = mosaic.mosaic(logger, flats, fov_deg=fov_deg)
+
+    # no zero divisors
+    flat_np = mosaic_flat.get_data()
+    flat_np[flat_np == 0.0] = 1.0
+
+    if outfile:
+        io_fits.use('astropy')
+
+        logger.info("Writing output to '%s'..." % (outfile))
+        mosaic_flat.save_as_file(outfile)
+
+    return mosaic_flat
+
+
+def get_flat_name(pfx, image):
+    ftype, filt, date, ut = image.get_keywords_list('OBJECT', 'FILTER01',
+                                                    'DATE-OBS', 'UT-STR')
+    match = re.match(r'^(\d\d):(\d\d):(\d\d)\.\d+$', ut)
+    ut = ''.join(match.groups())
+    match = re.match(r'^(\d\d\d\d)\-(\d+)\-(\d+)$', date)
+    date = ''.join(match.groups())
+    fname = '%s-flat-%s-%s-%s-%s.fits' % (pfx, date, ut, ftype, filt)
+    return fname
+
+    
+def make_mosaic_spcam(logger, datadir, expstart, num_exp, outdir='.'):
+    path = os.path.join(datadir, expstart.upper()+'.fits')
+    explist = []
+    for i in xrange(num_exp):
+        frame = Frame(path=path)
+        frame.number += i*10
+        explist.append(str(frame))
+
+    mosaic = make_mosaic_flat(logger, datadir, explist, pfx='S',
+                              num_ccd=10, fov_deg=0.72, outfile=None)
+
+    outfile = os.path.join(outdir, get_flat_name('spcam', mosaic))
+    try:
+        os.remove(outfile)
+    except OSError:
+        pass
+    mosaic.save_as_file(outfile)
+
+
+def make_mosaic_hsc(logger, datadir, expstart, num_exp, outdir='.'):
+    path = os.path.join(datadir, expstart.upper()+'.fits')
+    explist = []
+    for i in xrange(num_exp):
+        frame = Frame(path=path)
+        frame.number += i*200
+        explist.append(str(frame))
+
+    mosaic = make_mosaic_flat(logger, datadir, explist, pfx='T',
+                              num_ccd=200, fov_deg=2.0, outfile=None)
+
+    outfile = os.path.join(outdir, get_flat_name('hsc', mosaic))
+    try:
+        os.remove(outfile)
+    except OSError:
+        pass
+    mosaic.save_as_file(outfile)
+
     
 def step2(image, pfx='S'):
 

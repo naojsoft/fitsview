@@ -15,7 +15,7 @@ from ginga import GingaPlugin
 from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
 from ginga.misc import Future, Bunch
 from ginga import AstroImage
-from ginga.util import wcs
+from ginga.util import wcs, dp
 
 # PYHOME imports
 import remoteObjects as ro
@@ -561,9 +561,10 @@ class VGW(GingaPlugin.GlobalPlugin):
                     #px_scale = self.calculate_fov_scale(p.f_select)
                     px_scale = 0.0004722298
                     #px_scale = 0.000280178318866
-                    image = self.create_blank_image(ra_deg, dec_deg,
-                                                    dss_fov_deg,
-                                                    px_scale, 0.0)
+                    image = dp.create_blank_image(ra_deg, dec_deg,
+                                                  dss_fov_deg,
+                                                  px_scale, 0.0,
+                                                  logger=self.logger)
                     self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
                 p.image = image
@@ -815,8 +816,8 @@ class VGW(GingaPlugin.GlobalPlugin):
         dss_fov = region * magic_constant
         # Create blank image to load and calculate WCS for plotting
         px_scale = 0.00488281
-        image = self.create_blank_image(ra_deg, dec_deg, dss_fov,
-                                        px_scale, 0.0)
+        image = dp.create_blank_image(ra_deg, dec_deg, dss_fov,
+                                      px_scale, 0.0, logger=self.logger)
 
         # Load image into DSS channel
         fitsname = 'SH_DUMMY'
@@ -1062,9 +1063,10 @@ class VGW(GingaPlugin.GlobalPlugin):
                     # make blank image
                     #px_scale = 0.00488281
                     px_scale = 0.000280178318866
-                    image = self.create_blank_image(ra_deg, dec_deg,
-                                                    dss_fov_deg,
-                                                    px_scale, 0.0)
+                    image = dp.create_blank_image(ra_deg, dec_deg,
+                                                  dss_fov_deg,
+                                                  px_scale, 0.0,
+                                                  logger=self.logger)
                     self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
                 p.image = image
@@ -1340,140 +1342,6 @@ class VGW(GingaPlugin.GlobalPlugin):
     #############################################################
     #    Helper methods
     #############################################################
-
-    def simple_wcs(self, px_x, px_y, ra_deg, dec_deg, px_scale_deg_px, pa_deg):
-        """Calculate a set of WCS keywords for a 2D simple instrument FITS
-        file with a 'standard' RA/DEC pixel projection.
-        
-        Parameters:
-        px_x            : reference pixel of field in X (usually center of field)
-        px_y            : reference pixel of field in Y (usually center of field)
-        ra_deg          : RA (in deg) for the reference point
-        dec_deg         : DEC (in deg) for the reference point
-        px_scale_deg_px : pixel scale deg/pixel
-        pa_deg          : position angle of the instrument (in deg)
-
-        Returns a WCS object.  Use the to_header() method on it to get something
-        interesting that you can use.
-        """
-        import astropy.wcs as pywcs
-        wcsobj = pywcs.WCS()
-
-        # center of the projection
-        wcsobj.wcs.crpix = [px_x, px_y]  # pixel position
-        wcsobj.wcs.crval = [ra_deg, dec_deg]   # RA, Dec (degrees)
-
-        # image scale in deg/pix
-        wcsobj.wcs.cdelt = numpy.array([-1, 1]) * px_scale_deg_px
-
-        # Position angle of north (radians E of N)
-        pa = numpy.radians(pa_deg)
-        cpa = numpy.cos(pa)
-        spa = numpy.sin(pa)
-        #wcsobj.wcs.pc = numpy.array([[-cpa, -spa], [-spa, cpa]])
-        wcsobj.wcs.pc = numpy.array([[cpa, -spa], [spa, cpa]])
-
-        return wcsobj
-
-    def create_blank_image(self, ra_deg, dec_deg, fov_deg, px_scale,
-                           pa_deg):
-
-        self.logger.debug("ra=%9.3f dec=%8.2f fov=%.2f pscl=%.6f pa=%.3f" % (
-                ra_deg, dec_deg, fov_deg, px_scale, pa_deg))
-
-        # ra and dec in traditional format
-        ra_txt = radec.raDegToString(ra_deg, format='%02d:%02d:%06.3f')
-        dec_txt = radec.decDegToString(dec_deg,
-                                       format='%s%02d:%02d:%05.2f')
-
-        # Create a dummy sh image
-        imagesize = int(round(fov_deg / px_scale))
-        # round to even size
-        if imagesize % 2 != 0:
-            imagesize += 1
-        width = height = imagesize
-        self.logger.debug("created image size is %dx%d" % (
-            width, height))
-        data = numpy.zeros((height, width)).astype(numpy.float32)
-
-        crpix = float(imagesize // 2)
-        # TODO: this needs a more accurate WCS implementation
-        # Image is reversed, seemingly
-        ## header = {
-        ##     'SIMPLE': True,
-        ##     'BITPIX': -32,
-        ##     'EXTEND': True,
-        ##     'NAXIS': 2,
-        ##     'NAXIS1': imagesize,
-        ##     'NAXIS2': imagesize,
-        ##     'RA': ra_txt,
-        ##     'DEC': dec_txt,
-        ##     'EQUINOX': 2000.0,
-        ##     'RADECSYS': 'FK5',
-        ##     'OBJECT': 'SH DUMMY',
-        ##     'CRPIX1': crpix,
-        ##     'CRPIX2': crpix,
-        ##     #'CDELT1': px_scale,
-        ##     'CDELT1': -px_scale,
-        ##     'CDELT2': px_scale,
-        ##     'CRVAL1': ra_deg,
-        ##     'CRVAL2': dec_deg,
-        ##     'CUNIT1': 'degree',
-        ##     'CUNIT2': 'degree',
-        ##     'CD1_1': 1.0 * px_scale,
-        ##     'CD1_2': 0.0,
-        ##     'CD2_1': 0.0,
-        ##     'CD2_2': 1.0 * px_scale,
-        ##     }
-        header = {
-            'SIMPLE': True,
-            'BITPIX': -32,
-            'EXTEND': True,
-            'NAXIS': 2,
-            'NAXIS1': imagesize,
-            'NAXIS2': imagesize,
-            'RA': ra_txt,
-            'DEC': dec_txt,
-            'EQUINOX': 2000.0,
-            'OBJECT': 'SH DUMMY',
-            # these seem to be necessary at the moment because simple_wcs
-            # is not adding them---fix this eventually
-            'RADECSYS': 'FK5',
-            'PC1_1': 1.0,
-            'PC1_2': 0.0,
-            'PC2_1': 0.0,
-            'PC2_2': 1.0,
-            'LONPOLE': 180,
-            'CUNIT1': 'deg',
-            'CUNIT2': 'deg',
-            'CTYPE1': 'RA---TAN',
-            'CTYPE2': 'DEC--TAN',
-            }
-
-        # Add basic WCS keywords
-        wcsobj = self.simple_wcs(crpix, crpix, ra_deg, dec_deg, px_scale,
-                                 pa_deg)
-        wcshdr = wcsobj.to_header()
-        header.update(wcshdr)
-        
-        ## keylist = ['SIMPLE', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 'BSCALE',
-        ##            'BZERO', 'BLANK', 'CRPIX1', 'CRPIX2', 'CRVAL1', 'CRVAL2',
-        ##            'CDELT1', 'CDELT2', 'RA', 'DEC', 'EQUINOX', 'RADECSYS',
-        ##            'PC001001', 'PC001002', 'PC002001', 'PC002002',
-        ##            'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2', 'END'
-        ##            ]
-
-        # Create image container
-        #image = AstroImage.AstroImage(data, wcsclass=wcs.BareBonesWCS)
-        image = AstroImage.AstroImage(data, wcsclass=wcs.WCS,
-                                      logger=self.logger)
-        image.update_keywords(header)
-
-        ## image.set(keyorder=keylist, name='shdummy')
-        image.set(name='shdummy')
-
-        return image
-
 
     def update_image(self, name, chname, image, metadata):
         """Called by the guider subsystem to place a guide image into the
