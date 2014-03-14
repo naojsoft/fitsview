@@ -17,6 +17,7 @@ from ginga.misc import Future, Bunch
 from ginga import AstroImage
 from ginga.util import wcs, dp
 
+
 # PYHOME imports
 import remoteObjects as ro
 import astro.radec as radec
@@ -564,6 +565,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     image = dp.create_blank_image(ra_deg, dec_deg,
                                                   dss_fov_deg,
                                                   px_scale, 0.0,
+                                                  cdbase=[-1, 1],
                                                   logger=self.logger)
                     self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
@@ -817,7 +819,9 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Create blank image to load and calculate WCS for plotting
         px_scale = 0.00488281
         image = dp.create_blank_image(ra_deg, dec_deg, dss_fov,
-                                      px_scale, 0.0, logger=self.logger)
+                                      px_scale, 0.0,
+                                      cdbase=[-1, 1],
+                                      logger=self.logger)
 
         # Load image into DSS channel
         fitsname = 'SH_DUMMY'
@@ -1066,6 +1070,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     image = dp.create_blank_image(ra_deg, dec_deg,
                                                   dss_fov_deg,
                                                   px_scale, 0.0,
+                                                  cdbase=[-1, 1],
                                                   logger=self.logger)
                     self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
@@ -1567,7 +1572,9 @@ class TELESCOPEfov(object):
 
         # calculate vignetting mapping fov
         vignette_map = self.calculate_vignette_fov(image, p.ctr_x, p.ctr_y,
-                                                   p.f_select, p.ag_pa)
+                                                   p.f_select, p.ag_pa, 
+                                                   p.probe_theta, p.probe_r,
+                                                   p.fov_pattern)
         self.logger.debug("Vignette map: %s" % (
             str(vignette_map)))
 
@@ -1577,8 +1584,8 @@ class TELESCOPEfov(object):
         self.vignette_map = vignette_map
 
 
-    def calculate_vignette_fov(self, image, ctr_x, ctr_y, focus, pa_deg):
-        vlist = ag_config.calc_vignette_list(focus)
+    def calculate_vignette_fov(self, image, ctr_x, ctr_y, focus, pa_deg, theta, r, pattern):
+        vlist = ag_config.calc_vignette_list(focus, pattern, theta, r)
         scale = ag_config.calc_scale(focus)
 
         def mm2pix(tup):
@@ -1678,7 +1685,8 @@ class MOIRCSfov(TELESCOPEfov):
 
     def __init__(self, logger, image, p):
         super(MOIRCSfov, self).__init__(logger, image, p)
-        
+
+        # TODO: read these from a config file
         fov = 0.033000
         # moircs fov 7arcmin x 4 arcmin(0.1166 x 0.0666 in degree) half values
         fov_hh = 0.0583333
@@ -1686,15 +1694,22 @@ class MOIRCSfov(TELESCOPEfov):
         # moircs fov with vignette  9.2 arcmin x 6.2 arcmin  half values
         vig_hh = 0.0766666
         vig_hw = 0.05166667
+        
+        # Figure out rotation of MOIRCS rectangular FOV and chip markings
+        # NOTE: ginga plots by WCS, so we don't need to account for
+        # rotation of the DSS image for now
+        ## header = image.get_header()
+        ## #dssrot_deg = image.get_wcs_rotation_deg()
+        ## ((xrot_ref, yrot_ref),
+        ##  (cdelt1_ref, cdelt2_ref)) = wcs.get_xy_rotation_and_scale(header)
+        ## dssrot_deg = yrot_ref
+        ## self.logger.info("Image rotation=%f, pa=%f cdelt1=%f" % (
+        ##         dssrot_deg, p.ag_pa, cdelt1_ref))
 
-        #rota_deg = header.get('CROTA1', header.get('CROTA2', 0.0))
-        rota_deg = 0.0
-        header = image.get_header()
-
-        theta = p.ag_pa - rota_deg
+        # Angle we should draw the object at is therefore
+        theta = p.ag_pa
         self.theta = theta
-        self.logger.debug("rotation is %f deg" % (theta))
-        theta = (theta * math.pi / 180.0) * -1.0
+        self.logger.debug("rotation is %f deg" % (self.theta))
 
         # coords of the MOIRCS FOV
         self.fov_pts = []
@@ -1787,12 +1802,16 @@ class SPCAMfov(object):
         self.outer_radius = outer_radius
         self.probe_radius = probe_radius
 
-        header = image.get_header()
-        #rota_deg = header.get('CROTA1', header.get('CROTA2', 0.0))
-        rota_deg = 0.0
+        # Figure out rotation of SPCAM drawings
+        # NOTE: ginga plots by WCS, so we don't need to account for
+        # rotation of the DSS image for now
+        ## header = image.get_header()
+        ## ((xrot_ref, yrot_ref),
+        ##  (cdelt1_ref, cdelt2_ref)) = wcs.get_xy_rotation_and_scale(header)
+        ## dssrot_deg = yrot_ref
 
-        # Should this be plus?
-        theta = p.ag_pa - rota_deg
+        theta = p.ag_pa
+        # change direction of rotation for P_OPT
         self.theta = -theta
         self.logger.debug("rotation is %f deg" % (self.theta))
 
