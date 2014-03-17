@@ -37,6 +37,9 @@ from ginga import toolkit
 toolkit.use('gtk2')
 from ginga.gtkw.GingaGtk import GingaView
 
+from ginga.util import wcsmod
+wcsmod.use('astropy')
+
 # Local application imports
 from util import Receive
 
@@ -229,7 +232,10 @@ def main(options, args):
     prefs = Settings.Preferences(basefolder=basedir, logger=logger)
 
     t_ = prefs.createCategory('general')
-    t_.setDefaults(shareReadout=False)
+    t_.setDefaults(shareReadout=False, useMatplotlibColormaps=False,
+                   widgetSet='choose',
+                   WCSpkg='astropy', FITSpkg='astropy')
+    t_.load(onError='silent')
 
     # TEMP: ginga needs to find its plugins
     gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]

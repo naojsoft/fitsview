@@ -368,8 +368,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
                     p.obj_ra = radec.raDegToString(obj_ra_deg)
                     p.obj_dec = radec.decDegToString(obj_dec_deg)
 
-                    sep_ra, sep_dec = image.get_RaDecOffsets(obj_ra_deg, obj_dec_deg,
-                                                             dst_ra_deg, dst_dec_deg)
+                    sep_ra, sep_dec = wcs.get_RaDecOffsets(obj_ra_deg, obj_dec_deg,
+                                                           dst_ra_deg, dst_dec_deg)
                     self.logger.debug("separation is dra=%f ddec=%f" % (sep_ra,
                                                                         sep_dec))
                     p.rel_ra = sep_ra

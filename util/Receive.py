@@ -145,17 +145,13 @@ class ReceiveFITS(object):
 
         # Create image container
         image = AstroImage.AstroImage(data, metadata=metadata,
-                                      wcsclass=wcs.WCS,
                                       logger=self.logger)
-                                      #wcsclass=wcs.BareBonesWCS)
         image.set(name=fitsname)
         image.update_keywords(header)
         
         # Enqueue image to display datasrc
         self.fv.gui_do(self.fv.add_image, fitsname, image,
                             chname=chname)
-        #self.fv.gui_do(self.update_image, fitsname, chname, image,
-        #               metadata)
 
         return ro.OK
 

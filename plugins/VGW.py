@@ -453,8 +453,8 @@ class VGW(GingaPlugin.GlobalPlugin):
                 p.obj_ra = radec.raDegToString(obj_ra_deg)
                 p.obj_dec = radec.decDegToString(obj_dec_deg)
 
-                sep_ra, sep_dec = image.get_RaDecOffsets(obj_ra_deg, obj_dec_deg,
-                                                         dst_ra_deg, dst_dec_deg)
+                sep_ra, sep_dec = wcs.get_RaDecOffsets(obj_ra_deg, obj_dec_deg,
+                                                       dst_ra_deg, dst_dec_deg)
                 p.rel_ra = radec.offsetRaDegToString(sep_ra)
                 p.rel_dec = radec.decDegToString(sep_dec)
         
@@ -764,8 +764,8 @@ class VGW(GingaPlugin.GlobalPlugin):
                 p.star_mag = star_mag
                 p.star_name = star_name
 
-                sep_ra, sep_dec = p.image.get_RaDecOffsets(star_ra_deg, star_dec_deg,
-                                                           p.probe_ra_deg, p.probe_dec_deg)
+                sep_ra, sep_dec = wcs.get_RaDecOffsets(star_ra_deg, star_dec_deg,
+                                                       p.probe_ra_deg, p.probe_dec_deg)
                 p.ra_off = radec.offsetRaDegToString(sep_ra)
                 p.dec_off = radec.decDegToString(sep_dec)
 
@@ -1185,7 +1185,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             # Find the radius for a circular search that will give us all
             # the guide stars in the rectangular CCD
             radius_pix = math.sqrt(math.fabs(x2 - x)**2 + math.fabs(y2 - y)**2)
-            radius_deg = image.deltaStarsRaDecDeg(ra, dec, ra2, dec2)
+            radius_deg = wcs.deltaStarsRaDecDeg(ra, dec, ra2, dec2)
             radius = radius_deg * 60.0
             circles.append((x, y, radius_pix))
             queries.append((ra, dec, radius))
@@ -1433,7 +1433,6 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # Create image container
         image = AstroImage.AstroImage(data, metadata=metadata,
-                                      wcsclass=wcs.WCS,
                                       logger=self.logger)
         image.set(name=fitsname)
         image.update_keywords(header)

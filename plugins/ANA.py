@@ -164,8 +164,7 @@ class ANA(GingaPlugin.GlobalPlugin):
         dirname, filename = os.path.split(fitspath)
         
         # Create an empty image
-        image = AstroImage.AstroImage(wcsclass=wcs.WCS,
-                                      logger=self.logger)
+        image = AstroImage.AstroImage(logger=self.logger)
         try:
             #self.fv.showStatus("Loading %s" % (filename))
             self.logger.debug("Loading file '%s'" % (filename))
