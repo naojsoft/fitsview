@@ -1637,14 +1637,10 @@ class TELESCOPEfov(object):
             redraw=False)
 
         # Draw vignette map
-        x1, y1 = self.vignette_map[0]
-        for x2, y2 in self.vignette_map[1:] + [(x1, y1)]:
-            canvas.add(
-                CanvasTypes.Line(x1, y1, x2, y2,
-                                 color=color.vignette,
-                                 linestyle='dash', linewidth=thickness),
-                redraw=False)
-            x1, y1 = x2, y2
+        canvas.add(CanvasTypes.Polygon(self.vignette_map,
+                                       color=color.vignette,
+                                       linestyle='dash', linewidth=thickness),
+                   redraw=False)
 
 
 class GENERICfov(TELESCOPEfov):
@@ -1861,7 +1857,7 @@ class SPCAMfov(object):
                                             linewidth=thickness)
         obj.addObject(self.prb_area)
 
-        # Rotate according to DSS + PA
+        # Rotate according to PA
         obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
 
     def filter_results(self, starlist):
