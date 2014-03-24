@@ -11,6 +11,7 @@ import numpy
 
 from ginga import GingaPlugin
 from ginga.misc import Future, Bunch
+from ginga.util import wcs
 
 import remoteObjects as ro
 import astro.radec as radec

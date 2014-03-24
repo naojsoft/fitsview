@@ -47,11 +47,11 @@ serviceName = 'guideview'
 version = "20131213.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1600, height=1100),
+                   ['vbox', dict(name='top', width=1800, height=1100),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', {},
-                     ['ws', dict(name='left', width=340),
+                     ['ws', dict(name='left', width=300),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,
@@ -62,7 +62,7 @@ default_layout = ['seq', {},
                         )]
                       ], 
                      ['vpanel', {},
-                      ['hpanel', dict(height=700),
+                      ['hpanel', dict(height=400),
                        ['vbox', dict(name='main', width=700),
                         dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
                        ['ws', dict(name='right', width=350, group=2),
@@ -73,11 +73,9 @@ default_layout = ['seq', {},
                         ],
                        ],
                       ['hpanel', {},
-                       ['ws', dict(name='sub1', width=300, height=300,
+                       ['ws', dict(name='sub1', width=720, height=520,
                                    group=1)],
-                       ['ws', dict(name='sub2', width=300, group=1)],
-                       ['ws', dict(name='sub3', width=300, group=1)],
-                       ['ws', dict(name='sub4', width=300, group=1)],
+                       ['ws', dict(name='sub2', width=720, group=1)],
                        ],
                       ],
                      ], stretch=1),
@@ -88,7 +86,7 @@ global_plugins = [
     Bunch(module='Pan', tab='_pan', ws='uleft', raisekey=None),
     Bunch(module='Info', tab='_info', ws='lleft', raisekey=None),
     Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
-    Bunch(module='Zoom', tab='Zoom', ws='sub4', raisekey='Z'),
+    Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='Z'),
     Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
     Bunch(module='Contents', tab='Contents', ws='right', raisekey='C'),
     Bunch(module='WBrowser', tab='Help', ws='right', raisekey='?'),
@@ -110,9 +108,11 @@ local_plugins = [
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'), 
     ]
 
-default_channels = [('QDAS_VGW', 'channels'), ('DSS', 'channels'), ('SH', 'channels'),
-                    ('HSCSCAG', 'channels'), ('HSCSHAG', 'channels'), ('HSCSH', 'channels'),
-                    ('FMOS', 'channels'), ('AG', 'sub1'), ('SV', 'sub2'),]
+default_channels = [('AG', 'sub1'), ('SV', 'sub1'), ('HSCSCAG', 'channels'),
+                    ('QDAS_VGW', 'sub2'), ('DSS', 'sub2'),
+                    ('SH', 'channels'),
+                    ('HSCSHAG', 'channels'), ('HSCSH', 'channels'),
+                    ('FMOS', 'channels'), ]
 
 extra_modules = [
     Bunch(module='VGW'),
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     optprs.add_option("--monport", dest="monport", type="int",
                       help="Register monitor using PORT", metavar="PORT")
     optprs.add_option("--numthreads", dest="numthreads", type="int",
-                      default=30,
+                      default=200,
                       help="Start NUM threads in thread pool", metavar="NUM")
     optprs.add_option("--plugins", dest="plugins", metavar="NAMES",
                       help="Specify additional plugins to load")

@@ -194,9 +194,10 @@ class Region_Selection(QDASPlugin):
         self.tw.modify_font(self.msgFont)
             
     def instructions(self):
-        self.set_message("""Please select a region manually.
+##         self.set_message("""Please select a region manually.
 
-Draw (or redraw) a region with the right mouse button.  Move the region with the left mouse button.  Press Ok or Cancel to finish.""")
+## Draw (or redraw) a region with the right mouse button.  Move the region with the left mouse button.  Press Ok or Cancel to finish.""")
+        self.set_message("""Please select a region manually.""")
             
     def start(self, future=None):
         self.callerInfo = future

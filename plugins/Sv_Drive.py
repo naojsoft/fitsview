@@ -2,7 +2,7 @@
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Jan  7 13:02:31 HST 2014
+#  Last edit: Sun Mar 23 15:57:16 HST 2014
 #]
 #
 import gtk
@@ -299,7 +299,8 @@ class Sv_Drive(QDASPlugin):
         self.tw.modify_font(self.msgFont)
             
     def instructions(self):
-        self.set_message("""Place Destination by clicking left mouse button.  Draw a region with the right mouse button around the Object.  Press Ok or Cancel to finish.""")
+        #self.set_message("""Place Destination by clicking left mouse button.  Draw a region with the right mouse button around the Object.  Press Ok or Cancel to finish.""")
+        self.set_message("""Please mark object and destination.""")
             
     def start(self, future=None):
         self.callerInfo = future
