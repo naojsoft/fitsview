@@ -8,7 +8,7 @@
 # Please see the file LICENSE.txt for details.
 #
 import os, re, glob
-import Queue
+import threading, Queue
 
 from ginga import AstroImage
 from ginga.misc.plugins import Mosaic
@@ -47,7 +47,8 @@ class SPCAM(Mosaic.Mosaic):
         self.timer = self.fv.get_timer()
         self.timer.add_callback('expired', self.process_frames)
         self.process_interval = 0.5
-
+        self.ev_fpr = threading.Event()
+        
         self.dr = spcam.SuprimeCamDR(logger=self.logger)
         
         #self.mosaic_chname = 'SPCAM_Online'
@@ -70,7 +71,7 @@ class SPCAM(Mosaic.Mosaic):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        b.flat_dir.set_length(256)
+        b.flat_dir.set_length(32)
         b.flat_dir.set_text(self.settings.get('flat_dir', ''))
         b.load_flats.add_callback('activated', self.load_flats_cb)
         b.use_flats.set_tooltip("Flat field tiles as they arrive")
@@ -129,18 +130,24 @@ class SPCAM(Mosaic.Mosaic):
                 break
 
         if len(paths) == 0:
+            self.ev_fpr.clear()
             return
 
         if self.gui_up:
-            paths, new_mosaic = self.get_latest_frames(paths)
+            try:
+                paths, new_mosaic = self.get_latest_frames(paths)
 
-            self.mosaic(paths, new_mosaic=new_mosaic)
+                self.mosaic(paths, new_mosaic=new_mosaic)
+            finally:
+                self.ev_fpr.clear()
 
             
     def file_notify_cb(self, fv, path):
         self.logger.debug("file notify: %s" % (path))
         self.queue.put(path)
-        self.timer.set(self.process_interval)
+        if not self.ev_fpr.isSet():
+            self.ev_fpr.set()
+            self.timer.set(self.process_interval)
 
     ## def drop_cb(self, canvas, paths):
     ##     self.logger.info("files dropped: %s" % str(paths))
