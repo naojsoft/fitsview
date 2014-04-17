@@ -12,6 +12,7 @@ import numpy
 from ginga import GingaPlugin
 from ginga.misc import Future, Bunch
 from ginga.util import wcs
+from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
 
 import remoteObjects as ro
 import astro.radec as radec
@@ -472,6 +473,28 @@ class QDAS(GingaPlugin.GlobalPlugin):
         future.resolve(0)
         
 
+    def mark_position(self, tag, future,
+                      instrument_name=None, x=None, y=None, mode=None,
+                      mark=None, size=None, color=None):
+        # X and Y are in FITS data coordinates
+        x, y = x-1, y-1
+
+        chname = '%s_Online' % (instrument_name)
+        chinfo = self.fv.get_channelInfo(chname)
+
+        p = future.get_data()
+
+        canvas = chinfo.fitsimage
+        try:
+            self._mark(chname, canvas, x, y, mode, mark, size, color)
+            p.setvals(result='ok')
+
+        except Exception, e:
+            p.setvals(result='error', errmsg=str(e))
+            
+        future.resolve(0)
+        
+                
     def load_image(self, tag, future, instrument_name, path):
 
         if not path:
@@ -593,6 +616,43 @@ class QDAS(GingaPlugin.GlobalPlugin):
     ##     data = image.get_data()
     ##     # Get metadata for mouse-over tooltip
     ##     header = image.get_header()
+
+    def _mark(self, chname, canvas, x, y, mode, mark, size, color):
+        # mode is CLEAR | DRAW
+        mode = mode.upper()
+        if mode == 'CLEAR':
+            objs = canvas.getObjectsByTagpfx("qdas_mark")
+            canvas.deleteObjects(objs)
+            
+        elif mode == 'DRAW':
+            color = color.lower()
+            mark  = mark.lower()
+            self.count += 1
+            tag = ("qdas_mark%d" % self.count)
+
+            # mark is POINT | CROSS | CIRCLE | SQUARE
+            if mark == 'cross':
+                tag = canvas.add(CanvasTypes.Point(x, y, size,
+                                                    color=color),
+                                 tag=tag)
+            elif mark == 'point':
+                tag = canvas.add(CanvasTypes.Circle(x, y, size,
+                                                    color=color,
+                                                    fill=True),
+                                 tag=tag)
+            elif mark == 'circle':
+                tag = canvas.add(CanvasTypes.Circle(x, y, size,
+                                                    color=color),
+                                 tag=tag)
+            elif mark == 'square':
+                half = size #// 2
+                x1, y1, x2, y2 = x-half, y-half, x+half, y+half
+                tag = canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
+                                                       color=color),
+                                 tag=tag)
+
+            # Only raise for a draw
+            self.fv.ds.raise_tab(chname)
 
     def __str__(self):
         return 'qdas'
