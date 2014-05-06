@@ -46,8 +46,7 @@ class SPCAM(Mosaic.Mosaic):
 
         self.timer = self.fv.get_timer()
         self.timer.add_callback('expired', self.process_frames)
-        self.process_interval = 0.5
-        self.ev_fpr = threading.Event()
+        self.process_interval = 0.2
         
         self.dr = spcam.SuprimeCamDR(logger=self.logger)
         
@@ -118,7 +117,7 @@ class SPCAM(Mosaic.Mosaic):
     
             
     def process_frames(self, timer):
-        self.logger.debug("processing queued frames")
+        self.logger.info("processing queued frames")
 
         # Get all files stored in the queue
         paths = []
@@ -129,25 +128,20 @@ class SPCAM(Mosaic.Mosaic):
             except Queue.Empty:
                 break
 
+        self.logger.info("debug=%s" % str(paths))
+        
         if len(paths) == 0:
-            self.ev_fpr.clear()
             return
 
         if self.gui_up:
-            try:
-                paths, new_mosaic = self.get_latest_frames(paths)
+            paths, new_mosaic = self.get_latest_frames(paths)
 
-                self.mosaic(paths, new_mosaic=new_mosaic)
-            finally:
-                self.ev_fpr.clear()
+            self.mosaic(paths, new_mosaic=new_mosaic)
 
-            
     def file_notify_cb(self, fv, path):
         self.logger.debug("file notify: %s" % (path))
         self.queue.put(path)
-        if not self.ev_fpr.isSet():
-            self.ev_fpr.set()
-            self.timer.set(self.process_interval)
+        self.timer.cond_set(self.process_interval)
 
     ## def drop_cb(self, canvas, paths):
     ##     self.logger.info("files dropped: %s" % str(paths))

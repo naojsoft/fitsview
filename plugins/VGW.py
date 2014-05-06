@@ -1703,7 +1703,7 @@ class MOIRCSfov(TELESCOPEfov):
 
         # Angle we should draw the object at is therefore
         theta = p.ag_pa
-        self.theta = theta
+        self.theta = -theta
         self.logger.debug("rotation is %f deg" % (self.theta))
 
         # coords of the MOIRCS FOV

@@ -6,9 +6,10 @@
 import sys, traceback
 import os, re
 import time
-import pyfits
 import numpy
 import threading
+
+from astropy.io import fits as pyfits
 
 import remoteObjects as ro
 import remoteObjects.Monitor as Monitor
