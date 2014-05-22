@@ -76,7 +76,7 @@ class ReceiveFITS(object):
             except Exception, e:
                 tb_str = "Traceback information unavailable."
 
-            self.gui_do(self.fv.show_error, errmsg + '\n' + tb_str)
+            self.fv.gui_do(self.fv.show_error, errmsg + '\n' + tb_str)
             return
             
         header = image.get_header()

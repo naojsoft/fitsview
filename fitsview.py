@@ -117,17 +117,21 @@ def get_displayfits(viewKlass):
                                   preferences, ev_quit=ev_quit)
 
 
-        def load_file(self, fitspath, chname=None, wait=True):
-            """Loads a command file from _fitspath_ into the commands window.
+        def load_file(self, filepath, chname=None, wait=True):
+            """Loads a command file from _filepath_ into the commands window.
             """
             try:
-                image = self.controller.open_fits(fitspath, channel=chname,
+                filepath = self.get_filepath(filepath)
+                # <-- filepath should now be a real file in the filesystem
+                self.logger.debug("filepath=%s" % (filepath))
+        
+                image = self.controller.open_fits(filepath, channel=chname,
                                                   wait=wait)
                 return image
 
             except Exception as e:
                 errmsg = "Unable to open '%s': %s" % (
-                    fitspath, str(e))
+                    filepath, str(e))
                 self.show_error(errmsg)
                 return ro.ERROR
 
@@ -207,7 +211,7 @@ def main(options, args):
     settings.load(onError='silent')
     settings.setDefaults(useMatplotlibColormaps=False,
                          widgetSet='choose',
-                         WCSpkg='astropy', FITSpkg='astropy')
+                         WCSpkg='kapteyn', FITSpkg='astropy')
 
     # Choose a toolkit
     if options.toolkit:

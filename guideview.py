@@ -38,7 +38,8 @@ toolkit.use('gtk2')
 from ginga.gtkw.GingaGtk import GingaView
 
 from ginga.util import wcsmod
-wcsmod.use('astropy')
+#wcsmod.use('astropy')
+wcsmod.use('kapteyn')
 
 # Local application imports
 from util import Receive
