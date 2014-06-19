@@ -122,8 +122,16 @@ class CatalogServer(object):
     def search(self, **params):
         kwdargs = self.get_search_params(params)
 
-        starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], kwdargs['lowermag'], kwdargs['uppermag'], 
+        # starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], kwdargs['lowermag'], kwdargs['uppermag'], 
+        #                                            catalog=kwdargs['catalog'])
+
+        # TO DO:
+        # temporary assign hard-coded value 0 as lower mag
+        starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], 0.0, kwdargs['uppermag'], 
                                                    catalog=kwdargs['catalog'])
+
+
+
         #print "QUERY RESULT=", query_result
         
         starlist = self.process_starlist(starlist)
@@ -232,12 +240,23 @@ class AgCatalogServer(CatalogServer):
         # Query the catalog
         self.logger.debug("querying the server %s, params=%s" % (
             self.svcname, str(k)))
+
+        # starlist = self.catalog.search_starcatalog(k['ra'], k['dec'],
+        #                                            k['fov'], k['lowermag'],
+        #                                            k['uppermag'],
+        #                                            pa=k['pa'],
+        #                                            focus=k['focus'],
+        #                                            catalog=k['catalog'])
+
+        # TO DO:
+        # temporary assign hard-coded value 0 as lower mag
         starlist = self.catalog.search_starcatalog(k['ra'], k['dec'],
-                                                   k['fov'], k['lowermag'],
+                                                   k['fov'], 0,
                                                    k['uppermag'],
                                                    pa=k['pa'],
                                                    focus=k['focus'],
                                                    catalog=k['catalog'])
+
         self.logger.debug("catalog search returned %d stars" % (len(starlist)))
         
         # Filter stars for AG:

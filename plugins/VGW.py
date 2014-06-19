@@ -1637,10 +1637,11 @@ class TELESCOPEfov(object):
             redraw=False)
 
         # Draw vignette map
-        canvas.add(CanvasTypes.Polygon(self.vignette_map,
-                                       color=color.vignette,
-                                       linestyle='dash', linewidth=thickness),
-                   redraw=False)
+        self.vig_obj = CanvasTypes.Polygon(self.vignette_map,
+                                           color=color.vignette,
+                                           linestyle='dash',
+                                           linewidth=thickness)
+        canvas.add(self.vig_obj, redraw=False)
 
 
 class GENERICfov(TELESCOPEfov):
@@ -1703,7 +1704,8 @@ class MOIRCSfov(TELESCOPEfov):
 
         # Angle we should draw the object at is therefore
         theta = p.ag_pa
-        self.theta = -theta
+        #self.theta = -theta
+        self.theta = theta
         self.logger.debug("rotation is %f deg" % (self.theta))
 
         # coords of the MOIRCS FOV
@@ -1750,6 +1752,12 @@ class MOIRCSfov(TELESCOPEfov):
         obj.addObject(CanvasTypes.Text(self.c2x, self.c2y, "Chip2",
                                        color='white'))
         obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+
+        # MOIRCS is offset by 45 deg wrt cassegrain flange.  Standard
+        # vignette map needs to be rotated to be properly aligned
+        vig_rot = 2.0 * self.theta - 45.0
+        self.vig_obj.rotate(vig_rot, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+
         
 
 class SPCAMfov(object):
@@ -1925,13 +1933,53 @@ class HSCfov(object):
 
         p = self.p
         #return self.hsc_filter_candidates(p, p.queries, all_stars)
-        return self.hsc_filter_candidates(p, p.queries, starlist)
+        return self.hsc_filter_candidates2(p, p.queries, starlist)
 
     def _set_priority(self, updated_stars):
 
         for num, star in enumerate(updated_stars):
             num += 1
             star['priority'] = num
+
+    def hsc_filter_candidates2(self, p, queries, all_stars):
+        # interesting items:
+        # p.ag_pa, p.limitmag, p.goodmag
+        # p.polygons, p.circles
+        # queries: ((ra, dec, radius), ... ) 1 for each ccd
+        # all_stars: query result for each circle
+
+        fabs = math.fabs
+
+        goodmag = p['goodmag']
+        limitmag = p['limitmag']
+        bright_end = 1.0
+        too_bright = 10.0
+        best_flag = 2.0
+
+        # TEMP: until we fix the query
+        #all_stars = filter(lambda star: star['mag'] <= limitmag, all_stars)
+
+        for star in all_stars:
+         
+            pref = 0
+ 
+            diff_mag = goodmag - star['mag']
+
+            if diff_mag > bright_end:
+                pref +=  too_bright  
+            else:
+                pref += fabs(diff_mag)
+
+            pref += fabs(best_flag-star['flag'])
+
+            star['preference'] = pref     
+
+        all_stars = sorted(all_stars, key=itemgetter('preference')) 
+        self. _set_priority(all_stars)
+
+        # for n, s in zip(xrange(20), all_stars):
+        #     self.logger.debug('name=%s, mag=%s flag=%s pref=%s' %(s['name'], str(s['mag']), str(s['flag']), str(s['preference'])))
+        return all_stars
 
     def hsc_filter_candidates(self, p, queries, all_stars):
         # interesting items:
