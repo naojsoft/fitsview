@@ -2,7 +2,7 @@
 # QDAS.py -- QDAS plugin for fits viewer
 # 
 # Eric Jeschke (eric@naoj.org)
-# Takeshi Inagaki
+# Takeshi Inagaki (tinagaki@naoj.org)
 #
 import math
 import gtk
@@ -471,7 +471,34 @@ class QDAS(GingaPlugin.GlobalPlugin):
             p.setvals(result='error', errmsg=str(e))
 
         future.resolve(0)
+
+    def curve_fitting(self, tag, future,
+               instrument_name, x_points, y_points, parabola):
+
+        chname = '%s_Online' % (instrument_name)
+        if not self.fv.has_channel(chname):
+            self.fv.add_channel(chname)
+        chinfo = self.fv.get_channelInfo(chname)
+
+        rsinfo = chinfo.opmon.getPluginInfo('CurveFit')
+        rsobj = rsinfo.obj
+
+        p = future.get_data()
         
+        # Invoke the gui
+        if not chinfo.opmon.is_active('CurveFit'):
+            chinfo.opmon.start_plugin(chname, 'CurveFit', alreadyOpenOk=True)
+
+        try:
+            self.fv.gui_call(rsobj.curve_fitting, p, x_points, y_points,
+                             parabola)
+
+        except Exception as e:
+            errmsg = "Curve Fitting failed: %s" % str(e)
+            self.logger.error(errmsg)
+            p.setvals(result='error', errmsg=str(e))
+
+        future.resolve(0)
 
     def mark_position(self, tag, future,
                       instrument_name=None, x=None, y=None, mode=None,

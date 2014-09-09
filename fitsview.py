@@ -38,10 +38,10 @@ import ginga.toolkit as ginga_toolkit
 from util import Receive
 
 defaultServiceName = 'fitsview'
-version = "20131213.0"
+version = "20140905.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1600, height=900),
+                   ['vbox', dict(name='top', width=1600, height=1000),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
@@ -63,10 +63,14 @@ default_layout = ['seq', {},
                         )]
                       ],
                      ], stretch=1),
+                    dict(row=['ws', dict(name='toolbar', height=40,
+                                             show_tabs=False, group=2)],
+                         stretch=0),
                     dict(row=['hbox', dict(name='status')], stretch=0),
                     ]]
 
 global_plugins = [
+    Bunch(module='Toolbar', tab='Toolbar', ws='toolbar'),
     Bunch(module='Pan', tab='_pan', ws='uleft', raisekey=None),
     Bunch(module='Info', tab='_info', ws='lleft', raisekey=None),
     Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
@@ -117,10 +121,13 @@ def get_displayfits(viewKlass):
                                   preferences, ev_quit=ev_quit)
 
 
-        def load_file(self, filepath, chname=None, wait=True):
+        def load_file(self, filepath, chname=None, wait=True,
+                      image_loader=None):
             """Loads a command file from _filepath_ into the commands window.
             """
             try:
+                # TODO: what to do about image_loader parameter?
+                
                 filepath = self.get_filepath(filepath)
                 # <-- filepath should now be a real file in the filesystem
                 self.logger.debug("filepath=%s" % (filepath))

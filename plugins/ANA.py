@@ -218,6 +218,7 @@ class ANA(GingaPlugin.GlobalPlugin):
             return
         
         # OK--display image. 
+        #self.fv.make_callback('file-notify', fitspath)
         self.fv.gui_do(self.fv.add_image, frameid, image, chname=chname)
 
 

@@ -1129,12 +1129,14 @@ class VGW(GingaPlugin.GlobalPlugin):
             agarea_coords = self.hscguideinfo.get_vignette_ccdpos(p.ra_deg, p.dec_deg,
                                                             p.ag_pa, lst_deg, mjd)
 
-        #self.logger.info('HSC CCD COORDS=%s' %str(coords))
-        #self.logger.info('HSC CCD DITHER COORDS=%s' %str(agarea_coords))
+        # TEMP: there is a bad channel in CCD 2_18
+        # so remove it from consideration for now
+        bad_ccd_idx = 2
+        coords.pop(bad_ccd_idx)
+        agarea_coords.pop(bad_ccd_idx)
 
-        # # # For each CCD, get the coordinates of the corners, accounting
-        # # # for distortion, so we can draw them on the star field
-
+        # For each CCD, get the coordinates of the corners, accounting
+        # for distortion, so we can draw them on the star field
         agarea_polygons = []
         agarea_pixel_polygons = []
  

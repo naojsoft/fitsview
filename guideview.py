@@ -48,7 +48,7 @@ serviceName = 'guideview'
 version = "20131213.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1800, height=1100),
+                   ['vbox', dict(name='top', width=1800, height=1050),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', {},
@@ -144,10 +144,12 @@ class DisplayFITS(GingaControl, GingaView):
                               preferences, ev_quit=ev_quit)
 
 
-    def load_file(self, fitspath, chname=None, wait=True):
+    def load_file(self, fitspath, chname=None, wait=True,
+                  image_loader=None):
         """Loads a command file from _fitspath_ into the commands window.
         """
         try:
+            # TODO: what to do about image_loader parameter?
             image = self.controller.open_fits(fitspath, channel=chname,
                                               wait=wait)
             return image

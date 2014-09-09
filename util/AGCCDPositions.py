@@ -8,7 +8,7 @@
 #
 # Edited by
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Jul 17 14:43:38 HST 2012
+#  Last edit: Tue Jun 24 20:37:45 HST 2014
 #]
 #
 #
@@ -52,7 +52,7 @@ class SCAGCCDPositions(object):
         ccdpos[1,3,0] =  65.920 -63.360
         ccdpos[1,3,1] =-270.080
 
-        # 3
+        # 3 (AG218)
         ccdpos[2,0,0] =  68.465
         ccdpos[2,0,1] = 239.360
         ccdpos[2,1,0] =  68.465
@@ -62,7 +62,7 @@ class SCAGCCDPositions(object):
         ccdpos[2,3,0] =  68.465 -63.360
         ccdpos[2,3,1] = 239.360
 
-        # 4
+        # 4 (AG217)
         ccdpos[3,0,0] =   1.440
         ccdpos[3,0,1] = 239.360
         ccdpos[3,1,0] =   1.440

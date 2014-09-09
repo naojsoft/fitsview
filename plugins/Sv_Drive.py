@@ -2,7 +2,7 @@
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Mar 23 15:57:16 HST 2014
+#  Last edit: Tue Sep  9 12:01:04 HST 2014
 #]
 #
 import gtk
@@ -368,6 +368,9 @@ class Sv_Drive(QDASPlugin):
         self.canvas.ui_setActive(False)
         
     def resume(self):
+        # turn off any mode user may be in
+        self.modes_off()
+
         self.canvas.ui_setActive(True)
 
         
