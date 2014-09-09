@@ -7,9 +7,7 @@
 # Satoshi Kawanomoto (kawanomoto.satoshi@nao.ac.jp)
 #
 # Edited by
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Jun 24 20:37:45 HST 2014
-#]
+# Eric Jeschke (eric@naoj.org)
 #
 #
 import numpy as np
@@ -56,9 +54,9 @@ class SCAGCCDPositions(object):
         ccdpos[2,0,0] =  68.465
         ccdpos[2,0,1] = 239.360
         ccdpos[2,1,0] =  68.465
-        ccdpos[2,1,1] = 239.360 +30.720
+        ccdpos[2,1,1] = 239.360 +7.68
         ccdpos[2,2,0] =  68.465 -63.360
-        ccdpos[2,2,1] = 239.360 +30.720
+        ccdpos[2,2,1] = 239.360 +7.68
         ccdpos[2,3,0] =  68.465 -63.360
         ccdpos[2,3,1] = 239.360
 
@@ -105,9 +103,9 @@ class SCAGCCDPositions(object):
         ccdpos[2,0,0] = 68.465 - no_use
         ccdpos[2,0,1] = 239.360 + no_use
         ccdpos[2,1,0] = 68.465 - no_use
-        ccdpos[2,1,1] = 239.360 +30.720 - no_use
+        ccdpos[2,1,1] = 239.360 +7.68 - no_use
         ccdpos[2,2,0] = 68.465 -63.360 + no_use
-        ccdpos[2,2,1] = 239.360 +30.720 - no_use
+        ccdpos[2,2,1] = 239.360 +7.68 - no_use
         ccdpos[2,3,0] = 68.465 -63.360 + no_use
         ccdpos[2,3,1] = 239.360 + no_use
 
@@ -155,9 +153,9 @@ class SCAGCCDPositions(object):
         ccdpos[2,0,0] = 68.465 - no_use
         ccdpos[2,0,1] = 239.360 + no_use
         ccdpos[2,1,0] = 68.465 - no_use
-        ccdpos[2,1,1] = 239.360 +30.720 - no_use
+        ccdpos[2,1,1] = 239.360 +7.68 - no_use
         ccdpos[2,2,0] = 68.465 -63.360 + no_use
-        ccdpos[2,2,1] = 239.360 +30.720 - no_use
+        ccdpos[2,2,1] = 239.360 +7.68 - no_use
         ccdpos[2,3,0] = 68.465 -63.360 + no_use
         ccdpos[2,3,1] = 239.360 + no_use
 

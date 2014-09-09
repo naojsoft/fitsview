@@ -41,7 +41,7 @@ defaultServiceName = 'fitsview'
 version = "20140905.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1600, height=1000),
+                   ['vbox', dict(name='top', width=1600, height=1050),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),

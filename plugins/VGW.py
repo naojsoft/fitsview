@@ -1131,9 +1131,9 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # TEMP: there is a bad channel in CCD 2_18
         # so remove it from consideration for now
-        bad_ccd_idx = 2
-        coords.pop(bad_ccd_idx)
-        agarea_coords.pop(bad_ccd_idx)
+        ## bad_ccd_idx = 2
+        ## coords.pop(bad_ccd_idx)
+        ## agarea_coords.pop(bad_ccd_idx)
 
         # For each CCD, get the coordinates of the corners, accounting
         # for distortion, so we can draw them on the star field
