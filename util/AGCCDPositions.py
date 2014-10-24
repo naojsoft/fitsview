@@ -30,44 +30,44 @@ class SCAGCCDPositions(object):
         ccdpos = np.zeros((4,4,2))
 
         # There are four guiding CCDs.  These are the positions in pa=0
-        # 1
-        ccdpos[0,0,0] =  -1.105
+        # 1 (AG201)
+        ccdpos[0,0,0] =  +1.105
         ccdpos[0,0,1] =-270.080
-        ccdpos[0,1,0] =  -1.105
+        ccdpos[0,1,0] =  +1.105
         ccdpos[0,1,1] =-270.080 +30.720
-        ccdpos[0,2,0] =  -1.105 -63.360
+        ccdpos[0,2,0] =  +1.105 +63.360
         ccdpos[0,2,1] =-270.080 +30.720
-        ccdpos[0,3,0] =  -1.105 -63.360
+        ccdpos[0,3,0] =  +1.105 +63.360
         ccdpos[0,3,1] =-270.080
 
-        # 2
-        ccdpos[1,0,0] =  65.920
+        # 2 (AG202)
+        ccdpos[1,0,0] = -65.920
         ccdpos[1,0,1] =-270.080
-        ccdpos[1,1,0] =  65.920
+        ccdpos[1,1,0] = -65.920
         ccdpos[1,1,1] =-270.080 +30.720
-        ccdpos[1,2,0] =  65.920 -63.360
+        ccdpos[1,2,0] = -65.920 +63.360
         ccdpos[1,2,1] =-270.080 +30.720
-        ccdpos[1,3,0] =  65.920 -63.360
+        ccdpos[1,3,0] = -65.920 +63.360
         ccdpos[1,3,1] =-270.080
 
-        # 3 (AG218)
-        ccdpos[2,0,0] =  68.465
+        # 3 (AG217)
+        ccdpos[2,0,0] = -68.465
         ccdpos[2,0,1] = 239.360
-        ccdpos[2,1,0] =  68.465
-        ccdpos[2,1,1] = 239.360 +7.68
-        ccdpos[2,2,0] =  68.465 -63.360
-        ccdpos[2,2,1] = 239.360 +7.68
-        ccdpos[2,3,0] =  68.465 -63.360
+        ccdpos[2,1,0] = -68.465
+        ccdpos[2,1,1] = 239.360 +30.720
+        ccdpos[2,2,0] = -68.465 +63.360
+        ccdpos[2,2,1] = 239.360 +30.720
+        ccdpos[2,3,0] = -68.465 +63.360
         ccdpos[2,3,1] = 239.360
 
-        # 4 (AG217)
-        ccdpos[3,0,0] =   1.440
+        # 4 (AG218)
+        ccdpos[3,0,0] =  -1.440
         ccdpos[3,0,1] = 239.360
-        ccdpos[3,1,0] =   1.440
-        ccdpos[3,1,1] = 239.360 +30.720
-        ccdpos[3,2,0] =   1.440 -63.360
-        ccdpos[3,2,1] = 239.360 +30.720
-        ccdpos[3,3,0] =   1.440 -63.360
+        ccdpos[3,1,0] =  -1.440
+        ccdpos[3,1,1] = 239.360 + 7.680
+        ccdpos[3,2,0] =  -1.440 +63.360
+        ccdpos[3,2,1] = 239.360 + 7.680
+        ccdpos[3,3,0] =  -1.440 +63.360
         ccdpos[3,3,1] = 239.360
 
         return ccdpos
@@ -79,44 +79,44 @@ class SCAGCCDPositions(object):
 
         # There are four guiding CCDs.  
         # the positions of dithering area in pa0  
-        # 1
-        ccdpos[0,0,0] = -1.105 - no_use  
+        # 1 (AG201)
+        ccdpos[0,0,0] =   +1.105 + no_use  
         ccdpos[0,0,1] = -270.080 + no_use
-        ccdpos[0,1,0] = -1.105 - no_use
+        ccdpos[0,1,0] =   +1.105 + no_use
         ccdpos[0,1,1] = -270.080 +30.720 - no_use
-        ccdpos[0,2,0] = -1.105 -63.360 + no_use
+        ccdpos[0,2,0] =   +1.105 +63.360 - no_use
         ccdpos[0,2,1] = -270.080 +30.720 - no_use
-        ccdpos[0,3,0] = -1.105 -63.360 + no_use
+        ccdpos[0,3,0] =   +1.105 +63.360 - no_use
         ccdpos[0,3,1] = -270.080 + no_use
 
-        # 2
-        ccdpos[1,0,0] = 65.920 - no_use
+        # 2 (AG202)
+        ccdpos[1,0,0] =  -65.920 + no_use
         ccdpos[1,0,1] = -270.080 + no_use
-        ccdpos[1,1,0] = 65.920 - no_use
+        ccdpos[1,1,0] =  -65.920 + no_use
         ccdpos[1,1,1] = -270.080 +30.720 - no_use
-        ccdpos[1,2,0] =  65.920 -63.360 + no_use
+        ccdpos[1,2,0] =  -65.920 +63.360 - no_use
         ccdpos[1,2,1] = -270.080 +30.720 - no_use
-        ccdpos[1,3,0] = 65.920 -63.360 + no_use
+        ccdpos[1,3,0] =  -65.920 +63.360 - no_use
         ccdpos[1,3,1] = -270.080 + no_use
 
-        # 3
-        ccdpos[2,0,0] = 68.465 - no_use
+        # 3 (AG217)
+        ccdpos[2,0,0] = -68.465 + no_use
         ccdpos[2,0,1] = 239.360 + no_use
-        ccdpos[2,1,0] = 68.465 - no_use
-        ccdpos[2,1,1] = 239.360 +7.68 - no_use
-        ccdpos[2,2,0] = 68.465 -63.360 + no_use
-        ccdpos[2,2,1] = 239.360 +7.68 - no_use
-        ccdpos[2,3,0] = 68.465 -63.360 + no_use
+        ccdpos[2,1,0] = -68.465 + no_use
+        ccdpos[2,1,1] = 239.360 +30.720 - no_use
+        ccdpos[2,2,0] = -68.465 +63.360 - no_use
+        ccdpos[2,2,1] = 239.360 +30.720 - no_use
+        ccdpos[2,3,0] = -68.465 +63.360 - no_use
         ccdpos[2,3,1] = 239.360 + no_use
 
-        # 4
-        ccdpos[3,0,0] = 1.440 - no_use
+        # 4 (AG218)
+        ccdpos[3,0,0] =  -1.440 + no_use
         ccdpos[3,0,1] = 239.360 + no_use
-        ccdpos[3,1,0] = 1.440 - no_use
-        ccdpos[3,1,1] = 239.360 +30.720 - no_use
-        ccdpos[3,2,0] = 1.440 -63.360 + no_use
-        ccdpos[3,2,1] = 239.360 +30.720 - no_use
-        ccdpos[3,3,0] = 1.440 -63.360 + no_use
+        ccdpos[3,1,0] =  -1.440 + no_use
+        ccdpos[3,1,1] = 239.360 + 7.680 - no_use
+        ccdpos[3,2,0] =  -1.440 +63.360 - no_use
+        ccdpos[3,2,1] = 239.360 + 7.680 - no_use
+        ccdpos[3,3,0] =  -1.440 +63.360 - no_use
         ccdpos[3,3,1] = 239.360 + no_use
 
         return ccdpos
@@ -129,45 +129,45 @@ class SCAGCCDPositions(object):
 
         # There are four guiding CCDs.  
         # the positions of dithering area in pa0  
-        # 1
-        ccdpos[0,0,0] = -1.105 - no_use  
+        # 1 (AG201)
+        ccdpos[0,0,0] =   +1.105 + no_use  
         ccdpos[0,0,1] = -270.080 + no_use
-        ccdpos[0,1,0] = -1.105 - no_use
+        ccdpos[0,1,0] =   +1.105 + no_use
         ccdpos[0,1,1] = -270.080 +30.720 - no_use
-        ccdpos[0,2,0] = -1.105 -63.360 + no_use
+        ccdpos[0,2,0] =   +1.105 +63.360 - no_use
         ccdpos[0,2,1] = -270.080 +30.720 - no_use
-        ccdpos[0,3,0] = -1.105 -63.360 + no_use
+        ccdpos[0,3,0] =   +1.105 +63.360 - no_use
         ccdpos[0,3,1] = -270.080 + no_use
 
-        # 2
-        ccdpos[1,0,0] = 65.920 - no_use
+        # 2 (AG202)
+        ccdpos[1,0,0] =  -65.920 + no_use
         ccdpos[1,0,1] = -270.080 + no_use
-        ccdpos[1,1,0] = 65.920 - no_use
+        ccdpos[1,1,0] =  -65.920 + no_use
         ccdpos[1,1,1] = -270.080 +30.720 - no_use
-        ccdpos[1,2,0] =  65.920 -63.360 + no_use
+        ccdpos[1,2,0] =  -65.920 +63.360 - no_use
         ccdpos[1,2,1] = -270.080 +30.720 - no_use
-        ccdpos[1,3,0] = 65.920 -63.360 + no_use
+        ccdpos[1,3,0] =  -65.920 +63.360 - no_use
         ccdpos[1,3,1] = -270.080 + no_use
 
-        # 3
-        ccdpos[2,0,0] = 68.465 - no_use
-        ccdpos[2,0,1] = 239.360 + no_use
-        ccdpos[2,1,0] = 68.465 - no_use
-        ccdpos[2,1,1] = 239.360 +7.68 - no_use
-        ccdpos[2,2,0] = 68.465 -63.360 + no_use
-        ccdpos[2,2,1] = 239.360 +7.68 - no_use
-        ccdpos[2,3,0] = 68.465 -63.360 + no_use
-        ccdpos[2,3,1] = 239.360 + no_use
+        # 3 (AG217)
+        ccdpos[2,0,0] =  -68.465 + no_use
+        ccdpos[2,0,1] =  239.360 + no_use
+        ccdpos[2,1,0] =  -68.465 + no_use
+        ccdpos[2,1,1] =  239.360 +30.720 - no_use
+        ccdpos[2,2,0] =  -68.465 +63.360 - no_use
+        ccdpos[2,2,1] =  239.360 +30.720 - no_use
+        ccdpos[2,3,0] =  -68.465 +63.360 - no_use
+        ccdpos[2,3,1] =  239.360 + no_use
 
-        # 4
-        ccdpos[3,0,0] = 1.440 - no_use
-        ccdpos[3,0,1] = 239.360 + no_use
-        ccdpos[3,1,0] = 1.440 - no_use
-        ccdpos[3,1,1] = 239.360 +30.720 - no_use
-        ccdpos[3,2,0] = 1.440 -63.360 + no_use
-        ccdpos[3,2,1] = 239.360 +30.720 - no_use
-        ccdpos[3,3,0] = 1.440 -63.360 + no_use
-        ccdpos[3,3,1] = 239.360 + no_use
+        # 4 (AG218)
+        ccdpos[3,0,0] =   -1.440 + no_use
+        ccdpos[3,0,1] =  239.360 + no_use
+        ccdpos[3,1,0] =   -1.440 + no_use
+        ccdpos[3,1,1] =  239.360 + 7.680 - no_use
+        ccdpos[3,2,0] =   -1.440 +63.360 - no_use
+        ccdpos[3,2,1] =  239.360 + 7.680 - no_use
+        ccdpos[3,3,0] =   -1.440 +63.360 - no_use
+        ccdpos[3,3,1] =  239.360 + no_use
 
         return ccdpos
 
