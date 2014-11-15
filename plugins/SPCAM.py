@@ -12,7 +12,7 @@ import threading, Queue
 
 from ginga import AstroImage
 from ginga.misc.plugins import Mosaic
-from ginga.misc import Widgets
+from ginga.misc import Widgets, Bunch
 from ginga.util import dp
 
 from astro.frame import Frame
@@ -32,11 +32,15 @@ class SPCAM(Mosaic.Mosaic):
                                   match_bg=False, trim_px=0,
                                   merge=True, num_threads=4,
                                   drop_creates_new_mosaic=True,
-                                  use_flats=False, flat_dir='')
+                                  use_flats=False, flat_dir='',
+                                  mosaic_new=False)
         self.settings.load(onError='silent')
 
         self.queue = Queue.Queue()
         self.current_exp_num = 0
+
+        # map of exposures -> list of paths
+        self.exp_pathmap = {}
         
         # define mosaic preprocessing step for SPCAM 
         self.set_preprocess(self.mangle_image)
@@ -50,7 +54,7 @@ class SPCAM(Mosaic.Mosaic):
         
         self.dr = spcam.SuprimeCamDR(logger=self.logger)
         
-        #self.mosaic_chname = 'SPCAM_Online'
+        self.mosaic_chname = 'SPCAM_Online'
         # For flat fielding
         self.flat = {}
 
@@ -89,6 +93,7 @@ class SPCAM(Mosaic.Mosaic):
     def get_latest_frames(self, pathlist):
         new_frlist = []
         new_exposure = False
+        exposures = set([])
 
         for path in pathlist:
             path = self.fv.get_filepath(path)
@@ -99,12 +104,25 @@ class SPCAM(Mosaic.Mosaic):
             if frame.inscode != self.dr.inscode:
                 continue
 
+            # calculate exposure number
+            exp_num = (frame.number // self.dr.num_frames) * self.dr.num_frames
+
+            # add paths to exposure->paths map
+            exp_id = Frame(path=path)
+            exp_id.number = exp_num
+            exp_frid = str(exp_id)
+            bnch = Bunch.Bunch(paths=set([]))
+            exp_bnch = self.exp_pathmap.setdefault(exp_frid, bnch)
+            exp_bnch.paths.add(path)
+            if len(exp_bnch.paths) == 1:
+                exp_bnch.setvals(typical=path, added_to_contents=False)
+            exposures.add(exp_frid)
+            
             # if frame number doesn't belong to current exposure
             # then drop it
             if frame.number < self.current_exp_num:
                 continue
 
-            exp_num = (frame.number // self.dr.num_frames) * self.dr.num_frames
             if exp_num > self.current_exp_num:
                 # There is a new exposure
                 self.current_exp_num = exp_num
@@ -113,9 +131,43 @@ class SPCAM(Mosaic.Mosaic):
             else:
                 new_frlist.append(path)
 
-        return (new_frlist, new_exposure)
+        return (new_frlist, new_exposure, exposures)
     
+
+    def mk_loader(self, bnch):
+        def load_mosaic(filepath):
+            paths = list(bnch.paths)
+            return self.mosaic(paths, new_mosaic=True)
+        return load_mosaic
             
+    def add_to_contents(self, exposures):
+        try:
+            pluginInfo = self.fv.gpmon.getPluginInfo('Contents')
+            
+            for exp_frid in exposures:
+                # get the information about this exposure
+                exp_bnch = self.exp_pathmap[exp_frid]
+                if exp_bnch.added_to_contents:
+                    continue
+
+                # load the representative image
+                image = AstroImage.AstroImage(logger=self.logger)
+                image.load_file(exp_bnch.typical)
+                # make a new loader that will load the mosaic and attach
+                # it to this image as the loader
+                image_loader = self.mk_loader(exp_bnch)
+                image.set(loader=image_loader)
+
+                exp_bnch.added_to_contents = True
+
+                # add this to the contents pane
+                self.fv.gui_do(pluginInfo.obj.add_image, self.fv,
+                               self.mosaic_chname, image)
+
+        except Exception as e:
+            self.logger.warn("'Contents' plugin not available: %s" % (str(e)))
+            return
+
     def process_frames(self, timer):
         self.logger.info("processing queued frames")
 
@@ -128,14 +180,20 @@ class SPCAM(Mosaic.Mosaic):
             except Queue.Empty:
                 break
 
-        self.logger.info("debug=%s" % str(paths))
-        
+        self.logger.debug("paths=%s" % str(paths))
         if len(paths) == 0:
             return
 
-        if self.gui_up:
-            paths, new_mosaic = self.get_latest_frames(paths)
+        self.logger.debug("adding to contents")
+        try:
+            paths, new_mosaic, exposures = self.get_latest_frames(paths)
 
+            self.add_to_contents(exposures)
+        except Exception as e:
+            self.logger.error("error adding to contents: %s" % (str(e)))
+
+        mosaic_new = self.settings.get('mosaic_new', False)
+        if self.gui_up and mosaic_new:
             self.mosaic(paths, new_mosaic=new_mosaic)
 
     def file_notify_cb(self, fv, path):
@@ -143,14 +201,12 @@ class SPCAM(Mosaic.Mosaic):
         self.queue.put(path)
         self.timer.cond_set(self.process_interval)
 
-    ## def drop_cb(self, canvas, paths):
-    ##     self.logger.info("files dropped: %s" % str(paths))
-    ##     if self.gui_up:
-    ##         paths, new_mosaic = self.get_latest_frames(paths)
-
-    ##         self.fv.nongui_do(self.fv.error_wrap, self.mosaic, paths,
-    ##                           new_mosaic=new_mosaic)
-    ##     return True
+    def drop_cb(self, canvas, paths):
+        self.logger.info("files dropped: %s" % str(paths))
+        for path in paths:
+            self.queue.put(path)
+        self.timer.cond_set(self.process_interval)
+        return True
         
     def mangle_image(self, image):
         d = self.dr.get_regions(image)

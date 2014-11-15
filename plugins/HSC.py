@@ -26,12 +26,13 @@ class HSC(SPCAM.SPCAM):
         self.settings.setDefaults(annotate_images=False, fov_deg=2.0,
                                   match_bg=False, trim_px=0,
                                   merge=True, num_threads=6,
-                                  drop_creates_new_mosaic=True)
+                                  drop_creates_new_mosaic=True,
+                                  mosaic_new=False)
         self.settings.load(onError='silent')
 
         self.dr = hsc.HyperSuprimeCamDR(logger=self.logger)
         
-        #self.mosaic_chname = 'HSC_Online'
+        self.mosaic_chname = 'HSC_Online'
 
 
     def __str__(self):

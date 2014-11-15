@@ -126,14 +126,15 @@ def get_displayfits(viewKlass):
             """Loads a command file from _filepath_ into the commands window.
             """
             try:
-                # TODO: what to do about image_loader parameter?
-                
                 filepath = self.get_filepath(filepath)
                 # <-- filepath should now be a real file in the filesystem
                 self.logger.debug("filepath=%s" % (filepath))
-        
-                image = self.controller.open_fits(filepath, channel=chname,
-                                                  wait=wait)
+
+                if image_loader == None:
+                    image = self.controller.open_fits(filepath, channel=chname,
+                                                      wait=wait)
+                else:
+                    image = image_loader(filepath)
                 return image
 
             except Exception as e:

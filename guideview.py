@@ -148,19 +148,21 @@ class DisplayFITS(GingaControl, GingaView):
                               preferences, ev_quit=ev_quit)
 
 
-    def load_file(self, fitspath, chname=None, wait=True,
+    def load_file(self, filepath, chname=None, wait=True,
                   image_loader=None):
-        """Loads a command file from _fitspath_ into the commands window.
+        """Loads a command file from _filepath_ into the commands window.
         """
         try:
-            # TODO: what to do about image_loader parameter?
-            image = self.controller.open_fits(fitspath, channel=chname,
-                                              wait=wait)
+            if image_loader == None:
+                image = self.controller.open_fits(filepath, channel=chname,
+                                                      wait=wait)
+            else:
+                image = image_loader(filepath)
             return image
 
         except Exception as e:
             errmsg = "Unable to open '%s': %s" % (
-                fitspath, str(e))
+                filepath, str(e))
             self.show_error(errmsg)
             return ro.ERROR
 
