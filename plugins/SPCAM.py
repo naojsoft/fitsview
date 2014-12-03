@@ -160,6 +160,7 @@ class SPCAM(Mosaic.Mosaic):
 
                 exp_bnch.added_to_contents = True
 
+                self.logger.debug("adding to contents")
                 # add this to the contents pane
                 self.fv.gui_do(pluginInfo.obj.add_image, self.fv,
                                self.mosaic_chname, image)
@@ -184,7 +185,6 @@ class SPCAM(Mosaic.Mosaic):
         if len(paths) == 0:
             return
 
-        self.logger.debug("adding to contents")
         try:
             paths, new_mosaic, exposures = self.get_latest_frames(paths)
 

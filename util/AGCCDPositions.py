@@ -38,11 +38,11 @@ class SCAGCCDPositions(object):
         ccdpos[0,2,0] =  +1.105 +63.360
         ccdpos[0,2,1] =-270.080 +30.720
         ccdpos[0,3,0] =  +1.105 +63.360
-        ccdpos[0,3,1] =-270.080
+        ccdpos[0,3,1] =-270.080          +7.680
 
         # 2 (AG202)
         ccdpos[1,0,0] = -65.920
-        ccdpos[1,0,1] =-270.080
+        ccdpos[1,0,1] =-270.080          +7.680
         ccdpos[1,1,0] = -65.920
         ccdpos[1,1,1] =-270.080 +30.720
         ccdpos[1,2,0] = -65.920 +63.360
@@ -54,7 +54,7 @@ class SCAGCCDPositions(object):
         ccdpos[2,0,0] = -68.465
         ccdpos[2,0,1] = 239.360
         ccdpos[2,1,0] = -68.465
-        ccdpos[2,1,1] = 239.360 +30.720
+        ccdpos[2,1,1] = 239.360 +30.720  -7.680
         ccdpos[2,2,0] = -68.465 +63.360
         ccdpos[2,2,1] = 239.360 +30.720
         ccdpos[2,3,0] = -68.465 +63.360
@@ -87,11 +87,11 @@ class SCAGCCDPositions(object):
         ccdpos[0,2,0] =   +1.105 +63.360 - no_use
         ccdpos[0,2,1] = -270.080 +30.720 - no_use
         ccdpos[0,3,0] =   +1.105 +63.360 - no_use
-        ccdpos[0,3,1] = -270.080 + no_use
+        ccdpos[0,3,1] = -270.080 + no_use          +7.680
 
         # 2 (AG202)
         ccdpos[1,0,0] =  -65.920 + no_use
-        ccdpos[1,0,1] = -270.080 + no_use
+        ccdpos[1,0,1] = -270.080 + no_use          +7.680
         ccdpos[1,1,0] =  -65.920 + no_use
         ccdpos[1,1,1] = -270.080 +30.720 - no_use
         ccdpos[1,2,0] =  -65.920 +63.360 - no_use
@@ -103,7 +103,7 @@ class SCAGCCDPositions(object):
         ccdpos[2,0,0] = -68.465 + no_use
         ccdpos[2,0,1] = 239.360 + no_use
         ccdpos[2,1,0] = -68.465 + no_use
-        ccdpos[2,1,1] = 239.360 +30.720 - no_use
+        ccdpos[2,1,1] = 239.360 +30.720 - no_use  -7.680
         ccdpos[2,2,0] = -68.465 +63.360 - no_use
         ccdpos[2,2,1] = 239.360 +30.720 - no_use
         ccdpos[2,3,0] = -68.465 +63.360 - no_use
@@ -137,11 +137,11 @@ class SCAGCCDPositions(object):
         ccdpos[0,2,0] =   +1.105 +63.360 - no_use
         ccdpos[0,2,1] = -270.080 +30.720 - no_use
         ccdpos[0,3,0] =   +1.105 +63.360 - no_use
-        ccdpos[0,3,1] = -270.080 + no_use
+        ccdpos[0,3,1] = -270.080 + no_use          +7.680
 
         # 2 (AG202)
         ccdpos[1,0,0] =  -65.920 + no_use
-        ccdpos[1,0,1] = -270.080 + no_use
+        ccdpos[1,0,1] = -270.080 + no_use          +7.680
         ccdpos[1,1,0] =  -65.920 + no_use
         ccdpos[1,1,1] = -270.080 +30.720 - no_use
         ccdpos[1,2,0] =  -65.920 +63.360 - no_use
@@ -153,7 +153,7 @@ class SCAGCCDPositions(object):
         ccdpos[2,0,0] =  -68.465 + no_use
         ccdpos[2,0,1] =  239.360 + no_use
         ccdpos[2,1,0] =  -68.465 + no_use
-        ccdpos[2,1,1] =  239.360 +30.720 - no_use
+        ccdpos[2,1,1] =  239.360 +30.720 - no_use  -7.680
         ccdpos[2,2,0] =  -68.465 +63.360 - no_use
         ccdpos[2,2,1] =  239.360 +30.720 - no_use
         ccdpos[2,3,0] =  -68.465 +63.360 - no_use
