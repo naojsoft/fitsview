@@ -44,27 +44,31 @@ class ReceiveFITS(object):
 
         self.fv.set_callback('file-notify', self.file_notify_cb)
 
-    def open_fits(self, filepath, frameid=None, channel=None, wait=False):
+    def open_fits(self, filepath, frameid=None, channel=None, wait=False,
+                  image_loader=None):
 
         dirname, filename = os.path.split(filepath)
         
-        # Create an image.  Assume type to be an AstroImage unless
-        # the MIME association says it is something different.
         try:
-            typ, subtyp = self.fv.guess_filetype(filepath)
-        except Exception:
-            # Can't determine file type: assume and attempt FITS
-            typ, subtyp = 'image', 'fits'
-        
-        if (typ == 'image') and (subtyp != 'fits'):
-            image = RGBImage.RGBImage(logger=self.logger)
-        else:
-            image = AstroImage.AstroImage(logger=self.logger)
+            if image_loader != None:
+                image = image_loader(filepath)
 
-        try:
-            #self.fv.showStatus("Loading %s" % (filename))
-            self.logger.debug("Loading file '%s'" % (filename))
-            image.load_file(filepath)
+            else:
+                # Create an image.  Assume type to be an AstroImage unless
+                # the MIME association says it is something different.
+                try:
+                    typ, subtyp = self.fv.guess_filetype(filepath)
+                except Exception:
+                    # Can't determine file type: assume and attempt FITS
+                    typ, subtyp = 'image', 'fits'
+
+                if (typ == 'image') and (subtyp != 'fits'):
+                    image = RGBImage.RGBImage(logger=self.logger)
+                else:
+                    image = AstroImage.AstroImage(logger=self.logger)
+
+                self.logger.debug("Loading file '%s'" % (filename))
+                image.load_file(filepath)
 
         except Exception, e:
             errmsg = "Failed to load file '%s': %s" % (

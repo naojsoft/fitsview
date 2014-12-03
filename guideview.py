@@ -153,11 +153,13 @@ class DisplayFITS(GingaControl, GingaView):
         """Loads a command file from _filepath_ into the commands window.
         """
         try:
-            if image_loader == None:
-                image = self.controller.open_fits(filepath, channel=chname,
-                                                      wait=wait)
-            else:
-                image = image_loader(filepath)
+            filepath = self.get_filepath(filepath)
+            # <-- filepath should now be a real file in the filesystem
+            self.logger.debug("filepath=%s" % (filepath))
+
+            image = self.controller.open_fits(filepath, channel=chname,
+                                              wait=wait,
+                                              image_loader=image_loader)
             return image
 
         except Exception as e:

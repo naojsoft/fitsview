@@ -130,11 +130,9 @@ def get_displayfits(viewKlass):
                 # <-- filepath should now be a real file in the filesystem
                 self.logger.debug("filepath=%s" % (filepath))
 
-                if image_loader == None:
-                    image = self.controller.open_fits(filepath, channel=chname,
-                                                      wait=wait)
-                else:
-                    image = image_loader(filepath)
+                image = self.controller.open_fits(filepath, channel=chname,
+                                                  wait=wait,
+                                                  image_loader=image_loader)
                 return image
 
             except Exception as e:
