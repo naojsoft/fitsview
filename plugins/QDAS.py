@@ -66,7 +66,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image != None, \
+        assert image is not None, \
                QDASError("Null image for %s" % chname)
 
         # remove all other QDAS layers
@@ -100,7 +100,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.fv.update_pending()
 
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image != None, \
+        assert image is not None, \
                QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
@@ -209,19 +209,19 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         input_frame = framelist[0]
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image != None, \
+        assert image is not None, \
                QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
         # Set defaults and adjust for difference between data coords and
         # fits coords
-        if slit_x != None:
+        if slit_x is not None:
             slit_x -= 1
-        if slit_y != None:
+        if slit_y is not None:
             slit_y -= 1
-        if object_x != None:
+        if object_x is not None:
             object_x -= 1
-        if object_y != None:
+        if object_y is not None:
             object_y -= 1
 
         p = future.get_data()
@@ -256,7 +256,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         # Load the image we are operating on into the channel
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image != None, \
+        assert image is not None, \
                QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
@@ -267,33 +267,33 @@ class QDAS(GingaPlugin.GlobalPlugin):
         
         # Set defaults and adjust for difference between data coords and
         # fits coords
-        if x1 == None:
+        if x1 is None:
             x1 = 0
         else:
             x1 -= 1
-        if y1 == None:
+        if y1 is None:
             y1 = 0
         else:
             y1 -= 1
-        if x2 == None:
+        if x2 is None:
             x2 = image.width-1
         else:
             x2 -= 1
-        if y2 == None:
+        if y2 is None:
             y2 = image.height-1
         else:
             y2 -= 1
-        if width == None:
+        if width is None:
             width = x2 - x1
-        if height == None:
+        if height is None:
             height = y2 - y1
-        if dst_x != None:
+        if dst_x is not None:
             dst_x -= 1
-        if dst_y != None:
+        if dst_y is not None:
             dst_y -= 1
-        if obj_x != None:
+        if obj_x is not None:
             obj_x -= 1
-        if obj_y != None:
+        if obj_y is not None:
             obj_y -= 1
 
         select_mode = select_mode.lower()
@@ -530,7 +530,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_file(path, chname)
-        assert image != None, \
+        assert image is not None, \
                QDASError("Null image for '%s'" % (chname))
 
         # remove all other QDAS layers

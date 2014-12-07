@@ -119,7 +119,7 @@ class ANA(GingaPlugin.GlobalPlugin):
         # look up command from a table
         cmd = anacmd_tbl[command.lower()]
 
-        if parameter != None:
+        if parameter is not None:
             cmdstr = "%s %s" % (cmd, parameter)
         else:
             cmdstr = cmd

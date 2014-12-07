@@ -141,7 +141,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.ds.raise_tab(self.qdaschname)
 
         image = chinfo.fitsimage.get_image()
-        assert image != None, \
+        assert image is not None, \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         try:
@@ -274,7 +274,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.ds.raise_tab(self.qdaschname)
 
         image = chinfo.fitsimage.get_image()
-        assert image != None, \
+        assert image is not None, \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         ag_area = ag_area.lower()
@@ -381,7 +381,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.ds.raise_tab(self.qdaschname)
         
         image = chinfo.fitsimage.get_image()
-        assert image != None, \
+        assert image is not None, \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         agh = Bunch.Bunch(image.get('agheader'))
@@ -389,7 +389,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Convert pixel coords on image back to CCD coords
         obj_x, obj_y = None, None
         dst_x, dst_y = None, None
-        if self.sv_obj_x != None:
+        if self.sv_obj_x is not None:
             obj_x, obj_y = self.ccd2pix(self.sv_obj_x, self.sv_obj_y, agh.binX,
                                         agh.expRangeX, agh.expRangeY)
             dst_x, dst_y = self.ccd2pix(self.sv_dst_x, self.sv_dst_y, agh.binX,
@@ -397,19 +397,19 @@ class VGW(GingaPlugin.GlobalPlugin):
         
         # Set defaults and adjust for difference between data coords and
         # fits coords
-        if slit_x != None:
+        if slit_x is not None:
             slit_x -= 1
         else:
             slit_x = dst_x
-        if slit_y != None:
+        if slit_y is not None:
             slit_y -= 1
         else:
             slit_y = dst_y
-        if object_x != None:
+        if object_x is not None:
             object_x -= 1
         else:
             object_x = obj_x
-        if object_y != None:
+        if object_y is not None:
             object_y -= 1
         else:
             object_y = obj_y
@@ -598,7 +598,7 @@ class VGW(GingaPlugin.GlobalPlugin):
     def _ag_auto_select_cont1(self, future2, future):
         self.logger.debug("continuation 1 resumed...")
         p = future.get_data()
-        if p.image == None:
+        if p.image is None:
             # TODO: pop up an error message
             self.fv.show_error("No DSS image returned!")
             future.resolve(-1)
@@ -692,7 +692,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.logger.debug("continuation 2 resumed...")
         p = future.get_data()
 
-        if p.starlist == None:
+        if p.starlist is None:
             self.fv.show_error("No catalog data returned!")
             future.resolve(-1)
             return
@@ -912,7 +912,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.logger.debug("continuation 1 resumed...")
         p = future.get_data()
 
-        if p.starlist == None:
+        if p.starlist is None:
             self.fv.show_error("No catalog data returned!")
             future.resolve(-1)
             return
@@ -1103,7 +1103,7 @@ class VGW(GingaPlugin.GlobalPlugin):
     def _hsc_ag_auto_select_cont1(self, future2, future):
         self.logger.debug("continuation 1 resumed...")
         p = future.get_data()
-        if p.image == None:
+        if p.image is None:
             # TODO: pop up an error message
             self.fv.show_error("No DSS image returned!")
             future.resolve(-1)
@@ -1252,7 +1252,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.logger.debug("continuation 2 resumed...")
         p = future.get_data()
 
-        if p.starlist == None:
+        if p.starlist is None:
             self.fv.show_error("No catalog data returned!")
 
             future.resolve(-1)
@@ -1386,7 +1386,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 x1, y1, x2, y2 = metadata['region']
                 self.logger.debug("Guiding is on region is (%d,%d) (%d,%d)" % (
                     x1, y1, x2, y2))
-                if obj == None:
+                if obj is None:
                     fitsimage.add(CanvasTypes.CompoundObject(
                         CanvasTypes.Rectangle(x1, y1, x2, y2,
                                               color=self.colorcalc),
@@ -1398,7 +1398,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
             else:
                 # Not guiding, clear the region, if any
-                if obj != None:
+                if obj is not None:
                     fitsimage.deleteObject(obj)
 
         

@@ -74,7 +74,7 @@ class AgAutoSelect(Catalogs.Catalogs):
                                             linewidth=4, color=color))
         # TODO: consider calling back into the plotObj for a custom
         # highlight
-        if self.probe_vignette_radius != None:
+        if self.probe_vignette_radius is not None:
             hilite.addObject(CanvasTypes.Circle(x, y, self.probe_vignette_radius,
                                                 linewidth=2, color='green',
                                                 linestyle='dash'))

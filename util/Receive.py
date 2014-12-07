@@ -50,7 +50,7 @@ class ReceiveFITS(object):
         dirname, filename = os.path.split(filepath)
         
         try:
-            if image_loader != None:
+            if image_loader is not None:
                 image = image_loader(filepath)
 
             else:

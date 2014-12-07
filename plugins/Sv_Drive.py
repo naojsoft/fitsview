@@ -2,7 +2,7 @@
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  9 12:01:04 HST 2014
+#  Last edit: Sat Dec  6 22:40:00 HST 2014
 #]
 #
 import gtk
@@ -340,17 +340,17 @@ class Sv_Drive(QDASPlugin):
         try:
             # IMPORTANT: Assume all coords have been adjusted from FITS
             # or CCD coords to data coords (-1)
-            if p.dst_x != None:
+            if p.dst_x is not None:
                 self.place_dst(self.canvas, p.dst_x, p.dst_y)
             else:
                 self.place_dst(self.canvas, self.dst_x, self.dst_y)
 
-            if p.obj_x != None:
+            if p.obj_x is not None:
                 self.place_obj(self.canvas, p.obj_x, p.obj_y)
             else:
                 self.place_obj(self.canvas, self.obj_x, self.obj_y)
 
-            if p.x1 != None:
+            if p.x1 is not None:
                 error = False
                 if p.has_key('autoerr'):
                     error = p.autoerr

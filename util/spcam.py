@@ -24,7 +24,7 @@ class SuprimeCamDR(object):
     def __init__(self, logger=None):
         super(SuprimeCamDR, self).__init__()
         
-        if logger == None:
+        if logger is None:
             logger = log.get_logger(level=20, log_stderr=True)
         self.logger = logger
 
@@ -105,7 +105,7 @@ class SuprimeCamDR(object):
         newwd, newht = info.newwd, info.newht
         #print "effective pixel size %dx%d" % (newwd, newht)
         out = numpy.empty((newht, newwd), dtype=float)
-        if header != None:
+        if header is not None:
             header['NAXIS1'] = newwd
             header['NAXIS2'] = newht
 
@@ -142,7 +142,7 @@ class SuprimeCamDR(object):
             out[ylo:yhi, xlo:xhi] -= ovsc_median
 
             # Update header for effective regions
-            if header != None:
+            if header is not None:
                 base = self.pfx + '_EF'
                 header["%sMN%d1" % (base, channel)] = xlo + 1
                 header["%sMX%d1" % (base, channel)] = xhi + 1
@@ -176,7 +176,7 @@ class SuprimeCamDR(object):
         #print flat.shape
 
         # Normalize flat, if normalization term provided
-        if flat_norm != None:
+        if flat_norm is not None:
             flat = flat / flat_norm
 
         img_flat = dp.make_image(flat, image, header)
@@ -221,7 +221,7 @@ class SuprimeCamDR(object):
             flat[flat == 0.0] = 1.0
             ccd_id = int(image.get_keyword('DET-ID'))
 
-            if output_dir == None:
+            if output_dir is None:
                 d[ccd_id] = image
             else:
                 # write the output file
