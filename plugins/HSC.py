@@ -27,7 +27,7 @@ class HSC(SPCAM.SPCAM):
                                   match_bg=False, trim_px=0,
                                   merge=True, num_threads=6,
                                   drop_creates_new_mosaic=True,
-                                  mosaic_new=False)
+                                  mosaic_new=False, make_thumbs=False)
         self.settings.load(onError='silent')
 
         self.dr = hsc.HyperSuprimeCamDR(logger=self.logger)

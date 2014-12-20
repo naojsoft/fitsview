@@ -33,7 +33,7 @@ class SPCAM(Mosaic.Mosaic):
                                   merge=True, num_threads=4,
                                   drop_creates_new_mosaic=True,
                                   use_flats=False, flat_dir='',
-                                  mosaic_new=False)
+                                  mosaic_new=True, make_thumbs=False)
         self.settings.load(onError='silent')
 
         self.queue = Queue.Queue()
@@ -156,11 +156,10 @@ class SPCAM(Mosaic.Mosaic):
                 # make a new loader that will load the mosaic and attach
                 # it to this image as the loader
                 image_loader = self.mk_loader(exp_bnch)
-                image.set(loader=image_loader)
+                image.set(loader=image_loader, name=exp_frid)
 
                 exp_bnch.added_to_contents = True
 
-                self.logger.debug("adding to contents")
                 # add this to the contents pane
                 self.fv.gui_do(pluginInfo.obj.add_image, self.fv,
                                self.mosaic_chname, image)
@@ -185,6 +184,7 @@ class SPCAM(Mosaic.Mosaic):
         if len(paths) == 0:
             return
 
+        self.logger.debug("adding to contents")
         try:
             paths, new_mosaic, exposures = self.get_latest_frames(paths)
 
