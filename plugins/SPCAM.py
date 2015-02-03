@@ -89,7 +89,11 @@ class SPCAM(Mosaic.Mosaic):
 
     def instructions(self):
         self.tw.set_text("""Frames will be mosaiced as they arrive.""")
-            
+
+    def get_exp_num(self, frame):
+        exp_num = (frame.number // self.dr.num_frames) * self.dr.num_frames
+        return exp_num
+
     def get_latest_frames(self, pathlist):
         new_frlist = []
         new_exposure = False
@@ -105,7 +109,8 @@ class SPCAM(Mosaic.Mosaic):
                 continue
 
             # calculate exposure number
-            exp_num = (frame.number // self.dr.num_frames) * self.dr.num_frames
+            #exp_num = (frame.number // self.dr.num_frames) * self.dr.num_frames
+            exp_num = self.get_exp_num(frame)
 
             # add paths to exposure->paths map
             exp_id = Frame(path=path)

@@ -1,5 +1,5 @@
 #
-# HSC.py -- Suprime-Cam plugin for Ginga FITS viewer
+# HSC.py -- HSC plugin for Ginga FITS viewer
 # 
 # Eric Jeschke (eric@naoj.org)
 #
