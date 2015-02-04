@@ -2,7 +2,7 @@
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Dec  6 22:40:00 HST 2014
+#  Last edit: Tue Feb  3 15:09:42 HST 2015
 #]
 #
 import gtk
@@ -606,7 +606,10 @@ class Sv_Drive(QDASPlugin):
             return True
         canvas.deleteObjectByTag(tag, redraw=False)
 
-        result = self.check_region(bbox.x1, bbox.y1, bbox.x2, bbox.y2,
+        # make sure corners are LL, UR
+        x1, y1, x2, y2 = bbox.get_llur()
+
+        result = self.check_region(x1, y1, x2, y2,
                                    width=self.width, height=self.height,
                                    recenter=self.recenter)
         return True

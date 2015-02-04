@@ -279,7 +279,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             return True
         bbox  = obj.objects[0]
         point = obj.objects[1]
-        p.x1, p.y1, p.x2, p.y2 = bbox.x1, bbox.y1, bbox.x2, bbox.y2
+        p.x1, p.y1, p.x2, p.y2 = bbox.get_llur()
 
         # Save exposure time for next invocation
         try:
@@ -358,15 +358,15 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         bbox  = obj.objects[0]
         point = obj.objects[1]
         data_x, data_y = point.x, point.y
-        x1, y1, x2, y2 = bbox.x1, bbox.y1, bbox.x2, bbox.y2
+        x1, y1, x2, y2 = bbox.get_llur()
 
         p = self.callerInfo.get_data()
         try:
             image = self.fitsimage.get_image()
 
             # sanity check on region
-            width = bbox.x2 - bbox.x1
-            height = bbox.y2 - bbox.y1
+            width = x2 - x1
+            height = y2 - y1
             dx = width // 2
             dy = height // 2
             if (width > self.max_len) or (height > self.max_len):
@@ -413,7 +413,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.wdetail.brightness.set_text('%.3f' % qs.brightness)
 
             # Mark object center on image
-            point.x, point.y = int(qs.x), int(qs.y)
+            point.x, point.y = obj_x, obj_y
             point.color = 'cyan'
 
             # Calc RA, DEC, EQUINOX of X/Y center pixel
@@ -459,8 +459,9 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             else:
                 bbox  = obj.objects[0]
                 point = obj.objects[1]
-            self.dx = (bbox.x2 - bbox.x1) // 2
-            self.dy = (bbox.y2 - bbox.y1) // 2
+            x1, y1, x2, y2 = bbox.get_llur()
+            self.dx = (x2 - x1) // 2
+            self.dy = (y2 - y1) // 2
         except Exception, e:
             pass
 
@@ -495,18 +496,19 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             return True
 
         # calculate center of bbox
-        wd = bbox.x2 - bbox.x1
+        x1, y1, x2, y2 = bbox.get_llur()
+        wd = x2 - x1
         dw = wd // 2
-        ht = bbox.y2 - bbox.y1
+        ht = y2 - y1
         dh = ht // 2
-        x, y = bbox.x1 + dw, bbox.y1 + dh
+        x, y = x1 + dw, y1 + dh
 
         # calculate offsets of move
         dx = (data_x - x)
         dy = (data_y - y)
 
         # calculate new coords
-        x1, y1, x2, y2 = bbox.x1+dx, bbox.y1+dy, bbox.x2+dx, bbox.y2+dy
+        x1, y1, x2, y2 = x1+dx, y1+dy, x2+dx, y2+dy
 
         if (not obj) or (obj.kind == 'compound'):
             # Replace compound image with rectangle
@@ -538,14 +540,15 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
                 pass
 
         # determine center of rectangle
-        x = obj.x1 + (obj.x2 - obj.x1) // 2
-        y = obj.y1 + (obj.y2 - obj.y1) // 2
+        x1, y1, x2, y2 = obj.get_llur()
+        x = x1 + (x2 - x1) // 2
+        y = y1 + (y2 - y1) // 2
         
         tag = canvas.add(CanvasTypes.CompoundObject(
-            CanvasTypes.Rectangle(obj.x1, obj.y1, obj.x2, obj.y2,
+            CanvasTypes.Rectangle(x1, y1, x2, y2,
                                   color=self.pickcolor),
             CanvasTypes.Point(x, y, 10, color='red'),
-            CanvasTypes.Text(obj.x1, obj.y2+4, self.agarea,
+            CanvasTypes.Text(x1, y2+4, self.agarea,
                              color=self.pickcolor)),
                          redraw=False)
         self.picktag = tag
