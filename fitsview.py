@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 #
-# fitsview.py -- Simple FITS viewer/display server.
+# fitsview.py -- Gen2 Quick Look viewer/display server.
 #
 # Eric Jeschke (eric@naoj.org)
 #
 """
-fitsview.py implements a simple FITS viewer/display server to display FITS
-images in GTK widgets.
+fitsview.py implements a FITS viewer/display server for Gen2 quick look
+  activities.
 
 Usage:
-    fitsview.py 
+    fitsview.py --monport=NNNNN --loglevel=20 
 """
 
 # stdlib imports
@@ -127,11 +127,11 @@ def get_displayfits(viewKlass):
             """Loads a command file from _filepath_ into the commands window.
             """
             try:
-                filepath = self.get_filepath(filepath)
+                info = self.get_fileinfo(filepath)
                 # <-- filepath should now be a real file in the filesystem
-                self.logger.debug("filepath=%s" % (filepath))
+                self.logger.debug("fileinfo=%s" % (str(info)))
 
-                image = self.controller.open_fits(filepath, channel=chname,
+                image = self.controller.open_fits(info.filepath, channel=chname,
                                                   wait=wait,
                                                   image_loader=image_loader)
                 return image
@@ -141,7 +141,6 @@ def get_displayfits(viewKlass):
                     filepath, str(e))
                 self.show_error(errmsg)
                 return ro.ERROR
-
 
         def play_soundfile(self, filepath, format=None, priority=20):
             self.soundsink.playFile(filepath, format=format,

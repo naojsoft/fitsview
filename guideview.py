@@ -153,11 +153,11 @@ class DisplayFITS(GingaControl, GingaView):
         """Loads a command file from _filepath_ into the commands window.
         """
         try:
-            filepath = self.get_filepath(filepath)
+            info = self.get_fileinfo(filepath)
             # <-- filepath should now be a real file in the filesystem
-            self.logger.debug("filepath=%s" % (filepath))
+            self.logger.debug("fileinfo=%s" % (str(info)))
 
-            image = self.controller.open_fits(filepath, channel=chname,
+            image = self.controller.open_fits(info.filepath, channel=chname,
                                               wait=wait,
                                               image_loader=image_loader)
             return image
@@ -243,8 +243,9 @@ def main(options, args):
     prefs = Settings.Preferences(basefolder=basedir, logger=logger)
 
     t_ = prefs.createCategory('general')
-    t_.setDefaults(shareReadout=False, useMatplotlibColormaps=False,
+    t_.setDefaults(share_readout=False, useMatplotlibColormaps=False,
                    widgetSet='choose',
+                   pixel_coords_offset=1.0,
                    WCSpkg='astropy', FITSpkg='astropy')
     t_.load(onError='silent')
 

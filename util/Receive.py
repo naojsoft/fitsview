@@ -44,31 +44,53 @@ class ReceiveFITS(object):
 
         self.fv.set_callback('file-notify', self.file_notify_cb)
 
+    def load_image(self, filepath, idx=None):
+        image = self.fv.load_image(filepath, idx=idx)
+
+        # override the name, suppressing "[0]" at the end
+        # because this messes up Gen2 operations, which index
+        # the image by frameid
+        name = image.get('name', None)
+        if name is None:
+            (dir, filename) = os.path.split(filepath)
+            (name, ext) = os.path.splitext(filename)
+        
+        match = re.match(r'^(.+)\[0\]$', name)
+        if match:
+            name = match.group(1)
+
+        image.set(name=name)
+        return image
+        
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
                   image_loader=None):
 
         dirname, filename = os.path.split(filepath)
         
+        if image_loader is None:
+            image_loader = self.load_image
+
         try:
-            if image_loader is not None:
-                image = image_loader(filepath)
+            info = self.fv.get_fileinfo(filepath)
+            filepath = info.filepath
 
-            else:
-                # Create an image.  Assume type to be an AstroImage unless
-                # the MIME association says it is something different.
-                try:
-                    typ, subtyp = self.fv.guess_filetype(filepath)
-                except Exception:
-                    # Can't determine file type: assume and attempt FITS
-                    typ, subtyp = 'image', 'fits'
+            kwdargs = {}
+            idx = None
+            if info.numhdu is not None:
+                idx = max(0, info.numhdu)
+                kwdargs['idx'] = idx
 
-                if (typ == 'image') and (subtyp != 'fits'):
-                    image = RGBImage.RGBImage(logger=self.logger)
-                else:
-                    image = AstroImage.AstroImage(logger=self.logger)
+            #image = image_loader(filepath, **kwdargs)
+            future = Future.Future()
+            future.freeze(image_loader, filepath, **kwdargs)
+            image = future.thaw()
 
-                self.logger.debug("Loading file '%s'" % (filename))
-                image.load_file(filepath)
+            # Save a future for this image to reload it later if we
+            # have to remove it from memory
+            image.set(loader=image_loader, image_future=future)
+
+            if image.get('path', None) is None:
+                image.set(path=filepath)
 
         except Exception, e:
             errmsg = "Failed to load file '%s': %s" % (
@@ -94,17 +116,15 @@ class ReceiveFITS(object):
 
             chname = self.insconfig.getNameByFrameId(frameid)
                 
-        except KeyError:
-            self.logger.error("Error getting FRAMEID from fits header: %s" % (
-                filename))
+        except Exception as e:
+            self.logger.warn("Error getting FRAMEID from fits header of %s: %s" % (
+                filename, str(e)))
             chname = 'Image'
 
         if not channel:
             channel = chname
             
-        image.set(name=name, path=filepath, chname=channel)
-        path = image.get('path', 'NO PATH')
-        #print "receive: path=%s" % (path)
+        image.set(name=name, chname=channel)
 
         # Display image.  If the wait parameter is False then don't wait
         # for the image to load into the viewer

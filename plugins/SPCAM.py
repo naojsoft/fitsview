@@ -100,7 +100,8 @@ class SPCAM(Mosaic.Mosaic):
         exposures = set([])
 
         for path in pathlist:
-            path = self.fv.get_filepath(path)
+            info = self.fv.get_filepath(path)
+            path = info.path
             #print "path is", path
                 
             frame = Frame(path=path)
