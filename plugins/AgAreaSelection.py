@@ -1,6 +1,6 @@
 #
 # AgAreaSelection.py -- Ag area selection plugin for fits viewer
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 import gtk
@@ -15,10 +15,12 @@ from ginga import GingaPlugin
 # Local application imports
 from util import g2calc
 
-class QDASPlugin(GingaPlugin.LocalPlugin):
+
+class AgAreaSelection(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
-        super(QDASPlugin, self).__init__(fv, fitsimage)
+        # superclass defines some variables for us, like logger
+        super(AgAreaSelection, self).__init__(fv, fitsimage)
 
         self.layertag = 'qdas-agareaselection'
 
@@ -34,24 +36,8 @@ class QDASPlugin(GingaPlugin.LocalPlugin):
                             drawdims=True)
         canvas.setSurface(self.fitsimage)
 
-    def withdraw_qdas_layers(self):
-        tags = self.fitsimage.getTagsByTagpfx('qdas-')
-        for tag in tags:
-            try:
-                self.fitsimage.deleteObjectByTag(tag)
-            except:
-                pass
-        
-
-
-class AgAreaSelection(QDASPlugin):
-
-    def __init__(self, fv, fitsimage):
-        # superclass defines some variables for us, like logger
-        super(AgAreaSelection, self).__init__(fv, fitsimage)
-
         self.exptime = 6000
-        
+
         self.pick_qs = None
         self.picktag = None
         self.pickcolor = 'green'
@@ -67,7 +53,7 @@ class AgAreaSelection(QDASPlugin):
         self.radius = 10
         self.threshold = None
         self.use_new_algorithm = False
-        
+
     def build_gui(self, container, future=None):
         sw = gtk.ScrolledWindow()
         sw.set_border_width(2)
@@ -92,7 +78,7 @@ class AgAreaSelection(QDASPlugin):
         fr.set_label_align(0.1, 0.5)
         fr.add(tw)
         vbox.pack_start(fr, padding=4, fill=True, expand=False)
-        
+
         nb = gtk.Notebook()
         #nb.set_group_id(group)
         #nb.connect("create-window", self.detach_page, group)
@@ -106,7 +92,7 @@ class AgAreaSelection(QDASPlugin):
         captions = (
             ('Object_X', 'label', 'Object_Y', 'label'),
             ('RA', 'label', 'DEC', 'label'), ('Equinox', 'label'),
-            ('Sky Level', 'label', 'Brightness', 'label'), 
+            ('Sky Level', 'label', 'Brightness', 'label'),
             ('FWHM', 'label', 'Star Size', 'label'),
             ('Sample Area', 'label'),
             ('Exptime', 'entry'),
@@ -131,7 +117,7 @@ class AgAreaSelection(QDASPlugin):
 
         w, b = GtkHelp.build_info(captions)
         self.w.update(b)
-        
+
         b.radius.set_tooltip_text("Radius for peak detection")
         b.threshold.set_tooltip_text("Threshold for peak detection (blank=default)")
 
@@ -181,7 +167,7 @@ class AgAreaSelection(QDASPlugin):
         btns.add(btn)
         vbox.pack_start(btns, fill=True, expand=False)
         vbox.show_all()
-        
+
         cw = container.get_widget()
         cw.pack_start(sw, padding=0, fill=True, expand=True)
 
@@ -189,20 +175,28 @@ class AgAreaSelection(QDASPlugin):
         buf = self.tw.get_buffer()
         buf.set_text(msg)
         self.tw.modify_font(self.msgFont)
-            
+
+    def withdraw_qdas_layers(self):
+        tags = self.fitsimage.getTagsByTagpfx('qdas-')
+        for tag in tags:
+            try:
+                self.fitsimage.deleteObjectByTag(tag)
+            except:
+                pass
+
     def instructions(self):
         self.set_message("""Please select an area manually.
 
 Draw (or redraw) an area with the right mouse button.  Move the area with the left mouse button.  Press Ok or Cancel to finish.""")
-            
+
     def start(self, future=None):
         self.callerInfo = future
         # Gather parameters
         p = future.get_data()
-        
+
         # remove all qdas canvases
         self.withdraw_qdas_layers()
-        
+
         # insert our canvas to fitsimage if it is not already
         try:
             obj = self.fitsimage.getObjectByTag(self.layertag)
@@ -240,14 +234,14 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
     def pause(self):
         self.canvas.ui_setActive(False)
-        
+
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
         self.canvas.ui_setActive(True)
         self.fv.showStatus("Draw a rectangle with the right mouse button")
-        
+
     def stop(self):
         # disable canvas
         self.canvas.ui_setActive(False)
@@ -256,14 +250,14 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
-        
+
     def release_caller(self):
         try:
             self.close()
         except:
             pass
         self.callerInfo.resolve(0)
-        
+
     def ok(self):
         self.logger.info("OK clicked.")
         p = self.callerInfo.get_data()
@@ -274,7 +268,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             # No rectangle drawn
             # TODO: throw up a popup
             pass
-            
+
         if obj.kind != 'compound':
             return True
         bbox  = obj.objects[0]
@@ -287,7 +281,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         except ValueError:
             self.exptime = 3000.0
         p.exptime = self.exptime
-        
+
         p.result = 'ok'
         self.release_caller()
 
@@ -312,7 +306,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
     def show_area(self, p):
         # remove all qdas canvases
         self.withdraw_qdas_layers()
-        
+
         # insert our canvas to fitsimage if it is not already
         try:
             obj = self.fitsimage.getObjectByTag(self.layertag)
@@ -322,7 +316,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
         self.agarea = p.ag_area.upper()
-        
+
         self.canvas.deleteAllObjects(redraw=False)
 
         # Draw exposure region, if any
@@ -349,7 +343,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         # disable canvas
         self.stop()
         return 0
-        
+
 
     def redo(self):
         obj = self.canvas.getObjectByTag(self.picktag)
@@ -374,7 +368,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
                     width, height)
                 self.fv.showStatus(errmsg)
                 raise Exception(errmsg)
-        
+
             # Note: FITS coordinates are 1-based, whereas numpy FITS arrays
             # are 0-based
             fits_x, fits_y = data_x + 1, data_y + 1
@@ -429,7 +423,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             cdelt1, cdelt2 = image.get_keywords_list('CDELT1', 'CDELT2')
             starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
             self.wdetail.star_size.set_text('%.3f' % starsize)
-            
+
         except Exception, e:
             point.color = 'red'
             self.logger.error("Error calculating quality metrics: %s" % (
@@ -439,7 +433,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.wdetail.fwhm.set_text('Failed')
             self.pick_qs = None
 
-            # set region 
+            # set region
             p.x1, p.y1 = max(0, x1), max(0, y1)
             width = image.width
             height = image.height
@@ -447,11 +441,11 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             p.y2 = min(height - 1, y2)
 
         self.canvas.redraw(whence=3)
-        
+
         self.fv.showStatus("Click left mouse button to reposition pick")
         return True
-    
-    def update(self, canvas, action, data_x, data_y):
+
+    def update(self, canvas, event, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.picktag)
             if obj.kind == 'rectangle':
@@ -467,7 +461,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         dx = self.dx
         dy = self.dy
-        
+
         # Mark center of object and region on main image
         try:
             self.canvas.deleteObjectByTag(self.picktag, redraw=False)
@@ -476,7 +470,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         x1, y1 = data_x - dx, data_y - dy
         x2, y2 = data_x + dx, data_y + dy
-        
+
         tag = self.canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
                                                     color='cyan',
                                                     linestyle='dash'),
@@ -484,8 +478,8 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         self.setpickregion(self.canvas, tag)
         return True
-        
-    def drag(self, canvas, action, data_x, data_y):
+
+    def drag(self, canvas, event, data_x, data_y):
 
         obj = self.canvas.getObjectByTag(self.picktag)
         if obj.kind == 'compound':
@@ -543,7 +537,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         x1, y1, x2, y2 = obj.get_llur()
         x = x1 + (x2 - x1) // 2
         y = y1 + (y2 - y1) // 2
-        
+
         tag = canvas.add(CanvasTypes.CompoundObject(
             CanvasTypes.Rectangle(x1, y1, x2, y2,
                                   color=self.pickcolor),
@@ -556,8 +550,8 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         #self.fv.raise_tab("detail")
         self.redo()
         return True
-    
+
     def __str__(self):
         return 'agareaselection'
-    
+
 #END

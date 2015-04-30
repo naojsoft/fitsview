@@ -12,7 +12,7 @@ import threading, Queue
 
 from ginga import AstroImage
 from ginga.misc.plugins import Mosaic
-from ginga.misc import Widgets, Bunch
+from ginga.misc import Widgets, Bunch, Future
 from ginga.util import dp
 
 from astro.frame import Frame
@@ -74,7 +74,7 @@ class SPCAM(Mosaic.Mosaic):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        b.flat_dir.set_length(32)
+        b.flat_dir.set_length(512)
         b.flat_dir.set_text(self.settings.get('flat_dir', ''))
         b.load_flats.add_callback('activated', self.load_flats_cb)
         b.use_flats.set_tooltip("Flat field tiles as they arrive")
@@ -100,9 +100,10 @@ class SPCAM(Mosaic.Mosaic):
         exposures = set([])
 
         for path in pathlist:
-            info = self.fv.get_filepath(path)
-            path = info.path
-            #print "path is", path
+            info = self.fv.get_fileinfo(path)
+            self.logger.info("getting path")
+            path = info.filepath
+            self.logger.info("path is %s" % (path))
                 
             frame = Frame(path=path)
             # if not an instrument frame then drop it
@@ -156,17 +157,28 @@ class SPCAM(Mosaic.Mosaic):
                 if exp_bnch.added_to_contents:
                     continue
 
+                self.logger.debug("Exposure '%s' not yet added to contents" % (
+                    exp_frid))
                 # load the representative image
                 image = AstroImage.AstroImage(logger=self.logger)
-                image.load_file(exp_bnch.typical)
+                # TODO: is this load even necessary?  Would be good
+                # if we could just load the headers
+                path = exp_bnch.typical
+                image.load_file(path)
                 # make a new loader that will load the mosaic and attach
                 # it to this image as the loader
                 image_loader = self.mk_loader(exp_bnch)
-                image.set(loader=image_loader, name=exp_frid)
+
+                self.logger.debug("making future")
+                future = Future.Future()
+                future.freeze(image_loader, path)
+                image.set(loader=image_loader, name=exp_frid,
+                          image_future=future, path=path)
 
                 exp_bnch.added_to_contents = True
 
                 # add this to the contents pane
+                self.logger.debug("calling into Contents plugin")
                 self.fv.gui_do(pluginInfo.obj.add_image, self.fv,
                                self.mosaic_chname, image)
 
@@ -190,10 +202,11 @@ class SPCAM(Mosaic.Mosaic):
         if len(paths) == 0:
             return
 
-        self.logger.debug("adding to contents")
+        self.logger.info("adding to contents: %s" % (str(paths)))
         try:
             paths, new_mosaic, exposures = self.get_latest_frames(paths)
 
+            self.logger.info("adding to contents")
             self.add_to_contents(exposures)
         except Exception as e:
             self.logger.error("error adding to contents: %s" % (str(e)))

@@ -1,6 +1,6 @@
 #
 # Region_Selection.py -- Region selection plugin for fits viewer
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 import gtk
@@ -14,10 +14,12 @@ from ginga import GingaPlugin
 # Local application imports
 from util import g2calc
 
-class QDASPlugin(GingaPlugin.LocalPlugin):
+
+class Region_Selection(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
-        super(QDASPlugin, self).__init__(fv, fitsimage)
+        # superclass defines some variables for us, like logger
+        super(Region_Selection, self).__init__(fv, fitsimage)
 
         self.layertag = 'qdas-regionselection'
 
@@ -32,21 +34,6 @@ class QDASPlugin(GingaPlugin.LocalPlugin):
         canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
                             drawdims=True)
         canvas.setSurface(self.fitsimage)
-
-    def withdraw_qdas_layers(self):
-        tags = self.fitsimage.getTagsByTagpfx('qdas-')
-        for tag in tags:
-            try:
-                self.fitsimage.deleteObjectByTag(tag)
-            except:
-                pass
-        
-
-class Region_Selection(QDASPlugin):
-
-    def __init__(self, fv, fitsimage):
-        # superclass defines some variables for us, like logger
-        super(Region_Selection, self).__init__(fv, fitsimage)
 
         self.obj_qs = None
         self.objtag = None
@@ -70,7 +57,7 @@ class Region_Selection(QDASPlugin):
         self.skylevel = 2500.0
         self.brightness = 5500.0
         self.fwhm = 0.0
-        
+
     def build_gui(self, container, future=None):
         sw = gtk.ScrolledWindow()
         sw.set_border_width(2)
@@ -95,7 +82,7 @@ class Region_Selection(QDASPlugin):
         fr.set_label_align(0.1, 0.5)
         fr.add(tw)
         vbox.pack_start(fr, padding=4, fill=True, expand=False)
-        
+
         nb = gtk.Notebook()
         #nb.set_group_id(group)
         #nb.connect("create-window", self.detach_page, group)
@@ -109,7 +96,7 @@ class Region_Selection(QDASPlugin):
         captions = (
             ('Object_X', 'label', 'Object_Y', 'label'),
             ('RA', 'label', 'DEC', 'label'), ('Equinox', 'label'),
-            ('Sky Level', 'entry', 'Brightness', 'entry'), 
+            ('Sky Level', 'entry', 'Brightness', 'entry'),
             ('FWHM', 'label', 'Star Size', 'label'),
             ('Sample Area', 'label'),
             ('Exptime', 'entry'),
@@ -134,7 +121,7 @@ class Region_Selection(QDASPlugin):
 
         w, b = GtkHelp.build_info(captions)
         self.w.update(b)
-        
+
         b.radius.set_tooltip_text("Radius for peak detection")
         b.threshold.set_tooltip_text("Threshold for peak detection (blank=default)")
 
@@ -142,7 +129,7 @@ class Region_Selection(QDASPlugin):
         def new_alg_cb(w):
             self.use_new_algorithm = w.get_active()
         b.new_algorithm.connect('toggled', new_alg_cb)
-            
+
         # radius control
         adj = b.radius.get_adjustment()
         b.radius.set_digits(2)
@@ -192,21 +179,29 @@ class Region_Selection(QDASPlugin):
         buf = self.tw.get_buffer()
         buf.set_text(msg)
         self.tw.modify_font(self.msgFont)
-            
+
+    def withdraw_qdas_layers(self):
+        tags = self.fitsimage.getTagsByTagpfx('qdas-')
+        for tag in tags:
+            try:
+                self.fitsimage.deleteObjectByTag(tag)
+            except:
+                pass
+
     def instructions(self):
 ##         self.set_message("""Please select a region manually.
 
 ## Draw (or redraw) a region with the right mouse button.  Move the region with the left mouse button.  Press Ok or Cancel to finish.""")
         self.set_message("""Please select a region manually.""")
-            
+
     def start(self, future=None):
         self.callerInfo = future
         # Gather parameters
         p = future.get_data()
-        
+
         # remove all qdas canvases
         self.withdraw_qdas_layers()
-        
+
         # insert our canvas to fitsimage if it is not already
         try:
             obj = self.fitsimage.getObjectByTag(self.layertag)
@@ -234,30 +229,30 @@ class Region_Selection(QDASPlugin):
 
     def pause(self):
         self.canvas.ui_setActive(False)
-        
+
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
         self.canvas.ui_setActive(True)
         self.fv.showStatus("Draw a rectangle with the right mouse button")
-        
+
     def stop(self):
-        self.logger.debug("disabling canvas") 
+        self.logger.debug("disabling canvas")
         self.canvas.ui_setActive(False)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
-        
+
     def release_caller(self):
         try:
             self.close()
         except:
             pass
         self.callerInfo.resolve(0)
-        
+
     def ok(self):
         self.logger.info("OK clicked.")
         p = self.callerInfo.get_data()
@@ -268,7 +263,7 @@ class Region_Selection(QDASPlugin):
             # No rectangle drawn
             # TODO: throw up a popup
             pass
-            
+
         if obj.kind != 'compound':
             return True
         bbox  = obj.objects[0]
@@ -299,7 +294,7 @@ class Region_Selection(QDASPlugin):
             p.fwhm = self.fwhm
         except ValueError:
             pass
-        
+
         p.result = 'ok'
         self.release_caller()
 
@@ -324,7 +319,7 @@ class Region_Selection(QDASPlugin):
     def show_region(self, p):
         # remove all qdas canvases
         self.withdraw_qdas_layers()
-        
+
         # insert our canvas to fitsimage if it is not already
         try:
             obj = self.fitsimage.getObjectByTag(self.layertag)
@@ -352,7 +347,7 @@ class Region_Selection(QDASPlugin):
         # disable canvas
         self.stop()
         return 0
-        
+
 
     def redo(self):
         obj = self.canvas.getObjectByTag(self.objtag)
@@ -378,7 +373,7 @@ class Region_Selection(QDASPlugin):
                     width, height)
                 self.fv.showStatus(errmsg)
                 raise Exception(errmsg)
-        
+
             # Note: FITS coordinates are 1-based, whereas numpy FITS arrays
             # are 0-based
             fits_x, fits_y = data_x + 1, data_y + 1
@@ -432,13 +427,13 @@ class Region_Selection(QDASPlugin):
                 cdelt1, cdelt2 = image.get_keywords_list('CDELT1', 'CDELT2')
                 starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
                 self.wdetail.star_size.set_text('%.3f' % starsize)
-            
+
             except Exception, e:
                 # These are only for display purposes
                 self.logger.error("Error calculating RA/DEC (Bad WCS?): %s" % (
                     str(e)))
                 ra_txt = dec_txt = 'BAD WCS?'
-                
+
             self.wdetail.ra.set_text(ra_txt)
             self.wdetail.dec.set_text(dec_txt)
 
@@ -449,7 +444,7 @@ class Region_Selection(QDASPlugin):
             self.wdetail.star_size.set_text('Failed')
             self.obj_qs = None
 
-            # set region 
+            # set region
             p.x1, p.y1 = max(0, x1), max(0, y1)
             width = image.width
             height = image.height
@@ -457,11 +452,11 @@ class Region_Selection(QDASPlugin):
             p.y2 = min(height - 1, y2)
 
         self.canvas.redraw(whence=3)
-        
+
         self.fv.showStatus("Click left mouse button to reposition pick")
         return True
-    
-    def update(self, canvas, action, data_x, data_y):
+
+    def update(self, canvas, event, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.objtag)
             if obj.kind == 'rectangle':
@@ -480,7 +475,7 @@ class Region_Selection(QDASPlugin):
 
         dx = self.dx
         dy = self.dy
-        
+
         # Mark center of object and region on main image
         try:
             self.canvas.deleteObjectByTag(self.objtag, redraw=False)
@@ -489,7 +484,7 @@ class Region_Selection(QDASPlugin):
 
         x1, y1 = data_x - dx, data_y - dy
         x2, y2 = data_x + dx, data_y + dy
-        
+
         tag = self.canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
                                                     color='cyan',
                                                     linestyle='dash'),
@@ -497,8 +492,8 @@ class Region_Selection(QDASPlugin):
 
         self.setobjregion(self.canvas, tag)
         return True
-        
-    def drag(self, canvas, action, data_x, data_y):
+
+    def drag(self, canvas, event, data_x, data_y):
         obj = self.canvas.getObjectByTag(self.objtag)
         if obj.kind == 'compound':
             bbox = obj.objects[0]
@@ -557,7 +552,7 @@ class Region_Selection(QDASPlugin):
         # determine center of rectangle
         x = x1 + (x2 - x1) // 2
         y = y1 + (y2 - y1) // 2
-        
+
         tag = canvas.add(CanvasTypes.CompoundObject(
             CanvasTypes.Rectangle(x1, y1, x2, y2,
                                   color=self.objcolor),
@@ -570,8 +565,8 @@ class Region_Selection(QDASPlugin):
         #self.fv.raise_tab("detail")
         self.redo()
         return True
-    
+
     def __str__(self):
         return 'region_selection'
-    
+
 #END

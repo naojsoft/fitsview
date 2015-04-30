@@ -1,6 +1,6 @@
 #
 # VGW.py -- VGW plugin for fits viewer
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 import math
@@ -78,13 +78,13 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.dss_server_sfx = self.settings.get('dss_server_suffix',
                                                 '@subaru')
-        
+
         # For drawing HSC guide CCDs
         self.hscguideinfo = AGCCDPositions.SCAGCCDPositions()
 
         # For image FWHM type calculations
         self.iqcalc = g2calc.IQCalc(self.logger)
-        
+
         # For the SV_DRIVE command
         self.sv_dst_x = None
         self.sv_dst_y = None
@@ -114,14 +114,14 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         except Exception, e:
             p.setvals(result='error', errmsg=str(e))
-            
+
         future.resolve(0)
-        
-                
+
+
     def region_selection(self, tag, future, motor=None, v_lan_data=None,
                          select_mode=None, x_region=None, y_region=None,
                          exptime=3000):
-    
+
 
         # Copy the current ag image specified by (v_lan_data) into the
         # destination channel
@@ -199,7 +199,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._region_selection_cb, future,
                              p, image)
-        
+
         # Invoke the operation manually
         chinfo.opmon.start_plugin_future(self.qdaschname, pluginName,
                                          future2)
@@ -217,7 +217,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.logger.debug("region selection cb terminating: res=%s" % (str(p)))
         future.resolve(0)
-    
+
     def _auto_region_selection(self, image, p):
 
         x1, y1 = 0, 0
@@ -253,7 +253,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                                 motor=None, v_lan_data=None,
                                 select_mode=None, x_region=None, y_region=None,
                                 ag_area=None):
-    
+
         v_lan_data = v_lan_data.upper()
 
         # Copy the current ag image specified by (v_lan_data) into the
@@ -278,7 +278,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         ag_area = ag_area.lower()
-        
+
         # Get the exposure area from the AG header
         agh = Bunch.Bunch(image.get('agheader'))
         self.logger.info("AG header is %s" % (str(agh)))
@@ -288,7 +288,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             er_y1 = agh.expRangeY
             er_x2 = er_x1 + agh.expRangeDX - 1
             er_y2 = er_y1 + agh.expRangeDY - 1
-        
+
         p = future.get_data()
         p.setvals(exptime=0.0, auto=False,
                   obj_x=0.0, obj_y=0.0, fwhm=0.0,
@@ -335,13 +335,13 @@ class VGW(GingaPlugin.GlobalPlugin):
                 self.fv.play_soundfile(snd_agarea_failure, priority=19)
 
         #elif select_mode in ('manual', ):
-            
+
         # Need to create a second future here only because we need to
         # do a map_back_to_ccd with the result before returning results...
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._agarea_selection_cb, future,
                              p, image)
-        
+
         # Invoke the operation manually
         chinfo.opmon.start_plugin_future(self.qdaschname, pluginName, future2)
         self.fv.update_pending(timeout=0.10)
@@ -358,7 +358,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.logger.debug("region selection cb terminating: res=%s" % (str(p)))
         future.resolve(0)
-        
+
 
     def sv_drive(self, tag, future,
                  motor=None, slit_x=None, slit_y=None,
@@ -379,13 +379,13 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.copy_data(chname, self.qdaschname)
         self.fv.ds.raise_tab(self.qdaschname)
-        
+
         image = chinfo.fitsimage.get_image()
         assert image is not None, \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         agh = Bunch.Bunch(image.get('agheader'))
-        
+
         # Convert pixel coords on image back to CCD coords
         obj_x, obj_y = None, None
         dst_x, dst_y = None, None
@@ -394,7 +394,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                                         agh.expRangeX, agh.expRangeY)
             dst_x, dst_y = self.ccd2pix(self.sv_dst_x, self.sv_dst_y, agh.binX,
                                         agh.expRangeX, agh.expRangeY)
-        
+
         # Set defaults and adjust for difference between data coords and
         # fits coords
         if slit_x is not None:
@@ -422,7 +422,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._sv_drive_cb, future,
                              p, image)
-        
+
         chinfo.opmon.start_plugin_future(self.qdaschname, pluginName,
                                          future2)
 
@@ -457,13 +457,13 @@ class VGW(GingaPlugin.GlobalPlugin):
                                                        dst_ra_deg, dst_dec_deg)
                 p.rel_ra = radec.offsetRaDegToString(sep_ra)
                 p.rel_dec = radec.decDegToString(sep_dec)
-        
+
         except Exception, e:
             p.setvals(result='error', errmsg=str(e))
 
         self.logger.debug("sv_drive cb terminating: res=%s" % (str(p)))
         future.resolve(0)
-    
+
 
     def ag_auto_select(self, tag, future,
                        motor=None, equinox=None, ra=None, dec=None,
@@ -487,7 +487,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         inst_fov = ag_config.calc_instrument_fov(instrument_name)
         probe_head_fov = ag_config.calc_probe_head_fov(f_select)
         probe_vignette_fov = ag_config.calc_probe_vignette_fov(f_select)
-        
+
         # For DSS, ra and dec are specified in traditional format
         ra_txt = radec.raDegToString(ra_deg, format='%02d:%02d:%06.3f')
         dec_txt = radec.decDegToString(dec_deg,
@@ -499,7 +499,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             dss_mode = dss_mode.lower()
             if dss_mode == 'on':
                 dss_mode = 'dss1'
-                
+
         # DSS FOV (deg)
         dss_fov_deg = outer_fov * magic_constant
         # Catalog FOV (deg)
@@ -518,10 +518,10 @@ class VGW(GingaPlugin.GlobalPlugin):
                   ag_area=ag_area, instrument_name=instrument_name,
                   fov_pattern=fov_pattern, limitmag=limitmag, goodmag=goodmag,
                   chname=chname, equinox=equinox)
-        
+
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._ag_auto_select_cont3, future)
-        
+
         # Open up the UI
         if not chinfo.opmon.is_active('AgAutoSelect'):
             chinfo.opmon.start_plugin_future(chname, 'AgAutoSelect',
@@ -545,6 +545,20 @@ class VGW(GingaPlugin.GlobalPlugin):
             ## sgn, deg, mn, sec = radec.degToDms(radius_deg)
             ## radius = deg*60.0 + float(mn) + sec/60.0
 
+            def get_blank_image(p):
+                # make blank image
+                #px_scale = self.calculate_fov_scale(p.f_select)
+                px_scale = 0.0004722298
+                #px_scale = 0.000280178318866
+                image = dp.create_blank_image(ra_deg, dec_deg,
+                                              dss_fov_deg,
+                                              px_scale, 0.0,
+                                              cdbase=[-1, 1],
+                                              logger=self.logger)
+                image.set(nothumb=True)
+                p.image = image
+                return image
+
             # Get the DSS image into the window
             try:
                 if dss_mode != 'off':
@@ -556,26 +570,21 @@ class VGW(GingaPlugin.GlobalPlugin):
 
                     # Query the server and download file
                     fitspath = pluginObj.get_sky_image(server, params)
-                    image = self.fv.load_file(fitspath, chname=chinfo.name)
+                    image = self.fv.load_image(fitspath)
+                    image.set(nothumb=True)
+                    p.image = image
                 else:
                     # make blank image
-                    #px_scale = self.calculate_fov_scale(p.f_select)
-                    px_scale = 0.0004722298
-                    #px_scale = 0.000280178318866
-                    image = dp.create_blank_image(ra_deg, dec_deg,
-                                                  dss_fov_deg,
-                                                  px_scale, 0.0,
-                                                  cdbase=[-1, 1],
-                                                  logger=self.logger)
-                    self.fv.gui_call(chinfo.fitsimage.set_image, image)
+                    image = get_blank_image(p)
 
-                p.image = image
+                self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
             except Exception as e:
                 errmsg = "Error querying dss server: %s" % (str(e))
-                p.image = None
                 self.logger.error(errmsg)
-                self.fv.show_error(errmsg)
+                self.fv.show_error(errmsg, raisetab=False)
+                image = get_blank_image(p)
+                self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
         # Offload this network task to a non-gui thread
         f_dss = Future.Future()
@@ -585,7 +594,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         pluginInfo = chinfo.opmon.getPluginInfo('AgAutoSelect')
         pluginObj = pluginInfo.obj
         pluginObj.reset()
-        
+
         chinfo.fitsimage.onscreen_message("Querying image db...",
                                           delay=1.0)
         self.fv.showStatus("Querying sky image database ...")
@@ -607,7 +616,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         image = p.image
         # Now that we have an image, we can do some WCS calculations
-        
+
         probe_ra_deg = radec.funkyHMStoDeg(p.probe_ra)
         probe_dec_deg = radec.funkyDMStoDeg(p.probe_dec)
         probe_x, probe_y = image.radectopix(probe_ra_deg, probe_dec_deg)
@@ -627,7 +636,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         if f_select0 in ('CS_OPT', 'CS_IR'):
             f_select0 = 'CS'
         radius = p.cat_fov_deg * 60.0
-            
+
         def query_catalogs(p):
             try:
                 # Get preferred guide star catalog for AG
@@ -708,7 +717,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             plotObj = SPCAMfov(self.logger, p.image, p)
         else:
             plotObj = GENERICfov(self.logger, p.image, p)
-        
+
         chinfo = self.fv.get_channelInfo(p.chname)
         pluginInfo = chinfo.opmon.getPluginInfo('AgAutoSelect')
         pluginObj = pluginInfo.obj
@@ -721,8 +730,8 @@ class VGW(GingaPlugin.GlobalPlugin):
         select_mode = p.select_mode.lower()
         manualSelect = False
         if select_mode != 'manual':
-            if (not p.info.has_key('num_preferred') or 
-                (p.info['num_preferred'] == 0) or 
+            if (not p.info.has_key('num_preferred') or
+                (p.info['num_preferred'] == 0) or
                 (len(p.starlist) == 0)):
                 msg = msg_semiauto_failure
                 self.fv.play_soundfile(snd_auto_failure, priority=19)
@@ -791,7 +800,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # These won't pass back over remoteObjects
         p.setvals(starlist=None, selected=None, vignette_map=None,
                   image=None)
-        
+
         self.logger.debug("ag_auto_select cb terminating: res=%s" % (str(p)))
         future.resolve(0)
 
@@ -822,18 +831,19 @@ class VGW(GingaPlugin.GlobalPlugin):
                                       px_scale, 0.0,
                                       cdbase=[-1, 1],
                                       logger=self.logger)
+        image.set(nothumb=True)
 
         # Load image into DSS channel
         fitsname = 'SH_DUMMY'
         metadata = image.get_metadata()
         self.update_image(fitsname, chinfo.name, image, metadata)
-        
+
         p = future.get_data()
         p.setvals(equinox=equinox, chname=chname, select_mode=select_mode,
                   image=image)
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._sh_auto_select_cont2, future)
-        
+
         # Open up the UI
         if not chinfo.opmon.is_active('AgAutoSelect'):
             chinfo.opmon.start_plugin_future('DSS', 'AgAutoSelect',
@@ -898,7 +908,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         pluginInfo = chinfo.opmon.getPluginInfo('AgAutoSelect')
         pluginObj = pluginInfo.obj
         pluginObj.reset()
-        
+
         chinfo.fitsimage.onscreen_message("Querying catalog db...",
                                           delay=1.0)
         self.fv.showStatus("Querying catalog for objects ...")
@@ -919,7 +929,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.fv.showStatus("catalog returned %d results" % (
             len(p.starlist)))
-        
+
         # Plot all the data
         plotObj = SHfov(self.logger, p.image, p)
         chinfo = self.fv.get_channelInfo(p.chname)
@@ -1004,7 +1014,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Calculate fov from instrument
         #inst_fov = 2.5
         inst_fov = ag_config.calc_instrument_fov(instrument_name)
-        
+
         # For DSS, ra and dec are specified in traditional format
         ra_txt = radec.raDegToString(ra_deg, format='%02d:%02d:%06.3f')
         dec_txt = radec.decDegToString(dec_deg,
@@ -1016,7 +1026,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             dss_mode = dss_mode.lower()
             if dss_mode == 'on':
                 dss_mode = 'dss1'
-                
+
         # DSS FOV (deg)
         dss_fov_deg = inst_fov * 1.66666
         # Save some information for the continuation
@@ -1029,7 +1039,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._hsc_ag_auto_select_cont3,
                              future)
-        
+
         # Open up the UI
         if not chinfo.opmon.is_active('AgAutoSelect'):
             chinfo.opmon.start_plugin_future(chname, 'AgAutoSelect',
@@ -1044,12 +1054,25 @@ class VGW(GingaPlugin.GlobalPlugin):
             # Assume square image?
             wd_deg = dss_fov_deg
             ht_deg = dss_fov_deg
-        
+
             # width and height are specified in arcmin
             sgn, deg, mn, sec = radec.degToDms(wd_deg)
             wd = deg*60.0 + float(mn) + sec/60.0
             sgn, deg, mn, sec = radec.degToDms(ht_deg)
             ht = deg*60.0 + float(mn) + sec/60.0
+
+            def get_blank_image(p):
+                # make blank image
+                #px_scale = 0.00488281
+                px_scale = 0.000280178318866
+                image = dp.create_blank_image(ra_deg, dec_deg,
+                                              dss_fov_deg,
+                                              px_scale, 0.0,
+                                              cdbase=[-1, 1],
+                                              logger=self.logger)
+                image.set(nothumb=True)
+                p.image = image
+                return image
 
             # Get the DSS image into the window
             try:
@@ -1062,25 +1085,22 @@ class VGW(GingaPlugin.GlobalPlugin):
 
                     # Query the server and download file
                     fitspath = pluginObj.get_sky_image(server, params)
-                    image = self.fv.load_file(fitspath, chname=chinfo.name)
+                    image = self.fv.load_image(fitspath)
+                    image.set(nothumb=True)
+                    p.image = image
                 else:
                     # make blank image
-                    #px_scale = 0.00488281
-                    px_scale = 0.000280178318866
-                    image = dp.create_blank_image(ra_deg, dec_deg,
-                                                  dss_fov_deg,
-                                                  px_scale, 0.0,
-                                                  cdbase=[-1, 1],
-                                                  logger=self.logger)
-                    self.fv.gui_call(chinfo.fitsimage.set_image, image)
+                    image = get_blank_image(p)
 
-                p.image = image
+                self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
             except Exception as e:
                 errmsg = "Error querying dss server: %s" % (str(e))
-                p.image = None
                 self.logger.error(errmsg)
-                self.fv.show_error(errmsg)
+                # show error in Errors tab, but don't raise the tab
+                self.fv.show_error(errmsg, raisetab=False)
+                image = get_blank_image(p)
+                self.fv.gui_call(chinfo.fitsimage.set_image, image)
 
         # Offload this network task to a non-gui thread
         f_dss = Future.Future()
@@ -1090,7 +1110,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         pluginInfo = chinfo.opmon.getPluginInfo('AgAutoSelect')
         pluginObj = pluginInfo.obj
         pluginObj.reset()
-        
+
         chinfo.fitsimage.onscreen_message("Querying image db...",
                                           delay=1.0)
         self.fv.showStatus("Querying sky image database ...")
@@ -1112,7 +1132,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         image = p.image
         # Now that we have an image, we can do some WCS calculations
-        
+
         # Kawanomoto's helper object needs these times
         ut1 = p.ut1_utc
         sec = time.time()
@@ -1139,7 +1159,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # for distortion, so we can draw them on the star field
         agarea_polygons = []
         agarea_pixel_polygons = []
- 
+
         for i in range(len(agarea_coords)):
             corner = agarea_coords[i]
 
@@ -1193,7 +1213,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             queries.append((ra, dec, radius))
 
         p.setvals(polygons=polygons, circles=circles,
-                  starlist=None, agarea_polygons=agarea_polygons, 
+                  starlist=None, agarea_polygons=agarea_polygons,
                   agarea_pixel_polygons=agarea_pixel_polygons,
                   queries=queries)
 
@@ -1260,7 +1280,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.fv.showStatus("catalog returned %d results" % (
             len(p.starlist)))
-        
+
         # Plot all the data
         plotObj = HSCfov(self.logger, p.image, p)
 
@@ -1342,7 +1362,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         p.setvals(starlist=None, selected=None, queries=None,
                   image=None, circles=None, polygons=None,
                   agarea_pixel_polygons=None, agarea_polygons=None)
-        
+
         self.logger.debug("hsc_ag_auto_select cb terminating: res=%s" % (str(p)))
         future.resolve(0)
 
@@ -1361,7 +1381,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         chinfo = self.fv.get_channelInfo(chname)
         fitsimage = chinfo.fitsimage
-        
+
         # Actually update the image
         self.fv.add_image(name, image, chname=chname)
 
@@ -1371,7 +1391,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             frac_part = str(recv_time - int(recv_time)).split('.')[1][:3]
             time_str = "%s.%s" % (time.strftime("%H:%M:%S"), frac_part)
             readout.set_text(time_str)
-            
+
         calctag = "%s-calc" % (chname)
         try:
             obj = fitsimage.getObjectByTag(calctag)
@@ -1401,7 +1421,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 if obj is not None:
                     fitsimage.deleteObject(obj)
 
-        
+
     def display_fitsbuf(self, fitsname, chname, data, width, height, na_type,
                         header, metadata):
         """Display a FITS image buffer.  Parameters:
@@ -1438,7 +1458,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                                       logger=self.logger)
         image.set(name=fitsname)
         image.update_keywords(header)
-        
+
         # Enqueue image to display datasrc
         #self.fv.gui_do(self.fv.add_image, fitsname, image,
         #                    chname=chname)
@@ -1466,7 +1486,7 @@ class VGW(GingaPlugin.GlobalPlugin):
     def map_back_to_ccd(self, p, image):
         self.logger.info("Region selection returned %s" % p)
         agh = Bunch.Bunch(image.get('agheader'))
-        
+
         # Convert pixel coords on image back to CCD coords
         x1, y1 = self.pix2ccd(p.x1, p.y1, agh.binX,
                               agh.expRangeX, agh.expRangeY)
@@ -1506,7 +1526,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         if mode == 'CLEAR':
             objs = canvas.getObjectsByTagpfx("vgw_mark")
             canvas.deleteObjects(objs)
-            
+
         elif mode == 'DRAW':
             color = color.lower()
             mark  = mark.lower()
@@ -1537,10 +1557,10 @@ class VGW(GingaPlugin.GlobalPlugin):
             # Only raise for a draw
             self.fv.ds.raise_tab(chname)
 
-        
+
     def __str__(self):
         return 'vgw'
-    
+
 
 class TELESCOPEfov(object):
     """A Generic telescope foci FOV object.
@@ -1550,7 +1570,7 @@ class TELESCOPEfov(object):
         self.logger = logger
         self.p = p
         ## inner_fov = 0.004167
-        
+
         # thickness of the marked rings for FOV
         self.ring_thickness = 2
         self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
@@ -1573,7 +1593,7 @@ class TELESCOPEfov(object):
 
         # calculate vignetting mapping fov
         vignette_map = self.calculate_vignette_fov(image, p.ctr_x, p.ctr_y,
-                                                   p.f_select, p.ag_pa, 
+                                                   p.f_select, p.ag_pa,
                                                    p.probe_theta, p.probe_r,
                                                    p.fov_pattern)
         self.logger.debug("Vignette map: %s" % (
@@ -1596,7 +1616,7 @@ class TELESCOPEfov(object):
                 angle += pa_deg
             elif focus in ('NS_IR', 'NS_OPT',):
                 angle += pa_deg * 2.0
-                
+
             rad = math.pi * angle / 180.0
             if focus in ('CS', 'CS_IR', 'CS_OPT', 'NS_OPT'):
                 x1 = int(ctr_x + radius_px * math.cos(rad))
@@ -1605,10 +1625,10 @@ class TELESCOPEfov(object):
             else:
                 raise VGWError("Focus '%s' not yet implemented!" % (
                     focus))
-                
+
             y1 = int(ctr_y - radius_px * math.sin(rad))
             return (x1, y1)
-        
+
         return map(mm2pix, vlist)
 
     def draw(self, pluginObj):
@@ -1652,7 +1672,7 @@ class GENERICfov(TELESCOPEfov):
 
     def __init__(self, logger, image, p):
         super(GENERICfov, self).__init__(logger, image, p)
-        
+
         # calculate radius of instrument fov
         inst_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.inst_fov)
         self.logger.debug("Instrument radius is %d pixels." % (
@@ -1692,7 +1712,7 @@ class MOIRCSfov(TELESCOPEfov):
         # moircs fov with vignette  9.2 arcmin x 6.2 arcmin  half values
         vig_hh = 0.0766666
         vig_hw = 0.05166667
-        
+
         # Figure out rotation of MOIRCS rectangular FOV and chip markings
         # NOTE: ginga plots by WCS, so we don't need to account for
         # rotation of the DSS image for now
@@ -1737,7 +1757,7 @@ class MOIRCSfov(TELESCOPEfov):
 
         thickness = self.ring_thickness
         color = self.colors
-        
+
         obj = CanvasTypes.CompoundObject()
         canvas.add(obj, redraw=False)
 
@@ -1760,7 +1780,7 @@ class MOIRCSfov(TELESCOPEfov):
         vig_rot = 2.0 * self.theta - 45.0
         self.vig_obj.rotate(vig_rot, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
 
-        
+
 
 class SPCAMfov(object):
     """A SPCAM (instrument) FOV object.
@@ -1833,7 +1853,7 @@ class SPCAMfov(object):
         thickness = self.ring_thickness
         color = self.colors
         p = self.p
-        
+
         obj = CanvasTypes.CompoundObject()
         canvas.add(obj, redraw=False)
 
@@ -1882,7 +1902,7 @@ class HSCfov(object):
         self.p = p
         self.ccds_obj = None
         self.dith_obj = None
-        
+
         # thickness of the marked rings for FOV
         self.ring_thickness = 2
         self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
@@ -1962,21 +1982,21 @@ class HSCfov(object):
         #all_stars = filter(lambda star: star['mag'] <= limitmag, all_stars)
 
         for star in all_stars:
-         
+
             pref = 0
- 
+
             diff_mag = goodmag - star['mag']
 
             if diff_mag > bright_end:
-                pref +=  too_bright  
+                pref +=  too_bright
             else:
                 pref += fabs(diff_mag)
 
             pref += fabs(best_flag-star['flag'])
 
-            star['preference'] = pref     
+            star['preference'] = pref
 
-        all_stars = sorted(all_stars, key=itemgetter('preference')) 
+        all_stars = sorted(all_stars, key=itemgetter('preference'))
         self. _set_priority(all_stars)
 
         # for n, s in zip(xrange(20), all_stars):
@@ -1994,18 +2014,18 @@ class HSCfov(object):
 
         goodmag = p['goodmag']
         bad_star = 10
-        mag_weight = 0.6 # mag's weight. 60% of flag weight 
+        mag_weight = 0.6 # mag's weight. 60% of flag weight
 
         for star in all_stars:
             flag = star['flag']
             if flag < 0: # negative flag
                 flag = fabs(flag-bad_star)
             calc_mag = (fabs(star['mag']-goodmag)) * mag_weight
-            star['preference'] = flag + calc_mag     
-            #print '%s flag=%s mag=%s calcmag=%s pref=%s' %(star['name'], flag, star['mag'], calc_mag, pref)   
+            star['preference'] = flag + calc_mag
+            #print '%s flag=%s mag=%s calcmag=%s pref=%s' %(star['name'], flag, star['mag'], calc_mag, pref)
             #star['preference'] = pref
 
-        all_stars = sorted(all_stars, key=itemgetter('preference')) 
+        all_stars = sorted(all_stars, key=itemgetter('preference'))
         self. _set_priority(all_stars)
 
         return all_stars
@@ -2021,17 +2041,17 @@ class HSCfov(object):
 
         #     for star in stars:
         #         star_rarad = math.radians(star['ra_deg'])
-        #         star_decrad = math.radians(star['dec_deg']) 
+        #         star_decrad = math.radians(star['dec_deg'])
         #         delta = radec.delta_stars(center_rarad, center_decrad,
-        #                                     star_rarad, star_decrad) 
+        #                                     star_rarad, star_decrad)
         #         star['preference'] = delta
         #     updated_stars.extend(stars)
-        # updated_stars = sorted(updated_stars, key=itemgetter('preference')) 
+        # updated_stars = sorted(updated_stars, key=itemgetter('preference'))
         # self._set_priority(updated_stars)
 
         # p.num_preferred = min(15, len(updated_stars))
         # return updated_stars
-      
+
 class SHfov(object):
     """A Generic Shack-Hartmann FOV object.
     """
@@ -2039,7 +2059,7 @@ class SHfov(object):
     def __init__(self, logger, image, p):
         self.logger = logger
         self.p = p
-        
+
         # thickness of the marked rings for FOV
         self.ring_thickness = 2
         self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',

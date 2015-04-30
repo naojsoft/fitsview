@@ -1,9 +1,7 @@
 #
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
-# 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Feb  3 15:09:42 HST 2015
-#]
+#
+# Eric Jeschke (eric@naoj.org)
 #
 import gtk
 from ginga.misc import Bunch
@@ -17,10 +15,11 @@ from ginga import GingaPlugin
 from util import g2calc
 
 
-class QDASPlugin(GingaPlugin.LocalPlugin):
+class Sv_Drive(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
-        super(QDASPlugin, self).__init__(fv, fitsimage)
+        # superclass defines some variables for us, like logger
+        super(Sv_Drive, self).__init__(fv, fitsimage)
 
         self.layertag = 'qdas-svdrive'
 
@@ -35,22 +34,6 @@ class QDASPlugin(GingaPlugin.LocalPlugin):
         canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
                             drawdims=True)
         canvas.setSurface(self.fitsimage)
-
-    def withdraw_qdas_layers(self):
-        tags = self.fitsimage.getTagsByTagpfx('qdas-')
-        for tag in tags:
-            try:
-                self.fitsimage.deleteObjectByTag(tag)
-            except:
-                pass
-        
-
-
-class Sv_Drive(QDASPlugin):
-
-    def __init__(self, fv, fitsimage):
-        # superclass defines some variables for us, like logger
-        super(Sv_Drive, self).__init__(fv, fitsimage)
 
         self.objtag = None
         self.dsttag = None
@@ -87,13 +70,13 @@ class Sv_Drive(QDASPlugin):
 
     def get_dst(self):
         return (self.dst_x, self.dst_y)
-    
+
     def get_obj(self):
         return (self.obj_x, self.obj_y)
-    
+
     def get_region(self):
         return (self.x1, self.y1, self.x2, self.y2)
-    
+
     def build_gui(self, container, future=None):
         sw = gtk.ScrolledWindow()
         sw.set_border_width(2)
@@ -118,7 +101,7 @@ class Sv_Drive(QDASPlugin):
         fr.set_label_align(0.1, 0.5)
         fr.add(tw)
         vbox.pack_start(fr, padding=4, fill=True, expand=False)
-        
+
         nb = gtk.Notebook()
         #nb.set_group_id(group)
         #nb.connect("create-window", self.detach_page, group)
@@ -138,7 +121,7 @@ class Sv_Drive(QDASPlugin):
             ('Frame', 'combobox'),
             ('Dst RA', 'label', 'Dst DEC', 'label'),
             ('Obj RA', 'label', 'Obj DEC', 'label'),
-            #('Sky Level', 'label', 'Brightness', 'label'), 
+            #('Sky Level', 'label', 'Brightness', 'label'),
             #('FWHM', 'label', 'Star Size', 'label'),
             )
 
@@ -167,13 +150,13 @@ class Sv_Drive(QDASPlugin):
             self.w.r_obj.set_active(True)
         self.w.r_dst.connect("toggled", lambda w: self.toggle_dstsrc_cb())
         w.pack_start(btns, fill=True, expand=False)
-        
+
         label = gtk.Label("Select")
         label.show()
         nb.append_page(w, label)
         nb.set_tab_reorderable(w, True)
         #nb.set_tab_detachable(w, True)
-        
+
         captions = (
             ('New algorithm', 'checkbutton'),
             ('Radius', 'xlabel', '@Radius', 'spinbutton'),
@@ -288,7 +271,7 @@ class Sv_Drive(QDASPlugin):
         btns.add(btn)
         vbox.pack_start(btns, fill=True, expand=False)
         vbox.show_all()
-        
+
         cw = container.get_widget()
         cw.pack_start(sw, padding=0, fill=True, expand=True)
         self.have_gui = True
@@ -297,11 +280,19 @@ class Sv_Drive(QDASPlugin):
         buf = self.tw.get_buffer()
         buf.set_text(msg)
         self.tw.modify_font(self.msgFont)
-            
+
+    def withdraw_qdas_layers(self):
+        tags = self.fitsimage.getTagsByTagpfx('qdas-')
+        for tag in tags:
+            try:
+                self.fitsimage.deleteObjectByTag(tag)
+            except:
+                pass
+
     def instructions(self):
         #self.set_message("""Place Destination by clicking left mouse button.  Draw a region with the right mouse button around the Object.  Press Ok or Cancel to finish.""")
         self.set_message("""Please mark object and destination.""")
-            
+
     def start(self, future=None):
         self.callerInfo = future
         # Gather parameters
@@ -309,7 +300,7 @@ class Sv_Drive(QDASPlugin):
 
         # remove all qdas canvases
         self.withdraw_qdas_layers()
-        
+
         # insert our canvas to fitsimage if it is not already
         try:
             obj = self.fitsimage.getObjectByTag(self.layertag)
@@ -336,7 +327,7 @@ class Sv_Drive(QDASPlugin):
         for frameid in self.frames:
             self.w.frame.append_text(frameid)
         self.w.frame.set_active(0)
-        
+
         try:
             # IMPORTANT: Assume all coords have been adjusted from FITS
             # or CCD coords to data coords (-1)
@@ -356,24 +347,24 @@ class Sv_Drive(QDASPlugin):
                     error = p.autoerr
                 self.place_region(self.canvas, p.x1, p.y1, p.x2, p.y2,
                                   error=error)
-                
+
         except Exception, e:
             self.logger.error("Error placing dst and objs: %s" % (
                 str(e)))
             # carry on...
-            
+
         self.resume()
 
     def pause(self):
         self.canvas.ui_setActive(False)
-        
+
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
         self.canvas.ui_setActive(True)
 
-        
+
     def stop(self):
         # remove the canvas from the image
         self.canvas.ui_setActive(False)
@@ -383,14 +374,14 @@ class Sv_Drive(QDASPlugin):
         self.fv.stop_local_plugin(chname, str(self))
         self.have_gui = False
         return True
-        
+
     def release_caller(self):
         try:
             self.close()
         except:
             pass
         self.callerInfo.resolve(0)
-        
+
     def ok(self):
         self.logger.info("OK clicked.")
         p = self.callerInfo.get_data()
@@ -406,10 +397,10 @@ class Sv_Drive(QDASPlugin):
             self.y2 = float(self.w.y2.get_text()) - 1
             ## pt = self.canvas.getObjectByTag(self.dsttag)
             ## self.dst_x, self.dst_y = pt.objects[0].x, pt.objects[0].y
-            
+
             ## pt = self.canvas.getObjectByTag(self.objtag)
             ## self.obj_x, self.obj_y = pt.objects[0].x, pt.objects[0].y
-            
+
             ## rect = self.canvas.getObjectByTag(self.regiontag)
             ## (self.x1, self.y1, self.x2, self.y2) = (
             ##     rect.objects[0].x1, rect.objects[0].y1,
@@ -435,7 +426,7 @@ class Sv_Drive(QDASPlugin):
             p.errmsg = "Error collecting dst and obj coords: %s" % (
                 str(e))
             self.logger.error(p.errmsg)
-            
+
         self.release_caller()
 
     def cancel(self):
@@ -451,8 +442,8 @@ class Sv_Drive(QDASPlugin):
 
     def redo(self):
         pass
-    
-    
+
+
     def place_dst(self, canvas, data_x, data_y):
         if self.dsttag:
             try:
@@ -461,17 +452,17 @@ class Sv_Drive(QDASPlugin):
                 pass
 
         x, y = data_x, data_y
-        
+
         self.dsttag = canvas.add(CanvasTypes.CompoundObject(
             CanvasTypes.Point(x, y, 10, color='green'),
             CanvasTypes.Text(x+4, y, "Dst",
                              color='green')),
                                  redraw=False)
-        
+
         canvas.redraw(whence=3)
         if self.have_gui:
             self.record_dst(data_x, data_y)
-        
+
     def record_dst(self, data_x, data_y):
         self.w.dst_x.set_text('%.3f' % (data_x+1))
         self.w.dst_y.set_text('%.3f' % (data_y+1))
@@ -485,10 +476,10 @@ class Sv_Drive(QDASPlugin):
                 str(e)))
             ra_txt = 'BAD WCS'
             dec_txt = 'BAD WCS'
-            
+
         self.w.dst_ra.set_text(ra_txt)
         self.w.dst_dec.set_text(dec_txt)
-            
+
     def place_obj(self, canvas, data_x, data_y):
         if self.objtag:
             try:
@@ -497,7 +488,7 @@ class Sv_Drive(QDASPlugin):
                 pass
 
         x, y = data_x, data_y
-        
+
         # Mark object center on image
         self.objtag = canvas.add(CanvasTypes.CompoundObject(
             CanvasTypes.Point(x, y, 10, color='cyan'),
@@ -508,7 +499,7 @@ class Sv_Drive(QDASPlugin):
         canvas.redraw(whence=3)
         if self.have_gui:
             self.record_obj(data_x, data_y)
-        
+
     def record_obj(self, data_x, data_y):
         self.w.obj_x.set_text('%.3f' % (data_x+1))
         self.w.obj_y.set_text('%.3f' % (data_y+1))
@@ -525,7 +516,7 @@ class Sv_Drive(QDASPlugin):
 
         self.w.obj_ra.set_text(ra_txt)
         self.w.obj_dec.set_text(dec_txt)
-            
+
 
     def place_region(self, canvas, x1, y1, x2, y2, error=False):
         if self.regiontag:
@@ -572,8 +563,8 @@ class Sv_Drive(QDASPlugin):
 
     def toggle_dstsrc_cb(self):
         self.isDst = self.w.r_dst.get_active()
-        
-    def btndown(self, canvas, action, data_x, data_y):
+
+    def btndown(self, canvas, event, data_x, data_y):
         self.logger.debug("Setting mark at %d,%d isDst=%s" % (
             data_x, data_y, self.isDst))
         if self.isDst:
@@ -581,7 +572,7 @@ class Sv_Drive(QDASPlugin):
         else:
             self.place_obj(canvas, data_x, data_y)
         return True
-        
+
 
     def keydown(self, canvas, keyname):
         if keyname == 'space':
@@ -670,7 +661,7 @@ class Sv_Drive(QDASPlugin):
                 x1, y1 = max(0, obj_x - dx), max(0, obj_y - dy)
                 x2 = min(image.width-1,  obj_x + dx)
                 y2 = min(image.height-1, obj_y + dy)
-                
+
             self.place_region(self.canvas, x1, y1, x2, y2)
 
             self.set_message("Automatic target reacquisition succeeded.")
@@ -708,7 +699,7 @@ class Sv_Drive(QDASPlugin):
             result = False
         self.w.obj_ra.set_text(ra_txt)
         self.w.obj_dec.set_text(dec_txt)
-            
+
         canvas.redraw(whence=3)
         # Set pan position to selected object
         #self.fitsimage.panset_xy(obj_x, obj_y, redraw=False)
@@ -720,7 +711,7 @@ class Sv_Drive(QDASPlugin):
         """
         # remove all qdas canvases
         self.withdraw_qdas_layers()
-        
+
         # insert our canvas to fitsimage if it is not already
         try:
             obj = self.fitsimage.getObjectByTag(self.layertag)
@@ -739,7 +730,7 @@ class Sv_Drive(QDASPlugin):
 
         print "placing region"
         self.place_region(self.canvas, p.x1, p.y1, p.x2, p.y2)
-        
+
         # Set pan position to object
         #self.fitsimage.panset_xy(p.obj_x, p.obj_y, redraw=False)
 
@@ -752,7 +743,7 @@ class Sv_Drive(QDASPlugin):
         elif p.mode == 'override':
             p.msg = "Automatic target reacquisition succeeded. Please confirm target reacquisition."
         return 0
-        
+
     def change_frame_cb(self, w):
         p = self.callerInfo.get_data()
         index = w.get_active()
@@ -762,5 +753,5 @@ class Sv_Drive(QDASPlugin):
 
     def __str__(self):
         return 'sv_drive'
-    
+
 #END

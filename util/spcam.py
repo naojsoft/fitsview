@@ -33,6 +33,71 @@ class SuprimeCamDR(object):
         self.num_frames = 10
         self.inscode = 'SUP'
         self.fov = 0.72
+
+        self.frameid_offsets = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+        # SPCAM keywords that should be added to the primary HDU
+        self.prihdr_kwds = [
+            'SIMPLE', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 'EXTEND', 'BZERO',
+            'BSCALE', 'BUNIT', 'BLANK', 'DATE-OBS', 'UT', 'UT-STR', 'UT-END',
+            'HST', 'HST-STR', 'HST-END', 'LST', 'LST-STR', 'LST-END', 'MJD',
+            'TIMESYS', 'MJD-STR', 'MJD-END', 'ZD-STR', 'ZD-END', 'SECZ-STR',
+            'SECZ-END', 'AIRMASS', 'AZIMUTH', 'ALTITUDE', 'PROP-ID', 'OBSERVER',
+            'EXP-ID', 'DATASET', 'OBS-MOD', 'OBS-ALOC', 'DATA-TYP', 'OBJECT',
+            'RA', 'DEC', 'RA2000', 'DEC2000', 'OBSERVAT', 'TELESCOP', 'FOC-POS',
+            'TELFOCUS', 'FOC-VAL', 'FILTER01', 'EXPTIME', 'INSTRUME', 'INS-VER',
+            'WEATHER', 'SEEING', 'ADC-TYPE', 'ADC-STR', 'ADC-END', 'INR-STR',
+            'INR-END', 'DOM-WND', 'OUT-WND', 'DOM-TMP', 'OUT-TMP', 'DOM-HUM',
+            'OUT-HUM', 'DOM-PRS', 'OUT-PRS', 'EXP1TIME', 'COADD', 'M2-POS1',
+            'M2-POS2', 'M2-POS3', 'M2-ANG1', 'M2-ANG2', 'M2-ANG3', 'AUTOGUID',
+            'COMMENT', 'INST-PA', 'EQUINOX',
+            ]
+
+        # SPCAM keywords that should be added to the image HDUs
+        self.imghdr_kwds = [
+            'SIMPLE', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 'EXTEND', 'BZERO',
+            'BSCALE', 'BUNIT', 'BLANK', 'FRAMEID', 'EXP-ID', 'DETECTOR', 'DET-ID',
+            'DET-A01', 'DET-P101', 'DET-P201', 'DET-TMP', 'DET-TMED', 'DET-TMIN',
+            'DET-TMAX', 'GAIN', 'EFP-MIN1', 'EFP-RNG1', 'EFP-MIN2', 'EFP-RNG2',
+            'PRD-MIN1', 'PRD-RNG1', 'PRD-MIN2', 'PRD-RNG2', 'BIN-FCT1', 'BIN-FCT2',
+            'DET-VER', 'S_UFNAME', 'S_FRMPOS', 'S_BCTAVE', 'S_BCTSD', 'S_AG-OBJ',
+            'S_AG-RA', 'S_AG-DEC', 'S_AG-EQN', 'S_AG-X', 'S_AG-Y', 'S_AG-R',
+            'S_AG-TH', 'S_ETMED', 'S_ETMAX', 'S_ETMIN', 'S_XFLIP', 'S_YFLIP',
+            'S_M2OFF1', 'S_M2OFF2', 'S_M2OFF3', 'S_DELTAZ', 'S_DELTAD', 'S_SENT',
+            'S_GAIN1', 'S_GAIN2', 'S_GAIN3', 'S_GAIN4', 'S_OSMN11', 'S_OSMX11',
+            'S_OSMN21', 'S_OSMX21', 'S_OSMN31', 'S_OSMX31', 'S_OSMN41', 'S_OSMX41',
+            'S_OSMN12', 'S_OSMX12', 'S_OSMN22', 'S_OSMX22', 'S_OSMN32', 'S_OSMX32',
+            'S_OSMN42', 'S_OSMX42', 'S_EFMN11', 'S_EFMX11', 'S_EFMN21', 'S_EFMX21',
+            'S_EFMN31', 'S_EFMX31', 'S_EFMN41', 'S_EFMX41', 'S_EFMN12', 'S_EFMX12',
+            'S_EFMN22', 'S_EFMX22', 'S_EFMN32', 'S_EFMX32', 'S_EFMN42', 'S_EFMX42',
+            'EQUINOX',  'CRVAL1',  'CRVAL2', 'CRPIX1', 'CRPIX2', 'CDELT1', 'CDELT2',
+            'LONGPOLE', 'CTYPE1', 'CTYPE2', 'CUNIT1', 'CUNIT2', 'WCS-ORIG',
+            'RADECSYS', 'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2',
+            ]
+
+    def get_exp_num(self, frameid):
+        frame = Frame(frameid)
+        exp_num = (frame.number // self.num_frames) * self.num_frames
+        return exp_num
+
+    def get_file_list(self, path):
+        frame = Frame(path)
+        exp_num = self.get_exp_num(path)
+        nums = map(lambda off: exp_num+off, self.frameid_offsets)
+        res = []
+        for num in nums:
+            frame.number = num
+            res.append(os.path.join(frame.directory, str(frame)+'.fits'))
+        return res
+        
+    def get_images(self, path):
+        filelist = self.get_file_list(path)
+        res = []
+        for path in filelist:
+            img = AstroImage.AstroImage(logger=self.logger)
+            img.load_file(path)
+            res.append(img)
+        return res
         
     def get_regions(self, image):
         """Extract the keywords defining the overscan and effective pixel
@@ -103,7 +168,7 @@ class SuprimeCamDR(object):
         # effective pixels
         info = d['image']
         newwd, newht = info.newwd, info.newht
-        #print "effective pixel size %dx%d" % (newwd, newht)
+        self.logger.debug("effective pixel size %dx%d" % (newwd, newht))
         out = numpy.empty((newht, newwd), dtype=float)
         if header is not None:
             header['NAXIS1'] = newwd
@@ -138,7 +203,6 @@ class SuprimeCamDR(object):
             out[ylo:yhi, xlo:xhi] = data_np[ch.efminy:ch.efmaxy+1,
                                             ch.efminx:ch.efmaxx+1]
             # Subtract overscan medians
-            #out[ylo:yhi, xlo:xhi] -= ovsc_median[:, None]
             out[ylo:yhi, xlo:xhi] -= ovsc_median
 
             # Update header for effective regions
@@ -285,149 +349,107 @@ class SuprimeCamDR(object):
 
         return d
 
-def step2(image):
 
-    dr = SuprimeCamDR()
-    d = dr.get_regions(image)
-    header = {}
-    data_np = image.get_data()
+    def make_multi_hdu(self, images, compress=False):
+        """
+        Pack a group of separate FITS files (a single exposure) into one
+        FITS file with one primary HDU with no data and 10 image HDUs.
 
-    result = dr.subtract_overscan_np(data_np, d, header=header)
+        Parameters
+        ----------
+        images : list of AstroImage objects
+        compress : bool (optional)
+            if True, will try to Rice-compress the image HDUs.  Note that
+            this slows down the process considerably.  Default: False
+        """
 
-    newimage = dp.make_image(result, image, header)
-    return newimage
+        import astropy.io.fits as pyfits
 
+        fitsobj = pyfits.HDUList()
 
-def step3(image, flat):
+        i = 0
+        hdus = {}
 
-    data_np = image.get_data()
-    flat_np = flat.get_data()
-
-    result = data_np / flat_np
-
-    newimage = dp.make_image(result, image, {})
-    return newimage
-
-
-# SPCAM keywords that should be added to the primary HDU
-prihdr_kwds = [
-    'SIMPLE', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 'EXTEND', 'BZERO',
-    'BSCALE', 'BUNIT', 'BLANK', 'DATE-OBS', 'UT', 'UT-STR', 'UT-END',
-    'HST', 'HST-STR', 'HST-END', 'LST', 'LST-STR', 'LST-END', 'MJD',
-    'TIMESYS', 'MJD-STR', 'MJD-END', 'ZD-STR', 'ZD-END', 'SECZ-STR',
-    'SECZ-END', 'AIRMASS', 'AZIMUTH', 'ALTITUDE', 'PROP-ID', 'OBSERVER',
-    'EXP-ID', 'DATASET', 'OBS-MOD', 'OBS-ALOC', 'DATA-TYP', 'OBJECT',
-    'RA', 'DEC', 'RA2000', 'DEC2000', 'OBSERVAT', 'TELESCOP', 'FOC-POS',
-    'TELFOCUS', 'FOC-VAL', 'FILTER01', 'EXPTIME', 'INSTRUME', 'INS-VER',
-    'WEATHER', 'SEEING', 'ADC-TYPE', 'ADC-STR', 'ADC-END', 'INR-STR',
-    'INR-END', 'DOM-WND', 'OUT-WND', 'DOM-TMP', 'OUT-TMP', 'DOM-HUM',
-    'OUT-HUM', 'DOM-PRS', 'OUT-PRS', 'EXP1TIME', 'COADD', 'M2-POS1',
-    'M2-POS2', 'M2-POS3', 'M2-ANG1', 'M2-ANG2', 'M2-ANG3', 'AUTOGUID',
-    'COMMENT', 'INST-PA', 'EQUINOX',
-    ]
-
-# SPCAM keywords that should be added to the image HDUs
-imghdr_kwds = [
-    'SIMPLE', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 'EXTEND', 'BZERO',
-    'BSCALE', 'BUNIT', 'BLANK', 'FRAMEID', 'EXP-ID', 'DETECTOR', 'DET-ID',
-    'DET-A01', 'DET-P101', 'DET-P201', 'DET-TMP', 'DET-TMED', 'DET-TMIN',
-    'DET-TMAX', 'GAIN', 'EFP-MIN1', 'EFP-RNG1', 'EFP-MIN2', 'EFP-RNG2',
-    'PRD-MIN1', 'PRD-RNG1', 'PRD-MIN2', 'PRD-RNG2', 'BIN-FCT1', 'BIN-FCT2',
-    'DET-VER', 'S_UFNAME', 'S_FRMPOS', 'S_BCTAVE', 'S_BCTSD', 'S_AG-OBJ',
-    'S_AG-RA', 'S_AG-DEC', 'S_AG-EQN', 'S_AG-X', 'S_AG-Y', 'S_AG-R',
-    'S_AG-TH', 'S_ETMED', 'S_ETMAX', 'S_ETMIN', 'S_XFLIP', 'S_YFLIP',
-    'S_M2OFF1', 'S_M2OFF2', 'S_M2OFF3', 'S_DELTAZ', 'S_DELTAD', 'S_SENT',
-    'S_GAIN1', 'S_GAIN2', 'S_GAIN3', 'S_GAIN4', 'S_OSMN11', 'S_OSMX11',
-    'S_OSMN21', 'S_OSMX21', 'S_OSMN31', 'S_OSMX31', 'S_OSMN41', 'S_OSMX41',
-    'S_OSMN12', 'S_OSMX12', 'S_OSMN22', 'S_OSMX22', 'S_OSMN32', 'S_OSMX32',
-    'S_OSMN42', 'S_OSMX42', 'S_EFMN11', 'S_EFMX11', 'S_EFMN21', 'S_EFMX21',
-    'S_EFMN31', 'S_EFMX31', 'S_EFMN41', 'S_EFMX41', 'S_EFMN12', 'S_EFMX12',
-    'S_EFMN22', 'S_EFMX22', 'S_EFMN32', 'S_EFMX32', 'S_EFMN42', 'S_EFMX42',
-    'EQUINOX',  'CRVAL1',  'CRVAL2', 'CRPIX1', 'CRPIX2', 'CDELT1', 'CDELT2',
-    'LONGPOLE', 'CTYPE1', 'CTYPE2', 'CUNIT1', 'CUNIT2', 'WCS-ORIG',
-    'RADECSYS', 'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2',
-    ]
-
-def spcam_pack(dirpath, exp_id, outpath='.', compress=False):
-    """
-    Pack a group of 10 SPCAM FITS files (a single exposure) into one
-    FITS file with one primary HDU with no data and 10 image HDUs.
-
-    Parameters
-    ----------
-    dirpath : str
-        specifies the directory containing the exposure files
-    exp_id : str
-        a frame id of the format "SUPANNNNNNNN"--any one of the frame ids
-        making up the single exposure
-    outpath : str (optional)
-        specifies the output directory for the resulting fits file.
-        Defaults to current directory.
-    compress : bool (optional)
-        if True, will try to Rice-compress the image HDUs.  Note that
-        this slows down the process considerably.  Default: False
-    """
-
-    import astropy.io.fits as pyfits
-
-    exp_id = exp_id[:11]
-    glob_exp = os.path.join(dirpath, exp_id + '?.fits')
-    filelist = glob.glob(glob_exp)
-    filelist.sort()
-
-    hdus = {}
-
-    outfile = exp_id.replace('A', 'E') + '0.fits'
-
-    fitsobj = pyfits.HDUList()
-
-    i = 0
-    for fitsfile in filelist:
-        with pyfits.open(fitsfile, 'readonly') as in_f:
+        for image in images:
+            header = image.get_header()
             if i == 0:
                 # prepare primary HDU header
                 hdu = pyfits.PrimaryHDU()
                 prihdr = hdu.header
-                for kwd, val in in_f[0].header.items():
-                    if kwd.upper() in prihdr_kwds:
-                        #prihdr[kwd] = (val, comment)
-                        prihdr[kwd] = val
+                for kwd in header.keys():
+                    if kwd.upper() in self.prihdr_kwds:
+                        card = header.get_card(kwd)
+                        val, comment = card.value, card.comment
+                        prihdr[kwd] = (val, comment)
 
                 fitsobj.append(hdu)
-
+                
             # create each image HDU
-            data = numpy.copy(in_f[0].data.astype(numpy.uint16))
+            data = numpy.copy(image.get_data().astype(numpy.uint16))
 
             if not compress:
                 hdu = pyfits.ImageHDU(data=data)
             else:
                 hdu = pyfits.CompImageHDU(data=data,
                                           compression_type='RICE_1')
-            
-            for kwd, val in in_f[0].header.items():
-                if kwd.upper() in imghdr_kwds:
-                    #hdu.header[kwd] = (val, comment)
-                    hdu.header[kwd] = val
+
+            for kwd in header.keys():
+                if kwd.upper() in self.imghdr_kwds:
+                    card = header.get_card(kwd)
+                    val, comment = card.value, card.comment
+                    hdu.header[kwd] = (val, comment)
 
             # add CHECKSUM and DATASUM keywords
             if not compress:
                 hdu.add_checksum()
 
             det_id = int(hdu.header['DET-ID'])
-            #fitsobj.append(hdu)
             hdus[det_id] = hdu
             i += 1
 
-    # stack HDUs in detector ID order
-    for i in xrange(10):
-        fitsobj.append(hdus[i])
-        
-    # fix up to FITS standard as much as possible
-    fitsobj.verify('silentfix')
+        # stack HDUs in detector ID order
+        for i in xrange(self.num_ccds):
+            fitsobj.append(hdus[i])
 
-    # save to a file
-    outpath = os.path.join(outpath, outfile)
+        # fix up to FITS standard as much as possible
+        fitsobj.verify('silentfix')
 
-    fitsobj.writeto(outpath)
+        return fitsobj
+
+
+    def step2(self, image):
+        """
+        Corresponds to step 2 in the SPCAM data reduction instructions.
+
+        Takes an image and removes the overscan regions.  In the process
+        it also subtracts the bias median calculated from the overscan
+        regions.
+        """
+        d = self.get_regions(image)
+        header = {}
+        data_np = image.get_data()
+
+        result = self.subtract_overscan_np(data_np, d, header=header)
+
+        newimage = dp.make_image(result, image, header)
+        return newimage
+
+
+    def step3(self, image, flat):
+        """
+        Corresponds to step 3 in the SPCAM data reduction instructions.
+
+        Divides an image by a flat and returns a new image.
+        """
+
+        data_np = image.get_data()
+        flat_np = flat.get_data()
+
+        result = data_np / flat_np
+
+        newimage = dp.make_image(result, image, {})
+        return newimage
+
+
 
 #END
