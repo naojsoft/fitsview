@@ -98,9 +98,8 @@ class VGW(GingaPlugin.GlobalPlugin):
 
     def mark_position(self, tag, future,
                       v_lan_data=None, x=None, y=None, mode=None,
-                      mark=None, size=None, color=None):
-        # X and Y are in FITS data coordinates
-        x, y = x-1, y-1
+                      mark=None, size=None, color=None, coord=None):
+
 
         chname = v_lan_data.upper()
         chinfo = self.fv.get_channelInfo(chname)
@@ -108,6 +107,21 @@ class VGW(GingaPlugin.GlobalPlugin):
         p = future.get_data()
 
         canvas = chinfo.fitsimage
+        
+        if not coord == 'PIX':
+            self.logger.debug('coord is %s' %coord)
+            image = canvas.get_image()
+            #self.logger.info('funkyradec x=%s y=%s' %(x, y))
+            ra_deg = radec.funkyHMStoDeg(x)
+            dec_deg = radec.funkyDMStoDeg(y)
+            #self.logger.info('radec deg ra=%s dec=%s' %(ra_deg, dec_deg))
+            self.logger.info('DegTo x=%s y=%s' %(x, y))
+            x, y = image.radectopix(ra_deg, dec_deg)    
+
+        self.logger.info('ToPix x=%s y=%s' %(x, y))
+        # X and Y are in FITS data coordinates
+        x, y = x-1, y-1
+        
         try:
             self._mark(chname, canvas, x, y, mode, mark, size, color)
             p.setvals(result='ok')
@@ -141,7 +155,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.ds.raise_tab(self.qdaschname)
 
         image = chinfo.fitsimage.get_image()
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         try:
@@ -274,7 +288,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.ds.raise_tab(self.qdaschname)
 
         image = chinfo.fitsimage.get_image()
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         ag_area = ag_area.lower()
@@ -381,7 +395,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.ds.raise_tab(self.qdaschname)
 
         image = chinfo.fitsimage.get_image()
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                VGWError("Null image for '%s'!" % (self.qdaschname))
 
         agh = Bunch.Bunch(image.get('agheader'))
@@ -605,38 +619,44 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.nongui_do_future(f_dss)
 
     def _ag_auto_select_cont1(self, future2, future):
-        self.logger.debug("continuation 1 resumed...")
-        p = future.get_data()
-        if p.image is None:
-            # TODO: pop up an error message
-            self.fv.show_error("No DSS image returned!")
-            future.resolve(-1)
-            return
-        self.fv.showStatus("Got DSS image.")
+        self.logger.info("continuation 1 resumed...")
+        try:
+            p = future.get_data()
+            if (p.image is None) or (not isinstance(p.image, AstroImage.AstroImage)):
+                raise VGWError("No DSS image returned!")
 
-        image = p.image
-        # Now that we have an image, we can do some WCS calculations
+            image = p.image
+            self.fv.showStatus("Got DSS image.")
 
-        probe_ra_deg = radec.funkyHMStoDeg(p.probe_ra)
-        probe_dec_deg = radec.funkyDMStoDeg(p.probe_dec)
-        probe_x, probe_y = image.radectopix(probe_ra_deg, probe_dec_deg)
+            # Now that we have an image, we can do some WCS calculations
 
-        # calculate center pixel for ra/dec
-        ctr_x, ctr_y = image.radectopix(p.ra_deg, p.dec_deg)
-        # calculate radius of probe vignetting
-        probe_vignette_radius = image.calc_radius_xy(ctr_x, ctr_y,
-                                                     p.probe_vignette_fov)
+            probe_ra_deg = radec.funkyHMStoDeg(p.probe_ra)
+            probe_dec_deg = radec.funkyDMStoDeg(p.probe_dec)
+            probe_x, probe_y = image.radectopix(probe_ra_deg, probe_dec_deg)
 
-        p.setvals(ctr_x=ctr_x, ctr_y=ctr_y, probe_x=probe_x, probe_y=probe_y,
-                  probe_vignette_radius=probe_vignette_radius,
-                  probe_ra_deg=probe_ra_deg, probe_dec_deg=probe_dec_deg)
+            # calculate center pixel for ra/dec
+            ctr_x, ctr_y = image.radectopix(p.ra_deg, p.dec_deg)
+            # calculate radius of probe vignetting
+            probe_vignette_radius = image.calc_radius_xy(ctr_x, ctr_y,
+                                                         p.probe_vignette_fov)
 
-        # Catalog function doesn't like to see CS_OPT or CS_IR, just "CS"
-        f_select0 = p.f_select.upper()
-        if f_select0 in ('CS_OPT', 'CS_IR'):
-            f_select0 = 'CS'
-        radius = p.cat_fov_deg * 60.0
+            p.setvals(ctr_x=ctr_x, ctr_y=ctr_y, probe_x=probe_x, probe_y=probe_y,
+                      probe_vignette_radius=probe_vignette_radius,
+                      probe_ra_deg=probe_ra_deg, probe_dec_deg=probe_dec_deg)
 
+            # Catalog function doesn't like to see CS_OPT or CS_IR, just "CS"
+            f_select0 = p.f_select.upper()
+            if f_select0 in ('CS_OPT', 'CS_IR'):
+                f_select0 = 'CS'
+            radius = p.cat_fov_deg * 60.0
+
+        except Exception as e:
+            errmsg = "Error with DSS image: %s" % (str(e))
+            self.fv.show_error(errmsg)
+            #future.resolve(-1)
+            future.resolve(e)
+            raise VGWError(errmsg)
+            
         def query_catalogs(p):
             try:
                 # Get preferred guide star catalog for AG
@@ -675,7 +695,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 else:
                     p.selected = []
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Error querying star catalog: %s" % (str(e))
                 self.logger.error(errmsg)
                 self.fv.show_error(errmsg)

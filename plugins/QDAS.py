@@ -9,7 +9,7 @@ import gtk
 import os
 import numpy
 
-from ginga import GingaPlugin
+from ginga import GingaPlugin, AstroImage
 from ginga.misc import Future, Bunch
 from ginga.util import wcs
 from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
@@ -66,7 +66,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                QDASError("Null image for %s" % chname)
 
         # remove all other QDAS layers
@@ -100,7 +100,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.fv.update_pending()
 
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
@@ -209,7 +209,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         input_frame = framelist[0]
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
@@ -256,7 +256,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         # Load the image we are operating on into the channel
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
@@ -530,7 +530,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_file(path, chname)
-        assert image is not None, \
+        assert isinstance(image, AstroImage.AstroImage), \
                QDASError("Null image for '%s'" % (chname))
 
         # remove all other QDAS layers
@@ -628,6 +628,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.logger.debug("Image '%s' is no longer in memory; attempting to load from '%s'" % (
                 imagename, path))
             image = self.fv.load_file(path, chname=dst_chname, wait=True)
+            assert isinstance(image, AstroImage.AstroImage), \
+                   QDASError("Null image for '%s'" % (src_chname))
             return image
 
         except Exception, e:

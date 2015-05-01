@@ -84,6 +84,8 @@ class ReceiveFITS(object):
             future = Future.Future()
             future.freeze(image_loader, filepath, **kwdargs)
             image = future.thaw()
+            assert isinstance(image, AstroImage.AstroImage), \
+                   ValueError("Failed to load FITS file: %s" % (str(e)))
 
             # Save a future for this image to reload it later if we
             # have to remove it from memory
@@ -103,7 +105,7 @@ class ReceiveFITS(object):
                 tb_str = "Traceback information unavailable."
 
             self.fv.gui_do(self.fv.show_error, errmsg + '\n' + tb_str)
-            return
+            return None
             
         header = image.get_header()
 
