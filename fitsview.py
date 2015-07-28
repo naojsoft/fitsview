@@ -9,7 +9,7 @@ fitsview.py implements a FITS viewer/display server for Gen2 quick look
   activities.
 
 Usage:
-    fitsview.py --monport=NNNNN --loglevel=20 
+    fitsview.py --monport=NNNNN --loglevel=20
 """
 
 # stdlib imports
@@ -31,7 +31,6 @@ import Gen2.soundsink as SoundSink
 
 from ginga.misc import ModuleManager, Datasrc, Settings
 from ginga.misc.Bunch import Bunch
-from ginga.Control import GingaControl, GuiLogHandler
 import ginga.toolkit as ginga_toolkit
 
 # Local application imports
@@ -51,7 +50,7 @@ default_layout = ['seq', {},
                                  ['ws', dict(name='uleft', height=300,
                                              show_tabs=False, group=3)],
                                  ['ws', dict(name='lleft', height=430,
-                                             show_tabs=False, group=3)],
+                                             show_tabs=True, group=3)],
                                  ]
                         )]],
                      ['vbox', dict(name='main', width=700),
@@ -89,22 +88,26 @@ global_plugins = [
 local_plugins = [
     Bunch(module='Pick', ws='dialogs', shortkey='f1'),
     Bunch(module='Ruler', ws='dialogs', shortkey='f2'),
-    Bunch(module='MultiDim', ws='dialogs', shortkey='f4'),
+    Bunch(module='MultiDim', ws='lleft', shortkey='f4'),
     Bunch(module='Cuts', ws='dialogs', shortkey='f5'),
     Bunch(module='Histogram', ws='dialogs', shortkey='f6'),
+    Bunch(module='Overlays', ws='dialogs'),
+    Bunch(module='Blink', ws='dialogs'),
     Bunch(module='PixTable', ws='dialogs', shortkey='f7'),
     Bunch(module='Preferences', ws='dialogs', shortkey='f9'),
     Bunch(module='Mosaic', ws='dialogs'),
-    Bunch(module='Pipeline', ws='dialogs'),
+    #Bunch(module='Pipeline', ws='dialogs'),
     Bunch(module='Catalogs', ws='dialogs', shortkey='f10'),
     Bunch(module='Drawing', ws='dialogs', shortkey='f11'),
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
+    Bunch(module='Compose', ws='dialogs'),
     Bunch(module='SPCAM', ws='dialogs'),
     Bunch(module='HSC', ws='dialogs'),
-    Bunch(module='FOCAS', ws='dialogs'),
+    #Bunch(module='FOCAS', ws='dialogs'),
     ]
 
 def get_displayfits(viewKlass):
+    from ginga.Control import GingaControl
     class DisplayFITS(GingaControl, viewKlass):
         """This class manages the creation and handling of a FITS viewer GUI.
         The class is constructed with a data source and it reads images from the
@@ -155,7 +158,7 @@ def get_displayfits(viewKlass):
 
     return DisplayFITS
 
-        
+
 def main(options, args):
     """Implements the display server.  Creates a DisplayFITS object
     (the GUI), a ReceiveFITS object (ro server) and a datasrc that links
@@ -164,7 +167,7 @@ def main(options, args):
 
     # default of 1000 is a little too small
     sys.setrecursionlimit(2000)
-    
+
     # Create top level logger.
     logger = ssdlog.make_logger(options.svcname, options)
 
@@ -197,7 +200,7 @@ def main(options, args):
 
     sndsink = SoundSink.SoundSource(monitor=mymon, logger=logger,
                                     channels=['sound'])
-    
+
     # Get preferences folder
     if os.environ.has_key('CONFHOME'):
         basedir = os.path.join(os.environ['CONFHOME'], 'fitsview')
@@ -227,7 +230,7 @@ def main(options, args):
 
     ginga_toolkit.use(toolkit)
     tkname = ginga_toolkit.get_family()
-    
+
     if tkname == 'gtk':
         from ginga.gtkw.GingaGtk import GingaView
     elif tkname == 'qt':
@@ -254,7 +257,7 @@ def main(options, args):
     sys.path.insert(0, childDir)
 
     mm = ModuleManager.ModuleManager(logger)
-    
+
     # Start up the display engine
     disp_klass = get_displayfits(GingaView)
     ginga = disp_klass(logger, threadPool, mm, prefs,
@@ -291,6 +294,7 @@ def main(options, args):
         ginga.add_global_plugin(spec)
 
     # Add GUI log handler (for "Log" global plugin)
+    from ginga.Control import GuiLogHandler
     guiHdlr = GuiLogHandler(ginga)
     guiHdlr.setLevel(logging.WARN)
     guiHdlr.setFormatter(ssdlog.get_formatter())
@@ -387,7 +391,7 @@ def main(options, args):
         # the datasrc.
         for arg in args:
             receiver.display_fitsfile(arg)
-        
+
         logger.info("Starting fits viewing service.")
         viewsvc.ro_start()
 
@@ -410,7 +414,7 @@ def main(options, args):
         mymon.stop(wait=True)
 
     sys.exit(0)
-        
+
 
 if __name__ == "__main__":
 
@@ -419,7 +423,7 @@ if __name__ == "__main__":
 
     usage = "usage: %prog [options] cmd [args]"
     optprs = OptionParser(usage=usage, version=('%%prog %s' % version))
-    
+
     optprs.add_option("--bufsize", dest="bufsize", metavar="NUM",
                       type="int", default=25,
                       help="Buffer length to NUM")
@@ -441,7 +445,7 @@ if __name__ == "__main__":
     optprs.add_option("--monitor", dest="monitor", metavar="NAME",
                       default='monitor',
                       help="Synchronize from monitor named NAME")
-    optprs.add_option("--monchannels", dest="monchannels", 
+    optprs.add_option("--monchannels", dest="monchannels",
                       default='', metavar="NAMES",
                       help="Specify monitor channels to subscribe to")
     optprs.add_option("--monport", dest="monport", type="int",

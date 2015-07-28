@@ -1,6 +1,6 @@
 #
-# spcam.py -- Suprime-Cam data processing routines 
-# 
+# spcam.py -- Suprime-Cam data processing routines
+#
 # Eric Jeschke (eric@naoj.org)
 #
 # Copyright (c)  Eric R. Jeschke.  All rights reserved.
@@ -9,12 +9,14 @@
 #
 import os
 import re, glob
+import time
 
 import numpy
 
 from ginga import AstroImage
 from ginga.misc import Bunch, log
-from ginga.util import dp, mosaic, io_fits
+from ginga.util import dp
+from ginga.util import mosaic, wcs
 
 from astro.frame import Frame
 
@@ -23,7 +25,7 @@ class SuprimeCamDR(object):
 
     def __init__(self, logger=None):
         super(SuprimeCamDR, self).__init__()
-        
+
         if logger is None:
             logger = log.get_logger(level=20, log_stderr=True)
         self.logger = logger
@@ -89,7 +91,7 @@ class SuprimeCamDR(object):
             frame.number = num
             res.append(os.path.join(frame.directory, str(frame)+'.fits'))
         return res
-        
+
     def get_images(self, path):
         filelist = self.get_file_list(path)
         res = []
@@ -98,7 +100,7 @@ class SuprimeCamDR(object):
             img.load_file(path)
             res.append(img)
         return res
-        
+
     def get_regions(self, image):
         """Extract the keywords defining the overscan and effective pixel
         regions in a SPCAM image.  The data is returned in a dictionary of
@@ -122,7 +124,7 @@ class SuprimeCamDR(object):
             osminy = int(image.get_keyword("%sMN%d2" % (base, channel))) - 1
             osmaxy = int(image.get_keyword("%sMX%d2" % (base, channel))) - 1
             xcut += osmaxx - osminx + 1
-            newwd += efmaxx + 1 - efminx 
+            newwd += efmaxx + 1 - efminx
 
             gain = float(image.get_keyword("%s_GAIN%d" % (self.pfx, channel)))
             d[channel] = Bunch.Bunch(
@@ -139,7 +141,7 @@ class SuprimeCamDR(object):
             startposx += ch.efmaxx + 1 - ch.efminx
 
         ycut = osmaxy - osminy + 1
-        newht = efmaxy + 1 - efminy 
+        newht = efmaxy + 1 - efminy
         d['image'] = Bunch.Bunch(xcut=xcut, ycut=ycut,
                                  newwd=newwd, newht=newht)
 
@@ -201,9 +203,9 @@ class SuprimeCamDR(object):
             # Cut effective pixel region into output array
             xlo, xhi, ylo, yhi = j, j + efwd, 0, efht
             out[ylo:yhi, xlo:xhi] = data_np[ch.efminy:ch.efmaxy+1,
-                                            ch.efminx:ch.efmaxx+1]
+                                            ch.efminx:ch.efmaxx+1] - ovsc_median
             # Subtract overscan medians
-            out[ylo:yhi, xlo:xhi] -= ovsc_median
+            #out[ylo:yhi, xlo:xhi] -= ovsc_median
 
             # Update header for effective regions
             if header is not None:
@@ -298,7 +300,7 @@ class SuprimeCamDR(object):
                 except OSError:
                     pass
                 image.save_as_file(outfile)
-                
+
         return d
 
 
@@ -350,6 +352,80 @@ class SuprimeCamDR(object):
         return d
 
 
+    def prepare_mosaic(self, image, fov_deg, skew_limit=0.1):
+        """Prepare a new (blank) mosaic image based on the pointing of
+        the parameter image
+        """
+        header = image.get_header()
+        ra_deg, dec_deg = header['CRVAL1'], header['CRVAL2']
+
+        data_np = image.get_data()
+
+        (rot_deg, cdelt1, cdelt2) = wcs.get_rotation_and_scale(header,
+                                                               skew_threshold=skew_limit)
+        self.logger.debug("image0 rot=%f cdelt1=%f cdelt2=%f" % (
+            rot_deg, cdelt1, cdelt2))
+
+        # TODO: handle differing pixel scale for each axis?
+        px_scale = numpy.fabs(cdelt1)
+        cdbase = [numpy.sign(cdelt1), numpy.sign(cdelt2)]
+        #cdbase = [1, 1]
+
+        img_mosaic = dp.create_blank_image(ra_deg, dec_deg,
+                                           fov_deg, px_scale,
+                                           rot_deg,
+                                           cdbase=cdbase,
+                                           logger=self.logger,
+                                           pfx='mosaic')
+
+        # TODO: fill in interesting/select object headers from seed image
+        return img_mosaic
+
+    def remove_overscan(self, img):
+        d = self.get_regions(img)
+        header = {}
+        new_data_np = self.subtract_overscan_np(img.get_data(), d,
+                                                header=header)
+        img.set_data(new_data_np)
+        img.update_keywords(header)
+
+    def make_quick_mosaic(self, path):
+
+        # get the list of files making up this exposure
+        files = self.get_file_list(path)
+
+        img = AstroImage.AstroImage(logger=self.logger)
+        img.load_file(files[0])
+
+        img_mosaic = self.prepare_mosaic(img, self.fov)
+        self.remove_overscan(img)
+        img_mosaic.mosaic_inline([img])
+
+        time_start = time.time()
+        t1_sum = 0.0
+        t2_sum = 0.0
+        t3_sum = 0.0
+        for filen in files[1:]:
+            time_t1 = time.time()
+            img = AstroImage.AstroImage(logger=self.logger)
+            img.load_file(filen)
+            time_t2 = time.time()
+            t1_sum += time_t2 - time_t1
+            self.remove_overscan(img)
+            time_t3 = time.time()
+            t2_sum += time_t3 - time_t2
+            img_mosaic.mosaic_inline([img], merge=True, allow_expand=False,
+                                     update_minmax=False)
+            time_t4 = time.time()
+            t3_sum += time_t4 - time_t3
+
+        time_end = time.time()
+        time_total = time_end - time_start
+
+        print ("total time: %.2f t1=%.3f t2=%.3f t3=%.3f" % (
+            time_total, t1_sum, t2_sum, t3_sum))
+        return img_mosaic
+
     def make_multi_hdu(self, images, compress=False):
         """
         Pack a group of separate FITS files (a single exposure) into one
@@ -383,7 +459,7 @@ class SuprimeCamDR(object):
                         prihdr[kwd] = (val, comment)
 
                 fitsobj.append(hdu)
-                
+
             # create each image HDU
             data = numpy.copy(image.get_data().astype(numpy.uint16))
 
@@ -449,7 +525,6 @@ class SuprimeCamDR(object):
 
         newimage = dp.make_image(result, image, {})
         return newimage
-
 
 
 #END
