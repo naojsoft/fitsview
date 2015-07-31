@@ -442,6 +442,56 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         future.resolve(0)
 
+    def MOIRCS_fitting(self, tag, future,
+                       instrument_name, param, propid, fits1, fits2):
+
+        chname = '%s_Online' % (instrument_name)
+        if not self.fv.has_channel(chname):
+            self.fv.add_channel(chname)
+        chinfo = self.fv.get_channelInfo(chname)
+
+        rsinfo = chinfo.opmon.getPluginInfo('MOIRCSFit')
+        rsobj = rsinfo.obj
+
+        path1 = self._get_framepath(fits1, 'MOIRCS')
+        path2 = self._get_framepath(fits2, 'MOIRCS')
+
+        p = future.get_data()
+        
+        # Invoke the gui
+        if not chinfo.opmon.is_active('MOIRCSFit'):
+            chinfo.opmon.start_plugin(chname, 'MOIRCSFit', alreadyOpenOk=True)
+
+        if param == 'MAIN':
+            try:
+                z = rsobj.focus_fitting(param, propid, path1, path2, fits1, fits2)
+                p.setvals(result='ok', z=z)
+
+            except Exception, e:
+                errmsg = "Focus fitting failed: %s" % str(e)
+                self.logger.error(errmsg)
+                p.setvals(result='error', errmsg=str(e))
+        elif param == 'BEST':
+            try:
+                z = rsobj._drawBest()
+                p.setvals(result='ok', z=z)
+
+            except Exception, e:
+                errmsg = "Best fitting failed: %s" % str(e)
+                self.logger.error(errmsg)
+                p.setvals(result='error', errmsg=str(e))
+        elif param == 'INIT':
+            try:
+                z = rsobj.close()
+                p.setvals(result='ok', z=z)
+
+            except Exception, e:
+                errmsg = "Init failed: %s" % str(e)
+                self.logger.error(errmsg)
+                p.setvals(result='error', errmsg=str(e))
+
+        future.resolve(0)
+
 
     def seeing(self, tag, future,
                instrument_name, avg, std, dp):
