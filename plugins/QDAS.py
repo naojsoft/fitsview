@@ -443,7 +443,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         future.resolve(0)
 
     def MOIRCS_fitting(self, tag, future,
-                       instrument_name, param, propid, fits1, fits2):
+                       instrument_name, param, file_list, best_fit_type):
 
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
@@ -453,9 +453,6 @@ class QDAS(GingaPlugin.GlobalPlugin):
         rsinfo = chinfo.opmon.getPluginInfo('MOIRCSFit')
         rsobj = rsinfo.obj
 
-        path1 = self._get_framepath(fits1, 'MOIRCS')
-        path2 = self._get_framepath(fits2, 'MOIRCS')
-
         p = future.get_data()
         
         # Invoke the gui
@@ -464,7 +461,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         if param == 'MAIN':
             try:
-                z = rsobj.focus_fitting(param, propid, path1, path2, fits1, fits2)
+                z = rsobj.focus_fitting(param, file_list)
                 p.setvals(result='ok', z=z)
 
             except Exception, e:
@@ -473,7 +470,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 p.setvals(result='error', errmsg=str(e))
         elif param == 'BEST':
             try:
-                z = rsobj._drawBest()
+                z = rsobj.focus_best(best_fit_type)
                 p.setvals(result='ok', z=z)
 
             except Exception, e:
@@ -491,7 +488,6 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 p.setvals(result='error', errmsg=str(e))
 
         future.resolve(0)
-
 
     def seeing(self, tag, future,
                instrument_name, avg, std, dp):
