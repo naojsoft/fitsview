@@ -507,6 +507,9 @@ class QDAS(GingaPlugin.GlobalPlugin):
         x, y = x-1, y-1
 
         chname = '%s_Online' % (instrument_name)
+        if not self.fv.has_channel(chname):
+            self.fv.add_channel(chname)
+
         chinfo = self.fv.get_channelInfo(chname)
 
         p = future.get_data()
