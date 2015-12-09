@@ -5,17 +5,9 @@
 import os
 import sys
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-from gtk import gdk
 
-import matplotlib
-matplotlib.use('GTKAgg')  # or 'GTK'
-# better rendering
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-# bad rendering #from matplotlib.backends.backend_gtk import FigureCanvasGTKAgg as FigureCanvas
-from matplotlib.figure import Figure
+from polynomial import QuadraticFunction
+
 
 #from matplotlib import pylab
 
@@ -30,175 +22,186 @@ class CurveFitError(Exception):
 class VertexError(CurveFitError):
     pass
 
+def make_CurveFittingCanvas(canvasClass):
+    class CurveFittingCanvas(canvasClass):
 
-class CurveFittingCanvas(FigureCanvas):
+        def __init__(self, figure, logger):
 
-    def __init__(self, logger):
+            self.fig = figure
 
-        self.fig = Figure(figsize=(5, 5), )
+            super(CurveFittingCanvas, self).__init__(self.fig)
+            self.axes = self.fig.add_subplot(111)
+            #self.set_size_request(-1, 400) 
 
-        super(CurveFittingCanvas, self).__init__(self.fig)
-        self.axes = self.fig.add_subplot(111)
-        self.set_size_request(-1, 400) 
-
-        self.logger = logger
+            canvasClass.__init__(self, self.fig)
+            self.logger = logger
 
 
-    def set_axes(self): 
+        def set_axes(self): 
 
-        self.axes.grid(True)
+            self.axes.grid(True)
 
-        self.axes.set_xlabel('X')
-        self.axes.set_ylabel('Y')
+            self.axes.set_xlabel('X')
+            self.axes.set_ylabel('Y')
 
-   
-    def redraw(self):
-        self.fig.canvas.draw()
 
-    def clear_canvas(self):
-        self.axes.cla()
+        def redraw(self):
+            self.fig.canvas.draw()
 
-    def error_message(self, msg, x_points, y_points):
+        def clear_canvas(self):
+            self.axes.cla()
 
-        x = x_points.mean()
-        y = y_points.mean()
-        bbox_args = dict(boxstyle="round", fc="red", alpha=0.6)
-        self.axes.annotate(msg, xy=(x, y), xytext=(x, y), 
-                           size=20, color='g',
-                           bbox=bbox_args,
-                           ha='center',
-                           va='bottom')
+        def error_message(self, msg, x_points, y_points):
 
-    def vertex(self, x, y):
+            x = x_points.mean()
+            y = y_points.mean()
+            bbox_args = dict(boxstyle="round", fc="red", alpha=0.6)
+            self.axes.annotate(msg, xy=(x, y), xytext=(x, y), 
+                               size=20, color='g',
+                               bbox=bbox_args,
+                               ha='center',
+                               va='bottom')
 
-        bbox_args = dict(boxstyle="round", fc="cyan", alpha=0.1)
-        self.axes.annotate('Vertex(%.2f, %.2f)'%(x,y)  , xy=(x, y), xytext=(x, y), 
-                           size=20, color='g',
-                           bbox=bbox_args,
-                           ha='center',
-                           va='top')
+        def vertex(self, x, y):
 
-    def plot_points(self, x_points, y_points):
+            bbox_args = dict(boxstyle="round", fc="cyan", alpha=0.1)
+            self.axes.annotate('Vertex(%.2f, %.2f)'%(x,y)  , xy=(x, y), xytext=(x, y), 
+                               size=20, color='g',
+                               bbox=bbox_args,
+                               ha='center',
+                               va='top')
 
-        #self.axes.plot(x_points, y_points, 'b+', ms=10, mew=1.5)
-        yerr = 0.005 * np.sqrt(x_points)
-        self.axes.errorbar(x_points, y_points, yerr=yerr, fmt='s')
+        def plot_points(self, x_points, y_points):
 
-        #markerline, stemlines, baseline = pylab.stem(x_points, y_points, '-.')
-        #pylab.setp(markerline, 'markerfacecolor', 'b')
+            #self.axes.plot(x_points, y_points, 'b+', ms=10, mew=1.5)
+            yerr = 0.005 * np.sqrt(x_points)
+            self.axes.errorbar(x_points, y_points, yerr=yerr, fmt='s')
 
-        
-
-        min_x = x_points.min()
-        max_x = x_points.max()
-        num = len(x_points)        
-
-        margin = (max_x - min_x) / num
-        
-        self.axes.set_xlim([x_points[0]-margin, x_points[-1]+margin])
-
-    def plot_graph(self, x_graph, y_graph):
-
-        self.axes.plot(x_graph, y_graph, 'g-', linewidth=2)
-        #self.canvas.draw()
+            #markerline, stemlines, baseline = pylab.stem(x_points, y_points, '-.')
+            #pylab.setp(markerline, 'markerfacecolor', 'b')
 
 
 
-class CurveFitting(CurveFittingCanvas):
-    def __init__(self, qf, logger=None):
-        super(CurveFitting, self).__init__(logger) 
+            min_x = x_points.min()
+            max_x = x_points.max()
+            num = len(x_points)        
 
-        self.num_points = 10
-        self.qf = qf
-       
-        self.logger = logger
+            margin = (max_x - min_x) / num
 
-    def parabola_downward(self):
+            self.axes.set_xlim([x_points[0]-margin, x_points[-1]+margin])
 
-        self.logger.debug('parabola opens downward...')
+        def plot_graph(self, x_graph, y_graph):
 
-        try:
-            max_x, max_y = self.qf.max_vertex()
-            self.logger.debug('vertex(%f, %f)' %(max_x, max_y))
+            self.axes.plot(x_graph, y_graph, 'g-', linewidth=2)
+            #self.canvas.draw()
 
-        except Exception as e:
-            msg = 'error: coefficient A >= 0'
-            raise VertexError(msg)
+    return CurveFittingCanvas
 
-        else:
-            return (max_x, max_y)        
-            #self.error_message(msg, x, y)
-            #self.logger.error('error: coefficient A is equal or greater than 0.')
+def make_CurveFitting(klass):
+    class CurveFitting(klass):
+        def __init__(self, figure,  logger=None):
 
+            super(CurveFitting, self).__init__(figure, logger=logger) 
 
-    def parabola_upward(self):
+            self.num_points = 10
+            self.qf = QuadraticFunction(logger=logger)
 
-        self.logger.debug('parabola opens upward...')
+        def parabola_downward(self):
 
-        try:
-            min_x, min_y = self.qf.min_vertex()
-            self.logger.debug('vertex(%f, %f)' %(min_x, min_y))
+            self.logger.debug('parabola opens downward...')
 
-        except Exception as e:
-            msg = 'error: coefficient A <= 0'
-            raise VertexError(msg)
-            #self.error_message(msg, x, y)
-            #self.logger.error('error: coefficient A is equal or less than 0.')
-
-        else:
-            return (min_x, min_y)
-
-
-    def plot(self, x_points, y_points, parabola, degree=2):
-
-        self.logger.debug('start plotting...')
-        #self.clear_canvas()
-
-        self.set_axes()
-        self.plot_points(x_points, y_points)
-
-        opens = {'upward': self.parabola_upward, 
-                 'downward': self.parabola_downward}
-
-        try:
-            self.qf.coefficient(x_points=x_points, y_points=y_points,
-                                degree=degree)
-            func = self.qf.quadratic()
-
-        except Exception as e:
-            msg = "error: failed to find quadratic equation"
-            self.error_message(msg, x_points, y_points)
-            errmsg = "error: failed to find quadratic equation: %s" % (str(e))
-            self.logger.error(errmsg)
-            raise CurveFitError(errmsg)   
-
-        else:
-           
             try:
-                x, y = opens[parabola.lower()]()
-                #max_x, max_y = self.qf.max_vertex()
-                self.logger.debug('vertex(%f, %f)' %(x, y))
+                max_x, max_y = self.qf.max_vertex()
+                self.logger.debug('vertex(%f, %f)' %(max_x, max_y))
 
             except Exception as e:
-                #msg = 'error: coefficient A >= 0'
-                self.error_message(str(e), x_points, y_points)
-                errmsg = 'error selecting parabola type: %s' % (str(e))
+                msg = 'error: coefficient A >= 0'
+                raise VertexError(msg)
+
+            else:
+                return (max_x, max_y)        
+                #self.error_message(msg, x, y)
+                #self.logger.error('error: coefficient A is equal or greater than 0.')
+
+
+        def parabola_upward(self):
+
+            self.logger.debug('parabola opens upward...')
+
+            try:
+                min_x, min_y = self.qf.min_vertex()
+                self.logger.debug('vertex(%f, %f)' %(min_x, min_y))
+
+            except Exception as e:
+                msg = 'error: coefficient A <= 0'
+                raise VertexError(msg)
+                #self.error_message(msg, x, y)
+                #self.logger.error('error: coefficient A is equal or less than 0.')
+
+            else:
+                return (min_x, min_y)
+
+
+        def plot(self, x_points, y_points, parabola, degree=2):
+
+            self.logger.debug('start plotting...')
+            #self.clear_canvas()
+
+            self.set_axes()
+            self.plot_points(x_points, y_points)
+
+            opens = {'upward': self.parabola_upward, 
+                     'downward': self.parabola_downward}
+
+            try:
+                self.qf.coefficient(x_points=x_points, y_points=y_points,
+                                    degree=degree)
+                func = self.qf.quadratic()
+
+            except Exception as e:
+                msg = "error: failed to find quadratic equation"
+                self.error_message(msg, x_points, y_points)
+                errmsg = "error: failed to find quadratic equation: %s" % (str(e))
                 self.logger.error(errmsg)
                 raise CurveFitError(errmsg)   
 
             else:
-                xs = len(x_points) * self.num_points
-                x_new = np.linspace(x_points[0], x_points[-1], xs)
-                y_new = func(x_new)
-                #self.plot_points(x, y)
-                self.plot_graph(x_new, y_new)
-                self.vertex(x, y)
-                return (x, y)
 
-        #self.redraw()
+                try:
+                    x, y = opens[parabola.lower()]()
+                    #max_x, max_y = self.qf.max_vertex()
+                    self.logger.debug('vertex(%f, %f)' %(x, y))
+
+                except Exception as e:
+                    #msg = 'error: coefficient A >= 0'
+                    self.error_message(str(e), x_points, y_points)
+                    errmsg = 'error selecting parabola type: %s' % (str(e))
+                    self.logger.error(errmsg)
+                    raise CurveFitError(errmsg)   
+
+                else:
+                    xs = len(x_points) * self.num_points
+                    x_new = np.linspace(x_points[0], x_points[-1], xs)
+                    y_new = func(x_new)
+                    #self.plot_points(x, y)
+                    self.plot_graph(x_new, y_new)
+                    self.vertex(x, y)
+                    return (x, y)
+
+            #self.redraw()
+
+    return CurveFitting
 
 def main(options,args):
 
+    from PyQt4 import QtGui, QtCore
+
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.figure import Figure
+
+    class1 = make_CurveFittingCanvas(FigureCanvas)
+    class2 = make_CurveFitting(class1)
+    
     logname = 'curve_fitting'
     # Create top level logger.
     logger = ssdlog.make_logger(logname, options)
@@ -222,37 +225,44 @@ def main(options,args):
     xpoints = np.asarray(xs)
     ypoints = np.asarray(ys)
 
-    class MainWindow(gtk.Window):
+    class MainWindow(QtGui.QMainWindow):
  
         def __init__(self, logger):
             super(MainWindow, self).__init__()
+  
+            self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-            self.connect("destroy", lambda x: gtk.main_quit())
-            self.set_default_size(600, 600)
-            self.set_title("AO188 Curve Fitting!")
-
-            from polynomial import QuadraticFunction
-            self.qf = QuadraticFunction(self.logger)
-            self.cf = CurveFitting(self.qf, logger=logger)
+            self.w, self.h = (600, 600)
+            self.setWindowTitle("AO188 Curve Fitting!")
+            self.logger = logger
 
             self.set_gui()
 
         def set_gui(self): 
 
-            vbox = gtk.VBox()
-            self.add(vbox)
-            vbox.pack_start(self.cf)
+            self.resize(self.w, self.h)
+            self.main_widget = QtGui.QWidget(self)
+            vbox = QtGui.QVBoxLayout(self.main_widget)
+            self.fig = Figure((5, 5))
+            self.cf = class2(self.fig, logger=self.logger)
+
+            #self.setParent(parent)
+
+            self.cf.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                                  QtGui.QSizePolicy.Expanding)
+            #self.cf.updateGeometry(self)
+
+            vbox.addWidget(self.cf)
+
+            self.main_widget.setFocus()
+            self.setCentralWidget(self.main_widget)
+
 
         def plot(self, x, y, parabola):
             self.cf.plot(x, y, parabola)
 
-        def start(self):
-            self.show_all()
-            #pylab.show()
-            gtk.main()
-
-        def close(self):
-            gtk.main_quit()
+        def closeEvent(self, ce):
+            self.close()
 
 
     # points = np.array([(1, -1), (1, 0.5), (1, 0.1), \
@@ -271,12 +281,14 @@ def main(options,args):
     parabola = options.parabola
 
     try:
-        main = MainWindow(logger=logger)
-        main.plot(xpoints, ypoints, parabola)
-        main.start()
+        qApp = QtGui.QApplication(sys.argv)
+        mw = MainWindow(logger=logger)
+        mw.plot(xpoints, ypoints, parabola)
+        mw.show()
+        sys.exit(qApp.exec_())
     except KeyboardInterrupt:
         print 'keyboard interrupting...' 
-        main.close()
+        sys.exit(0)
         
 
 if __name__ == "__main__":

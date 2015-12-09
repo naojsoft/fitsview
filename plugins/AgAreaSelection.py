@@ -3,18 +3,12 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-import gtk
-from ginga.gtkw import GtkHelp
 
-from ginga.misc import Bunch
-
-from ginga.gtkw import ImageViewCanvasGtk
-from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
+from ginga.misc import Widgets, Plot, Bunch, CanvasTypes
 from ginga import GingaPlugin
 
 # Local application imports
 from util import g2calc
-
 
 class AgAreaSelection(GingaPlugin.LocalPlugin):
 
@@ -24,7 +18,8 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
 
         self.layertag = 'qdas-agareaselection'
 
-        canvas = CanvasTypes.DrawingCanvas()
+        self.dc = fv.getDrawClasses()
+        canvas = self.dc.DrawingCanvas()
         canvas.enable_draw(True)
         self.canvas = canvas
 
@@ -55,88 +50,77 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
         self.use_new_algorithm = False
 
     def build_gui(self, container, future=None):
-        sw = gtk.ScrolledWindow()
-        sw.set_border_width(2)
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
-        vbox = gtk.VBox()
-        sw.add_with_viewport(vbox)
+        vtop = Widgets.VBox()
+        vtop.set_border_width(2)
+
+        vbox, sw, orientation = Widgets.get_oriented_box(container)
 
         self.msgFont = self.fv.getFont("sansFont", 14)
-        tw = gtk.TextView()
-        tw.set_wrap_mode(gtk.WRAP_WORD)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
-        tw.set_editable(False)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
-        tw.modify_font(self.msgFont)
+
+        tw = Widgets.TextArea(wrap=True, editable=False)
+        tw.set_font(self.msgFont)
         self.tw = tw
 
-        fr = gtk.Frame(" Instructions ")
-        fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        fr.set_label_align(0.1, 0.5)
-        fr.add(tw)
-        vbox.pack_start(fr, padding=4, fill=True, expand=False)
+        fr = Widgets.Expander(" Instructions ")
+        fr.set_widget(tw)
+        vbox.add_widget(fr, stretch=0)
 
-        nb = gtk.Notebook()
-        #nb.set_group_id(group)
-        #nb.connect("create-window", self.detach_page, group)
-        nb.set_tab_pos(gtk.POS_BOTTOM)
-        nb.set_scrollable(True)
-        nb.set_show_tabs(True)
-        nb.set_show_border(False)
+        nb = Widgets.TabWidget(tabpos='bottom')
         self.w.nb2 = nb
-        vbox.pack_start(nb, padding=4, fill=True, expand=True)
+        vbox.add_widget(nb, stretch=0)
 
-        captions = (
-            ('Object_X', 'label', 'Object_Y', 'label'),
-            ('RA', 'label', 'DEC', 'label'), ('Equinox', 'label'),
-            ('Sky Level', 'label', 'Brightness', 'label'),
-            ('FWHM', 'label', 'Star Size', 'label'),
-            ('Sample Area', 'label'),
-            ('Exptime', 'entry'),
-            )
+        captions = (('Object X:', 'label', 'Object_X', 'llabel',
+                     'Object Y:', 'label', 'Object_Y', 'llabel'),
+                    ('RA:', 'label', 'RA', 'llabel',
+                     'DEC:', 'label', 'DEC', 'llabel'),
+                    ('Equinox:', 'label', 'Equinox', 'llabel'),
+                    ('Sky Level:', 'label', 'Sky Level', 'entry',
+                     'Brightness:', 'label', 'Brightness', 'entry'),
+                    ('FWHM:', 'label', 'FWHM', 'llabel',
+                     'Star Size:', 'label', 'Star Size', 'llabel'),
+                    ('Sample Area:', 'label', 'Sample Area', 'llabel'),
+                    ('Exptime:', 'label', 'Exptime', 'entry'),
+                    )
 
-        w, b = GtkHelp.build_info(captions)
-        self.w = b
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
         b.exptime.set_text(str(self.exptime))
         self.wdetail = b
 
-        label = gtk.Label("Select")
-        label.show()
-        nb.append_page(w, label)
-        nb.set_tab_reorderable(w, True)
-        #nb.set_tab_detachable(w, True)
+        # add padding for spacing
+        box = Widgets.Box()
+        box.set_border_width(30)
+        box.add_widget(w)
+        nb.add_widget(box, title="Select")
 
-        captions = (
-            ('New algorithm', 'checkbutton'),
-            ('Radius', 'xlabel', '@Radius', 'spinbutton'),
-            ('Threshold', 'xlabel', '@Threshold', 'entry'),
-            )
+        captions = (('New algorithm', 'checkbutton'),
+                    ('Radius:', 'label', 'Radius', 'spinfloat',
+                     'xlbl_radius', 'label'),
+                    ('Threshold:', 'label', 'Threshold', 'entry',
+                     'xlbl_threshold', 'label'),
+                    )
 
-        w, b = GtkHelp.build_info(captions)
+        w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        b.radius.set_tooltip_text("Radius for peak detection")
-        b.threshold.set_tooltip_text("Threshold for peak detection (blank=default)")
+        b.radius.set_tooltip("Radius for peak detection")
+        b.threshold.set_tooltip("Threshold for peak detection (blank=default)")
 
-        b.new_algorithm.set_active(self.use_new_algorithm)
-        def new_alg_cb(w):
-            self.use_new_algorithm = w.get_active()
-        b.new_algorithm.connect('toggled', new_alg_cb)
+        b.new_algorithm.set_state(self.use_new_algorithm)
+        def new_alg_cb(w, tf):
+            self.use_new_algorithm = tf
+        b.new_algorithm.add_callback('activated', new_alg_cb)
 
         # radius control
-        adj = b.radius.get_adjustment()
-        b.radius.set_digits(2)
-        b.radius.set_numeric(True)
-        adj.configure(self.radius, 5.0, 200.0, 1.0, 10.0, 0)
-        def chg_radius(w):
-            self.radius = float(w.get_text())
-            self.w.lbl_radius.set_text(str(self.radius))
+        b.radius.set_decimals(2)
+        b.radius.set_limits(5.0, 200.0, incr_value=1.0)
+        def chg_radius(w, val):
+            self.radius = float(val)
+            self.w.xlbl_radius.set_text(str(self.radius))
             return True
-        b.lbl_radius.set_text(str(self.radius))
-        b.radius.connect('value-changed', chg_radius)
+        b.xlbl_radius.set_text(str(self.radius))
+        b.radius.add_callback('value-changed', chg_radius)
 
         # threshold control
         def chg_threshold(w):
@@ -144,37 +128,40 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
             ths = w.get_text().strip()
             if len(ths) > 0:
                 threshold = float(ths)
+
             self.threshold = threshold
-            self.w.lbl_threshold.set_text(str(self.threshold))
+            self.w.xlbl_threshold.set_text(str(self.threshold))
             return True
-        b.lbl_threshold.set_text(str(self.threshold))
-        b.threshold.connect('activate', chg_threshold)
+        b.xlbl_threshold.set_text(str(self.threshold))
+        b.threshold.add_callback('activated', chg_threshold)
 
-        label = gtk.Label("Settings")
-        label.show()
-        nb.append_page(w, label)
-        nb.set_tab_reorderable(w, True)
-        #nb.set_tab_detachable(w, True)
+        hbox = Widgets.HBox()
+        hbox.add_widget(w, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        nb.add_widget(hbox, title="Settings")
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        vbox.add_widget(Widgets.Label(''), stretch=1)
+
+        btns = Widgets.HBox()
+        btns.set_border_width(4)
         btns.set_spacing(5)
-        btn = gtk.Button('Ok')
-        btn.connect('clicked', lambda w: self.ok())
-        btns.add(btn)
-        btn = gtk.Button('Cancel')
-        btn.connect('clicked', lambda w: self.cancel())
-        btns.add(btn)
-        vbox.pack_start(btns, fill=True, expand=False)
-        vbox.show_all()
 
-        cw = container.get_widget()
-        cw.pack_start(sw, padding=0, fill=True, expand=True)
+        btn = Widgets.Button("Ok")
+        btn.add_callback('activated', lambda w: self.ok())
+        btns.add_widget(btn, stretch=0)
+
+        btn = Widgets.Button("Cancel")
+        btn.add_callback('activated', lambda w: self.cancel())
+        btns.add_widget(btn, stretch=0)
+
+        vtop.add_widget(sw, stretch=1)
+        vtop.add_widget(btns, stretch=0)
+        container.add_widget(vtop, stretch=1)
+
 
     def set_message(self, msg):
-        buf = self.tw.get_buffer()
-        buf.set_text(msg)
-        self.tw.modify_font(self.msgFont)
+        self.tw.set_text(msg)
+        self.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
         tags = self.fitsimage.getTagsByTagpfx('qdas-')

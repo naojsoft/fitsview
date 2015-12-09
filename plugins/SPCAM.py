@@ -74,7 +74,7 @@ class SPCAM(Mosaic.Mosaic):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        b.flat_dir.set_length(512)
+        #b.flat_dir.set_length(512)
         b.flat_dir.set_text(self.settings.get('flat_dir', ''))
         b.load_flats.add_callback('activated', self.load_flats_cb)
         b.use_flats.set_tooltip("Flat field tiles as they arrive")

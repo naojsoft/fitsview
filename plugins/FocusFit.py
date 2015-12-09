@@ -6,24 +6,26 @@
 #
 import os.path
 
-import gtk
-import pango
+#import gtk
+#import pango
 
 import numpy
 
-import gtk, gobject
+#import gtk, gobject
 import matplotlib
-matplotlib.use('GTKAgg')
+#matplotlib.use('GTKAgg')
 import matplotlib.figure as figure
-from  matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as figurecanvas
+#from  matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as figurecanvas
 from matplotlib.patches import Ellipse
 
 import astro.fitsutils as fitsutils
 import astro.curvefit as curvefit
 
-from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
-from ginga.gtkw import Plot
+#from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
+#from ginga.gtkw import Plot
+from ginga.misc import Plot, CanvasTypes, Widgets
 from ginga import GingaPlugin
+
 
 class FocusFit(GingaPlugin.LocalPlugin):
 
@@ -36,54 +38,99 @@ class FocusFit(GingaPlugin.LocalPlugin):
     def build_gui(self, container):
         # Paned container is just to provide a way to size the graph
         # to a reasonable size
-        box = gtk.VPaned()
-        cw = container.get_widget()
-        cw.pack_start(box, expand=True, fill=True)
+
+        vtop = Widgets.VBox()
+        vtop.set_border_width(2)
+
+        vbox, sw, orientation = Widgets.get_oriented_box(container)
+        #box = gtk.VPaned()
+        splitter = Widgets.Splitter(orientation=orientation)
+
+        #cw = container.get_widget()
+        #cw.pack_start(splitter, expand=True, fill=True)
         
-        self.fontdesc = pango.FontDescription("Helvetica Bold 18")
+        #self.fontdesc = pango.FontDescription("Helvetica Bold 18")
+        #self.msgFont = self.fv.getFont("Helvetica Bold", 18)
+        self.msgFont = self.fv.getFont("sansFont", 18)
+
+        self.plot = Plot.Plot(logger=self.logger, width=3, height=7)
 
         # Make the focus fitting plot
-        self.fig = figure.Figure()
-        self.ax = self.fig.add_subplot(111)
+        #self.fig = figure.Figure()
+        #self.ax = self.fig.add_subplot(111)
+        self.ax = self.plot.add_axis()
         self.ax.set_title('Focus Fitting')
-        self.canvas = figurecanvas(self.fig)
-        self.canvas.set_size_request(-1, 500)       
+        #self.canvas = figurecanvas(self.fig)
+        #self.canvas = self.plot.fig.canvas
+        #self.canvas.set_size_request(-1, 650)       
         #self.root.set_title("Focus Fitting")
-        self.canvas.show_all()
+        #self.canvas.show_all()
 
-        box.pack1(self.canvas, resize=True, shrink=True)
+        self.canvas = Widgets.wrap(self.plot.get_widget())
+        #self.canvas.resize(300, 650)       
+        splitter.add_widget(self.canvas)
+        #splitter.pack1(self.canvas, resize=True, shrink=True)
 
         # create a box to pack widgets into. 
-        vbox1 = gtk.VBox()
+        #vbox1 = gtk.VBox()
+        vbox1 = Widgets.VBox()
+        vbox1.set_spacing(0)
 
         # label for seeing size 
-        self.label_ss = gtk.Label("Seeing size: ")
-        self.label_ss.set_alignment(0, 0)
-        vbox1.pack_start(self.label_ss, padding=5, fill=True, expand=False)
+        #self.label_ss = gtk.Label("Seeing size: ")
+        #self.label_ss = Widgets.Label("Seeing size: ")
+        self.label_ss = Widgets.TextArea(wrap=True, editable=False)
+        self.label_ss.set_font(self.msgFont) 
+        self.label_ss.set_text("Seeing size: ")
+
+
+        #self.label_ss.set_font(self.msgFont)
+        #self.label_ss.set_alignment(0, 0)
+        #vbox1.pack_start(self.label_ss, padding=5, fill=True, expand=False)
+        vbox1.add_widget(self.label_ss)
 
         # label for data points
-        self.label_dp = gtk.Label("Data points: ")
-        self.label_dp.set_alignment(0, 0)
-        vbox1.pack_start(self.label_dp, padding=5, fill=True, expand=False)
+        #self.label_dp = gtk.Label("Data points: ")
+        #self.label_dp = Widgets.Label("Data points: ")
+        self.label_dp = Widgets.TextArea(wrap=True, editable=False)
+        self.label_dp.set_font(self.msgFont)
+        self.label_dp.set_text("Data points: ")
+        #self.label_dp.set_alignment(0, 0)
+        #vbox1.pack_start(self.label_dp, padding=5, fill=True, expand=False)
+        vbox1.add_widget(self.label_dp)
         #vbox1.show_all()
 
-        fr = gtk.Frame(" QDAS Seeing ")
-        fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        fr.set_label_align(0.1, 0.5)
-        fr.add(vbox1)
-        fr.show_all()
+        #vbox1.add_widget(Widgets.Label(''), stretch=1)
+
+        #fr = gtk.Frame(" QDAS Seeing ")
+        fr = Widgets.Frame(" QDAS Seeing ")
+        #fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        #fr.set_label_align(0.1, 0.5)
+        #fr.add(vbox1)
+        fr.set_widget(vbox1)
+        #fr.show_all()
         
-        box.pack2(fr, resize=True, shrink=True)
+        #splitter.pack2(fr, resize=True, shrink=True)
+        splitter.add_widget(fr)
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        #btns = gtk.HButtonBox()
+        btns = Widgets.HBox()
+        #btns.set_layout(gtk.BUTTONBOX_START)
         btns.set_spacing(3)
-        btns.set_child_size(15, -1)
+        #btns.set_child_size(15, -1)
 
-        btn = gtk.Button("Close")
-        btn.connect('clicked', lambda w: self.close())
-        btns.add(btn)
-        cw.pack_start(btns, padding=4, fill=True, expand=False)
+        #btn = gtk.Button("Close")
+        btn = Widgets.Button("Close")
+        btn.add_callback('activated', lambda w: self.close())
+        #btns.add(btn)
+        btns.add_widget(btn, stretch=0)
+
+        vbox.add_widget(splitter, stretch=1)
+        vtop.add_widget(sw, stretch=1)
+        vtop.add_widget(btns, stretch=0)
+        container.add_widget(vtop, stretch=1)
+
+        #cw.pack_start(btns, padding=4, fill=True, expand=False)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
@@ -96,7 +143,8 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
     def _draw(self):
         self.ax.grid(True)
-        self.fig.canvas.draw()
+        #self.fig.canvas.draw()
+        self.plot.fig.canvas.draw()
 
     def set_err_msg(self,msg,x,y):
         self.ax.text(x, y, msg, bbox=dict(facecolor='red',  alpha=0.1, ),
@@ -202,7 +250,10 @@ class FocusFit(GingaPlugin.LocalPlugin):
             self.logger.debug("result=%s z=%s fwhm=%s" % (result, z, fwhm))
             
             # draw graph at next available opportunity
-            gobject.idle_add(self._drawGraph, title, result,
+            #gobject.idle_add(self._drawGraph, title, result,
+            #                 data_points, z, fwhm, lsf_b.a, lsf_b.b, lsf_b.c)
+          
+            self.fv.gui_do(self._drawGraph, title, result,
                              data_points, z, fwhm, lsf_b.a, lsf_b.b, lsf_b.c)
 
         except Exception, e:
@@ -224,18 +275,18 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.label_dp.set_text(dps)
         
         # setup font family, size, ....
-        attr = pango.AttrList()
-        if not calc:
-            fg_color = pango.AttrForeground(65535, 0, 0, 0, 100)
-            attr.insert(fg_color)
-        else:
-            fg_color = pango.AttrForeground(0, 0, 0, 0, 100)
-            attr.insert(fg_color)
-        self.label_ss.set_attributes(attr)
-        self.label_dp.set_attributes(attr)  
+        # attr = pango.AttrList()
+        # if not calc:
+        #     fg_color = pango.AttrForeground(65535, 0, 0, 0, 100)
+        #     attr.insert(fg_color)
+        # else:
+        #     fg_color = pango.AttrForeground(0, 0, 0, 0, 100)
+        #     attr.insert(fg_color)
+        # self.label_ss.set_attributes(attr)
+        # self.label_dp.set_attributes(attr)  
 
-        self.label_ss.modify_font(self.fontdesc)
-        self.label_dp.modify_font(self.fontdesc)
+        # self.label_ss.modify_font(self.fontdesc)
+        # self.label_dp.modify_font(self.fontdesc)
         return 0
 
     def start(self):

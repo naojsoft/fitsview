@@ -40,7 +40,7 @@ defaultServiceName = 'fitsview'
 version = "20140905.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1600, height=1050),
+                   ['vbox', dict(name='top', width=2000, height=1150),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
@@ -49,13 +49,13 @@ default_layout = ['seq', {},
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,
                                              show_tabs=False, group=3)],
-                                 ['ws', dict(name='lleft', height=430,
+                                 ['ws', dict(name='lleft', height=530,
                                              show_tabs=True, group=3)],
                                  ]
                         )]],
                      ['vbox', dict(name='main', width=700),
                       dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
-                     ['ws', dict(name='right', width=350, group=2),
+                     ['ws', dict(name='right', width=400, group=2),
                       # (tabname, layout), ...
                       [("Dialogs", ['ws', dict(name='dialogs', group=2)
                                     ]
@@ -71,7 +71,7 @@ default_layout = ['seq', {},
 global_plugins = [
     Bunch(module='Toolbar', tab='Toolbar', ws='toolbar'),
     Bunch(module='Pan', tab='_pan', ws='uleft', raisekey=None),
-    Bunch(module='Info', tab='_info', ws='lleft', raisekey=None),
+    Bunch(module='Info', tab='Synopsis', ws='lleft', raisekey=None),
     Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
     Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='Z'),
     Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
@@ -396,7 +396,7 @@ def main(options, args):
         viewsvc.ro_start()
 
         try:
-            # Main loop to handle GTK events
+            # Main loop to handle window events
             ginga.mainloop(timeout=0.001)
 
         except KeyboardInterrupt:

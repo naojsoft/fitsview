@@ -71,7 +71,7 @@ class Ana_UserInput(GingaPlugin.LocalPlugin):
             lbl = Widgets.Label(name)
             #lbl.set_alignment(1.0, 0.5)
             ent = Widgets.TextEntry()
-            ent.set_length(100)
+            #ent.set_length(100)
             val_s = str(val)
             ent.set_text(val_s)
             p.resDict[name] = ent

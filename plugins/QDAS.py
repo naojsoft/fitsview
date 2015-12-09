@@ -5,14 +5,13 @@
 # Takeshi Inagaki (tinagaki@naoj.org)
 #
 import math
-import gtk
+
 import os
 import numpy
 
 from ginga import GingaPlugin, AstroImage
-from ginga.misc import Future, Bunch
+from ginga.misc import Future, Bunch, CanvasTypes
 from ginga.util import wcs
-from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
 
 import remoteObjects as ro
 import astro.radec as radec
@@ -351,7 +350,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                                              alreadyOpenOk=True)
             self.fv.update_pending()
 
-        self.fv.update_pending(timeout=0.10)
+        #self.fv.update_pending(timeout=0.10)
         self.fv.play_soundfile(snd_region_select_manual, priority=20)
 
 

@@ -5,15 +5,13 @@
 #
 import math
 import time
-import gtk
 import os
 import numpy
 from operator import itemgetter
 
 # Ginga imports
 from ginga import GingaPlugin
-from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
-from ginga.misc import Future, Bunch
+from ginga.misc import Future, Bunch, CanvasTypes
 from ginga import AstroImage
 from ginga.util import wcs, dp
 
@@ -115,7 +113,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             ra_deg = radec.funkyHMStoDeg(x)
             dec_deg = radec.funkyDMStoDeg(y)
             #self.logger.info('radec deg ra=%s dec=%s' %(ra_deg, dec_deg))
-            self.logger.info('DegTo x=%s y=%s' %(x, y))
+            self.logger.debug('DegTo x=%s y=%s' %(x, y))
             x, y = image.radectopix(ra_deg, dec_deg)    
 
         self.logger.info('ToPix x=%s y=%s' %(x, y))
@@ -619,7 +617,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         self.fv.nongui_do_future(f_dss)
 
     def _ag_auto_select_cont1(self, future2, future):
-        self.logger.info("continuation 1 resumed...")
+        self.logger.debug("continuation 1 resumed...")
         try:
             p = future.get_data()
             if (p.image is None) or (not isinstance(p.image, AstroImage.AstroImage)):
@@ -745,6 +743,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         #pluginObj.limit_stars_to_area = True
         pluginObj.limit_stars_to_area = False
         pluginObj.pan_to_selected = False
+        self.logger.debug("plotting stars")
         pluginObj.plot(future2, plotObj)
 
         select_mode = p.select_mode.lower()
@@ -773,7 +772,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             future2.resolve(0)
             return
 
-        self.fv.update_pending(timeout=0.10)
+        #self.fv.update_pending(timeout=0.10)
         self.fv.play_soundfile(snd_auto_select_manual, priority=20)
 
     def _ag_auto_select_cont3(self, future2, future):
@@ -821,7 +820,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         p.setvals(starlist=None, selected=None, vignette_map=None,
                   image=None)
 
-        self.logger.debug("ag_auto_select cb terminating: res=%s" % (str(p)))
+        self.logger.info("ag_auto_select cb terminating: res=%s" % (str(p)))
         future.resolve(0)
 
 
@@ -1350,7 +1349,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             future2.resolve(0)
             return
 
-        self.fv.update_pending(timeout=0.10)
+        #self.fv.update_pending(timeout=0.10)
         self.fv.play_soundfile(snd_auto_select_manual, priority=20)
 
     def _hsc_ag_auto_select_cont3(self, future2, future):
@@ -1971,7 +1970,7 @@ class HSCfov(object):
         #                   self.dith_obj), starlist)
         starlist = self.pluginObj.filter_results(starlist, self.dith_obj)
 
-        self.logger.info('all STARLIST=%s' %str(starlist))
+        self.logger.debug('all STARLIST=%s' % (str(starlist)))
 
         p = self.p
         #return self.hsc_filter_candidates(p, p.queries, all_stars)
@@ -1981,7 +1980,9 @@ class HSCfov(object):
 
         for num, star in enumerate(updated_stars):
             num += 1
-            star['priority'] = num
+            if not star.has_key('priority') or (star['priority'] is None):
+                star['priority'] = num
+
 
     def hsc_filter_candidates2(self, p, queries, all_stars):
         # interesting items:
@@ -2015,6 +2016,8 @@ class HSCfov(object):
             pref += fabs(best_flag-star['flag'])
 
             star['preference'] = pref
+            if not (star['description'] is None) and ('BLACKLISTED' in star['description']):
+                star['preference'] = 9999999
 
         all_stars = sorted(all_stars, key=itemgetter('preference'))
         self. _set_priority(all_stars)

@@ -6,7 +6,7 @@
 #
 """
 guideview.py implements a simple FITS viewer/display server to display FITS
-images in GTK widgets.
+images in widgets.
 
 Usage:
     guideview.py
@@ -32,13 +32,7 @@ import Gen2.soundsink as SoundSink
 # Ginga imports
 from ginga.misc import ModuleManager, Datasrc, Settings
 from ginga.misc.Bunch import Bunch
-from ginga import toolkit
-toolkit.use('gtk2')
-from ginga.gtkw.GingaGtk import GingaView
-
-from ginga.util import wcsmod
-#wcsmod.use('astropy')
-wcsmod.use('kapteyn')
+import ginga.toolkit as ginga_toolkit
 
 # Local application imports
 from util import Receive
@@ -47,11 +41,11 @@ serviceName = 'guideview'
 version = "20131213.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1800, height=1050),
+                   ['vbox', dict(name='top', width=2000, height=1250),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', {},
-                     ['ws', dict(name='left', width=300),
+                     ['ws', dict(name='left', width=350),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,
@@ -63,9 +57,9 @@ default_layout = ['seq', {},
                       ],
                      ['vpanel', {},
                       ['hpanel', dict(height=400),
-                       ['vbox', dict(name='main', width=700),
+                       ['vbox', dict(name='main', width=500),
                         dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
-                       ['ws', dict(name='right', width=350, group=2),
+                       ['ws', dict(name='right', width=550, group=2),
                         # (tabname, layout), ...
                         [("Dialogs", ['ws', dict(name='dialogs', group=2)
                                       ]
@@ -88,7 +82,7 @@ default_layout = ['seq', {},
 global_plugins = [
     Bunch(module='Toolbar', tab='Toolbar', ws='toolbar'),
     Bunch(module='Pan', tab='_pan', ws='uleft', raisekey=None),
-    Bunch(module='Info', tab='_info', ws='lleft', raisekey=None),
+    Bunch(module='Info', tab='Synopsis', ws='lleft', raisekey=None),
     Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
     Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='Z'),
     Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
@@ -102,7 +96,7 @@ global_plugins = [
 local_plugins = [
     Bunch(module='Pick', ws='dialogs', shortkey='f1'),
     Bunch(module='Ruler', ws='dialogs', shortkey='f2'),
-    Bunch(module='MultiDim', ws='lleft', shortkey='f4'),
+    Bunch(module='MultiDim', ws='dialogs', shortkey='f4'),
     Bunch(module='Cuts', ws='dialogs', shortkey='f5'),
     Bunch(module='Histogram', ws='dialogs', shortkey='f6'),
     Bunch(module='Overlays', ws='dialogs'),
@@ -113,7 +107,7 @@ local_plugins = [
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
     ]
 
-default_channels = [('AG', 'sub1'), ('SV', 'sub1'), ('HSCSCAG', 'channels'),
+default_channels = [('AG', 'sub1'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
                     ('QDAS_VGW', 'sub2'), ('DSS', 'sub2'),
                     ('SH', 'channels'),
                     ('HSCSHAG', 'channels'), ('HSCSH', 'channels'),
@@ -131,55 +125,59 @@ extra_plugins = [
     ]
 
 
-from ginga.Control import GingaControl
-class DisplayFITS(GingaControl, GingaView):
-    """This class manages the creation and handling of a FITS viewer GUI.
-    The class is constructed with a data source and it reads images from the
-    source and displays them.
-    """
+def get_displayfits(viewKlass):
+    from ginga.Control import GingaControl
 
-    def __init__(self, logger, threadPool, module_manager, preferences,
-                 soundsink, ev_quit=None):
-
-        self.controller = None
-        self.soundsink = soundsink
-
-        GingaView.__init__(self, logger, ev_quit=ev_quit)
-        GingaControl.__init__(self, logger, threadPool, module_manager,
-                              preferences, ev_quit=ev_quit)
-
-
-    def load_file(self, filepath, chname=None, wait=True,
-                  image_loader=None):
-        """Loads a command file from _filepath_ into the commands window.
+    class DisplayFITS(GingaControl, viewKlass):
+        """This class manages the creation and handling of a FITS viewer GUI.
+        The class is constructed with a data source and it reads images from the
+        source and displays them.
         """
-        try:
-            info = self.get_fileinfo(filepath)
-            # <-- filepath should now be a real file in the filesystem
-            self.logger.debug("fileinfo=%s" % (str(info)))
 
-            image = self.controller.open_fits(info.filepath, channel=chname,
-                                              wait=wait,
-                                              image_loader=image_loader)
-            return image
+        def __init__(self, logger, threadPool, module_manager, preferences,
+                     soundsink, ev_quit=None):
 
-        except Exception as e:
-            errmsg = "Unable to open '%s': %s" % (
-                filepath, str(e))
-            self.show_error(errmsg)
-            return ro.ERROR
+            self.controller = None
+            self.soundsink = soundsink
+
+            viewKlass.__init__(self, logger, ev_quit=ev_quit)
+            GingaControl.__init__(self, logger, threadPool, module_manager,
+                                  preferences, ev_quit=ev_quit)
 
 
-    def play_soundfile(self, filepath, format=None, priority=20):
-        self.soundsink.playFile(filepath, format=format,
-                                priority=priority)
+        def load_file(self, filepath, chname=None, wait=True,
+                      image_loader=None):
+            """Loads a command file from _filepath_ into the commands window.
+            """
+            try:
+                info = self.get_fileinfo(filepath)
+                # <-- filepath should now be a real file in the filesystem
+                self.logger.debug("fileinfo=%s" % (str(info)))
 
-    def gui_load_file(self):
-        """Runs dialog to read in a command file into the command window.
-        """
-        initialdir = os.environ['DATAHOME']
+                image = self.controller.open_fits(info.filepath, channel=chname,
+                                                  wait=wait,
+                                                  image_loader=image_loader)
+                return image
 
-        super(DisplayFITS, self).gui_load_file(initialdir=initialdir)
+            except Exception as e:
+                errmsg = "Unable to open '%s': %s" % (
+                    filepath, str(e))
+                self.show_error(errmsg)
+                return ro.ERROR
+
+
+        def play_soundfile(self, filepath, format=None, priority=20):
+            self.soundsink.playFile(filepath, format=format,
+                                    priority=priority)
+
+        def gui_load_file(self):
+            """Runs dialog to read in a command file into the command window.
+            """
+            initialdir = os.environ['DATAHOME']
+
+            super(DisplayFITS, self).gui_load_file(initialdir=initialdir)
+
+    return DisplayFITS
 
 
 def main(options, args):
@@ -243,17 +241,41 @@ def main(options, args):
     sys.path.insert(0, basedir)
     prefs = Settings.Preferences(basefolder=basedir, logger=logger)
 
-    t_ = prefs.createCategory('general')
-    t_.setDefaults(share_readout=False, useMatplotlibColormaps=False,
-                   widgetSet='choose',
-                   pixel_coords_offset=1.0,
-                   WCSpkg='astropy', FITSpkg='astropy')
-    t_.load(onError='silent')
+    settings = prefs.createCategory('general')
+    settings.setDefaults(share_readout=False, useMatplotlibColormaps=False,
+                         widgetSet='choose',
+                         pixel_coords_offset=1.0,
+                         WCSpkg='kapteyn', FITSpkg='astropy')
+    settings.load(onError='silent')
+
+    # Choose a toolkit
+    if options.toolkit:
+        toolkit = options.toolkit
+    else:
+        toolkit = settings.get('widgetSet', 'choose')
+
+    ginga_toolkit.use(toolkit)
+    tkname = ginga_toolkit.get_family()
+
+    if tkname == 'gtk':
+        from ginga.gtkw.GingaGtk import GingaView
+    elif tkname == 'qt':
+        from ginga.qtw.GingaQt import GingaView
+    else:
+        try:
+            from ginga.qtw.GingaQt import GingaView
+        except ImportError:
+            try:
+                from ginga.gtkw.GingaGtk import GingaView
+            except ImportError:
+                print("You need python-gtk or python-qt4 to run Ginga!")
+                sys.exit(1)
 
     # TEMP: ginga needs to find its plugins
     gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]
-    childDir = os.path.join(gingaHome, 'gtkw', 'plugins')
-    sys.path.insert(0, childDir)
+    ## widgetDir = tkname + 'w'
+    ## childDir = os.path.join(gingaHome, widgetDir, 'plugins')
+    ## sys.path.insert(0, childDir)
     childDir = os.path.join(gingaHome, 'misc', 'plugins')
     sys.path.insert(0, childDir)
 
@@ -263,7 +285,9 @@ def main(options, args):
     mm = ModuleManager.ModuleManager(logger)
 
     # Start up the display engine
-    ginga = DisplayFITS(logger, threadPool, mm, prefs,
+    # Start up the display engine
+    disp_klass = get_displayfits(GingaView)
+    ginga = disp_klass(logger, threadPool, mm, prefs,
                         sndsink, ev_quit=ev_quit)
     ginga.set_layout(default_layout)
     ginga.followFocus(False)
@@ -392,7 +416,7 @@ def main(options, args):
         viewsvc.ro_start()
 
         try:
-            # Main loop to handle GTK events
+            # Main loop to handle window events
             ginga.mainloop(timeout=0.001)
 
         except KeyboardInterrupt:
@@ -459,6 +483,9 @@ if __name__ == "__main__":
     optprs.add_option("--svcname", dest="svcname", metavar="NAME",
                       default=serviceName,
                       help="Register using NAME as service name")
+    optprs.add_option("-t", "--toolkit", dest="toolkit", metavar="NAME",
+                      default=None,
+                      help="Prefer GUI toolkit (gtk|qt)")
     ssdlog.addlogopts(optprs)
 
     (options, args) = optprs.parse_args(sys.argv[1:])

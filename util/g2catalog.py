@@ -10,7 +10,6 @@ from ginga.misc import Bunch, Task
 from Gen2.starlist import starlist
 from Gen2.starlist import starfilter
 
-
 class CatalogServer(object):
 
     def __init__(self, logger, full_name, key, dbhost, description):
@@ -20,12 +19,13 @@ class CatalogServer(object):
         self.description = description
         self.kind = 'g2starcatalog'
         # {name} {ra} {dec} {mag} {flag} {b_r} {preference} {priority} {dst}
-        self.index = { 'name': 'name',
+        self.index = { 'name': 'name', 'cat_id': 'star_id',
                        'ra': 'ra', 'dec': 'dec',
                        'mag': 'mag', 'flag': 'flag',
-                       'field': 'field',
+                       'catalog': 'field',
                        'b-r': 'b_r', 'preference': 'preference',
                        'priority': 'priority', 'dst': 'dst',
+                       'description': 'description',
                        }
         self.format = 'deg'
         self.equinox = 2000.0
@@ -145,8 +145,9 @@ class CatalogServer(object):
                    ('Priority', 'priority'),
                    ('Preference', 'preference'),
                    ('Flag', 'flag'),
-                   ('DB', 'field'),
-                   #('Description', 'description'),
+                   ('DB', 'catalog'),
+                   ('ID', 'cat_id'),
+                   ('Description', 'description'),
                    ]
         info = Bunch.Bunch(columns=columns, color='Mag',
                            num_preferred=1)
@@ -157,6 +158,7 @@ class CatalogServer(object):
 
         desirable_flags = set((2, 3))
         results = []
+        reassigned = []
         self.logger.debug("Iterating over %d results" % (
             len(starlist)))
         for elts in starlist:
@@ -197,13 +199,23 @@ class CatalogServer(object):
                 flags = args['flag']
                 args['pick'] = (flags in desirable_flags)
 
-                results.append(StarCatalog.Star(**args))
+                star = StarCatalog.Star(**args)
+                
+                # adjust priority if star is blacklisted
+                if blacklist.check_blacklist(star):
+                    star['priority'] = 9999999
+                    star['preference'] = 9999999
+                    star['description'] = 'BLACKLISTED'
+                    reassigned.append(star)
+                else:
+                    results.append(star)
 
             except Exception, e:
                 self.logger.error("Error parsing catalog query results: %s" % (
                     str(e)))
                 raise e
 
+        results.extend(reassigned)
         return results
 
     def process_result(self, query_result):
@@ -221,7 +233,8 @@ class CatalogServer(object):
                    ('Priority', 'priority'),
                    ('Preference', 'preference'),
                    ('Flag', 'flag'),
-                   ('DB', 'field'),
+                   ('DB', 'catalog'),
+                   ('ID', 'cat_id'),
                    ('Description', 'description'),
                    ]
         info = Bunch.Bunch(columns=columns, color='Mag',
@@ -316,5 +329,69 @@ class ShCatalogServer(CatalogServer):
                          'query_params': k,
                          'prefered_num': len(starlist) }
         return query_result
+
+
+class GuideStarBlacklist(object):
+
+    def __init__(self, filepath):
+        # TODO: read in the blacklist from file
+        self.filepath = filepath
+
+        self.blacklist = {}
+        try:
+            with open(self.filepath, 'r') as in_f:
+                buf = in_f.read()
+
+            for line in buf.split('\n'):
+                line = line.strip()
+                # ignore comments and empty lines
+                if line.startswith('#') or len(line) == 0:
+                    continue
+                if '#' in line:
+                    fields = line.split('#')
+                    line = fields[0]
+                    value = fields[1:]
+                else:
+                    value = True
+                cat, cat_id = line.split(',')
+                cat_id = int(cat_id)
+                self.blacklist[(cat, cat_id)] = value
+                
+        except IOError as e:
+            pass
+
+    def mk_key(self, star):
+        key = (star['catalog'].lower(), star['cat_id'])
+        return key
+    
+    def check_blacklist(self, star):
+        return self.mk_key(star) in self.blacklist
+
+    def checkpoint_file(self):
+        # TODO: find a reasonable file format library
+        with open(self.filepath, 'w') as out_f:
+            for key, value in self.blacklist.items():
+                catalog, cat_id = key
+                out_f.write("%s,%d   # %s\n" % (catalog, cat_id, str(value)))
+    
+    def add_blacklist(self, star):
+        info = (star['ra'], star['dec'], star['name'])
+        self.blacklist[self.mk_key(star)] = info
+        self.checkpoint_file()
+
+    def remove_blacklist(self, star):
+        del self.blacklist[self.mk_key(star)]
+        self.checkpoint_file()
+
+
+# This implements the global blacklist for guide stars
+import os
+if 'CONFHOME' in os.environ:
+    blacklist_path = os.path.join(os.environ['CONFHOME'], 'guideview',
+                                  "blacklist.txt")
+else:
+    blacklist_path = os.path.join("/tmp", "blacklist.txt")
+    
+blacklist = GuideStarBlacklist(blacklist_path)
 
 #END

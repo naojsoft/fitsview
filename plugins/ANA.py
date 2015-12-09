@@ -160,6 +160,10 @@ class ANA(GingaPlugin.GlobalPlugin):
 
 
     def show_fits(self, fitspath):
+        self.fv.nongui_do(self._show_fits, fitspath)
+        return 0
+
+    def _show_fits(self, fitspath):
 
         dirname, filename = os.path.split(fitspath)
         

@@ -3,11 +3,10 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
-import gtk
 from ginga.misc import Bunch
-from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
 import Catalogs
 import astro.radec as radec
+from Gen2.fitsview.util import g2catalog
 
 
 class AgAutoSelect(Catalogs.Catalogs):
@@ -20,6 +19,16 @@ class AgAutoSelect(Catalogs.Catalogs):
         self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
                                   vignette='green', probe='cyan')
         self.probe_vignette_radius = None
+
+    def build_gui(self, container, future=None):
+        super(AgAutoSelect, self).build_gui(container, future=future)
+        
+        # add blacklist feature
+        self.table.add_operation("add to blacklist", self.add_blacklist)
+        self.table.add_operation("rm from blacklist", self.rem_blacklist)
+        self.table.btn['oprn'].append_text("add to blacklist")
+        self.table.btn['oprn'].append_text("rm from blacklist")
+        self.table.btn['oprn'].set_active(0)
 
     def start(self, future):
         self.callerInfo = future
@@ -59,7 +68,7 @@ class AgAutoSelect(Catalogs.Catalogs):
         if len(p.starlist) > 0:
             self.table.show_selection(p.starlist[0])
         
-        self.fv.update_pending(timeout=0.25)
+        #self.fv.update_pending(timeout=0.25)
 
     def highlight_object(self, obj, tag, color, redraw=True):
         x = obj.objects[0].x
@@ -67,19 +76,20 @@ class AgAutoSelect(Catalogs.Catalogs):
         delta = 10
         radius = obj.objects[0].radius + delta
 
-        hilite = CanvasTypes.CompoundObject()
-        obj.add(hilite, tag=tag, redraw=False)
-
-        hilite.addObject(CanvasTypes.Circle(x, y, radius,
-                                            linewidth=4, color=color))
+        hilite = self.dc.CompoundObject()
+        # TODO: we have to add this to the canvas first--fix this
+        self.hilite.addObject(hilite)
+        
+        hilite.addObject(self.dc.Circle(x, y, radius,
+                                        linewidth=4, color=color))
         # TODO: consider calling back into the plotObj for a custom
         # highlight
         if self.probe_vignette_radius is not None:
-            hilite.addObject(CanvasTypes.Circle(x, y, self.probe_vignette_radius,
-                                                linewidth=2, color='green',
-                                                linestyle='dash'))
+            hilite.addObject(self.dc.Circle(x, y, self.probe_vignette_radius,
+                                            linewidth=2, color='green',
+                                            linestyle='dash'))
         if redraw:
-            obj.redraw(whence=3)
+            self.canvas.update_canvas()
         
 
     def release_caller(self):
@@ -113,7 +123,17 @@ class AgAutoSelect(Catalogs.Catalogs):
         self.release_caller()
         return True
 
-       
+
+    def add_blacklist(self, selected):
+        self.logger.info("selected=%s" % (str(selected)))
+        star = selected[0]
+        g2catalog.blacklist.add_blacklist(star)
+        
+    def rem_blacklist(self, selected):
+        self.logger.info("selected=%s" % (str(selected)))
+        star = selected[0]
+        g2catalog.blacklist.remove_blacklist(star)
+        
     def __str__(self):
         return 'agautoselect'
     
