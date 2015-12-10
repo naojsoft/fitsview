@@ -37,10 +37,10 @@ import ginga.toolkit as ginga_toolkit
 from util import Receive
 
 defaultServiceName = 'fitsview'
-version = "20140905.0"
+version = "20151210.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=2000, height=1150),
+                   ['vbox', dict(name='top', width=1600, height=900),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
@@ -53,9 +53,9 @@ default_layout = ['seq', {},
                                              show_tabs=True, group=3)],
                                  ]
                         )]],
-                     ['vbox', dict(name='main', width=1100),
+                     ['vbox', dict(name='main', width=760),
                       dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
-                     ['ws', dict(name='right', width=560, group=2),
+                     ['ws', dict(name='right', width=500, group=2),
                       # (tabname, layout), ...
                       [("Dialogs", ['ws', dict(name='dialogs', group=2)
                                     ]

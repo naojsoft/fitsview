@@ -38,14 +38,14 @@ import ginga.toolkit as ginga_toolkit
 from util import Receive
 
 serviceName = 'guideview'
-version = "20131213.0"
+version = "20151210.0"
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=2000, height=1250),
+                   ['vbox', dict(name='top', width=1600, height=1100),
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', {},
-                     ['ws', dict(name='left', width=350),
+                     ['ws', dict(name='left', width=300),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,
@@ -56,10 +56,10 @@ default_layout = ['seq', {},
                         )]
                       ],
                      ['vpanel', {},
-                      ['hpanel', dict(height=520),
-                       ['vbox', dict(name='main', width=700),
+                      ['hpanel', dict(height=450),
+                       ['vbox', dict(name='main', width=600),
                         dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
-                       ['ws', dict(name='right', width=700, group=2),
+                       ['ws', dict(name='right', width=600, group=2),
                         # (tabname, layout), ...
                         [("Dialogs", ['ws', dict(name='dialogs', group=2)
                                       ]
@@ -67,9 +67,9 @@ default_layout = ['seq', {},
                         ],
                        ],
                       ['hpanel', {},
-                       ['ws', dict(name='sub1', width=720, height=520,
+                       ['ws', dict(name='sub1', width=600, height=420,
                                    group=1)],
-                       ['ws', dict(name='sub2', width=720, group=1)],
+                       ['ws', dict(name='sub2', width=600, group=1)],
                        ],
                       ],
                      ], stretch=1),
@@ -278,7 +278,7 @@ def main(options, args):
     ginga = disp_klass(logger, threadPool, mm, prefs,
                         sndsink, ev_quit=ev_quit)
     ginga.set_layout(default_layout)
-    ginga.followFocus(True)
+    ginga.followFocus(False)
 
     # User configuration (custom star catalogs, etc.)
     try:
