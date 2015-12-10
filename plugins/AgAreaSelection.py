@@ -148,11 +148,12 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
 
         btn = Widgets.Button("Ok")
         btn.add_callback('activated', lambda w: self.ok())
-        btns.add_widget(btn, stretch=0)
+        btns.add_widget(btn, stretch=1)
 
         btn = Widgets.Button("Cancel")
         btn.add_callback('activated', lambda w: self.cancel())
-        btns.add_widget(btn, stretch=0)
+        btns.add_widget(btn, stretch=1)
+        btns.add_widget(Widgets.Label(''), stretch=1)
 
         vtop.add_widget(sw, stretch=1)
         vtop.add_widget(btns, stretch=0)

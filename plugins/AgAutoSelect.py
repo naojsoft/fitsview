@@ -28,7 +28,7 @@ class AgAutoSelect(Catalogs.Catalogs):
         self.table.add_operation("rm from blacklist", self.rem_blacklist)
         self.table.btn['oprn'].append_text("add to blacklist")
         self.table.btn['oprn'].append_text("rm from blacklist")
-        self.table.btn['oprn'].set_active(0)
+        self.table.btn['oprn'].set_index(0)
 
     def start(self, future):
         self.callerInfo = future

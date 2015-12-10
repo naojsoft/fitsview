@@ -64,7 +64,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         # For image FWHM type calculations
         self.iqcalc = g2calc.IQCalc(self.logger)
 
-        self.have_gui = False
+        self.gui_up = False
 
     def get_dst(self):
         return (self.dst_x, self.dst_y)
@@ -80,69 +80,44 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         vtop = Widgets.VBox()
         vtop.set_border_width(2)
 
-        #sw = gtk.ScrolledWindow()
-        #sw.set_border_width(2)
-        #sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        #vbox = gtk.VBox()
-        #sw.add_with_viewport(vbox)
-
         vbox, sw, orientation = Widgets.get_oriented_box(container)
 
         self.msgFont = self.fv.getFont("sansFont", 14)
-
-        #tw = gtk.TextView()
         tw = Widgets.TextArea(wrap=True, editable=False)
-        #tw.set_wrap_mode(gtk.WRAP_WORD)
-        #tw.set_left_margin(4)
-        #tw.set_right_margin(4)
-        #tw.set_editable(False)
-        #tw.set_left_margin(4)
-        #tw.set_right_margin(4)
-        #tw.modify_font(self.msgFont)
         tw.set_font(self.msgFont)
         self.tw = tw
 
-        #fr = gtk.Frame(" Instructions ")
-        fr = Widgets.Frame(" Instructions ")
-        #fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        #fr.set_label_align(0.1, 0.5)
-        #fr.add(tw)
-        #vbox.pack_start(fr, padding=4, fill=True, expand=False)
+        fr = Widgets.Expander("Instructions")
         fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
-        #nb = gtk.Notebook()
         nb = Widgets.TabWidget(tabpos='bottom')
-        #nb.set_group_id(group)
-        #nb.connect("create-window", self.detach_page, group)
-        #nb.set_tab_pos(gtk.POS_BOTTOM)
-        #nb.set_scrollable(True)
-        #nb.set_show_tabs(True)
-        #nb.set_show_border(False)
         self.w.nb2 = nb
         vbox.add_widget(nb, stretch=0)
-        #vbox.pack_start(nb, padding=4, fill=True, expand=True)
 
 
-        captions = (
-            ('Dst X:', 'label', 'Dst X', 'entry', 'Dst Y:', 'label', 'Dst Y', 'entry'),
-            ('Obj X:', 'label', 'Obj X', 'entry', 'Obj Y:', 'label', 'Obj Y', 'entry'),
-            ('X1:', 'label', 'X1', 'entry', 'Y1:', 'label', 'Y1', 'entry'),
-            ('X2:', 'label', 'X2', 'entry', 'Y2:', 'label', 'Y2', 'entry'),
-            ('Update Pos', 'button', 'Recenter', 'checkbutton'),
-            ('Frame:', 'label', 'Frame', 'combobox'),
-            ('Dst RA:', 'label', 'Dst RA', 'llabel', 'Dst DEC:', 'label', 'Dst DEC', 'llabel'),
-            ('Obj RA:', 'label',  'Obj RA', 'llabel', 'Obj DEC:', 'label', 'Obj DEC', 'llabel'),
-            #('radio', 'hbox'),
-            #('Place Destination', 'radiobutton', 'Place Object', 'radiobutton'),
-            #('Sky Level', 'label', 'Brightness', 'label'),
-            #('FWHM', 'label', 'Star Size', 'label'),
-            )
+        captions = (('Dst X:', 'label', 'Dst X', 'entry',
+                     'Dst Y:', 'label', 'Dst Y', 'entry'),
+                    ('Obj X:', 'label', 'Obj X', 'entry',
+                     'Obj Y:', 'label', 'Obj Y', 'entry'),
+                    ('X1:', 'label', 'X1', 'entry',
+                     'Y1:', 'label', 'Y1', 'entry'),
+                    ('X2:', 'label', 'X2', 'entry',
+                     'Y2:', 'label', 'Y2', 'entry'),
+                    ('Update Pos', 'button', 'Recenter', 'checkbutton'),
+                    ('Frame:', 'label', 'Frame', 'combobox'),
+                    ('Dst RA:', 'label', 'Dst RA', 'llabel',
+                     'Dst DEC:', 'label', 'Dst DEC', 'llabel'),
+                    ('Obj RA:', 'label',  'Obj RA', 'llabel',
+                     'Obj DEC:', 'label', 'Obj DEC', 'llabel'),
+                    #('radio', 'hbox'),
+                    #('Place Destination', 'radiobutton', 'Place Object', 'radiobutton'),
+                    #('Sky Level', 'label', 'Brightness', 'label'),
+                    #('FWHM', 'label', 'Star Size', 'label'),
+                    )
 
-        #w, b = GtkHelp.build_info(captions)
         w, b = Widgets.build_info(captions)
         self.w.update(b)
-        #self.w = b
         self.w.update_pos.add_callback('activated', lambda w: self.update_positions_cb())
         self.w.dst_x.add_callback('activated', lambda w: self.update_positions_cb())
         self.w.dst_y.add_callback('activated', lambda w: self.update_positions_cb())
@@ -152,71 +127,49 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         self.w.x2.add_callback('activated', lambda w: self.update_positions_cb())
         self.w.y1.add_callback('activated', lambda w: self.update_positions_cb())
         self.w.y2.add_callback('activated', lambda w: self.update_positions_cb())
-        #self.w.recenter.sconnect("toggled", self.toggle_recenter)
         self.w.recenter.add_callback("activated", self.toggle_recenter)
-        #self.w.frame.sconnect("changed", self.change_frame_cb)
         self.w.frame.add_callback("activated", self.change_frame_cb)
 
-        #btns = gtk.HButtonBox()
         btns = Widgets.HBox()
-        #btns.set_layout(gtk.BUTTONBOX_START)
-        #btns = b.radio
         btns.set_spacing(5)
 
-
-        #btn = GtkHelp.RadioButton(None, "Place Destination")
         btn1 = Widgets.RadioButton("Place Destination")
         self.w.r_dst = btn1
-        #btns.add(btn1)
         btns.add_widget(btn1)
 
-        #btn = GtkHelp.RadioButton(btn, "Place Object")
         btn2 = Widgets.RadioButton("Place Object", group=btn1)
         self.w.r_obj = btn2
-        #btns.add(btn)
         btns.add_widget(btn2)
 
         if self.isDst:
-            #self.w.r_dst.set_active(True)
             self.w.r_dst.set_state(True)
         else:
-            #self.w.r_obj.set_active(True)
             self.w.r_obj.set_state(True)
-        #self.w.r_dst.connect("toggled", lambda w: self.toggle_dstsrc_cb())
-        #self.w.r_dst.add_callback("activated", lambda w, val: self.toggle_dstsrc_cb(val))
         btn1.add_callback("activated", lambda w, tf: self.toggle_dstsrc_cb('dst', tf))
         
-        #w.pack_start(btns, fill=True, expand=False)
-        #w.add_widget(btns) # ????????? 
-
-
-        #label = gtk.Label("Select")
-        #label.show()
-        #nb.append_page(w, label)
-        #nb.set_tab_reorderable(w, True)
-        #nb.set_tab_detachable(w, True)
-
         box = Widgets.VBox()
         
         box.set_border_width(30)
         box.add_widget(w, stretch=1)
         box.add_widget(btns, stretch=0)
 
-        #box.add_widget(btns)
         nb.add_widget(box, title="Select")
-        #nb.add_widget(btns)
 
-        captions = (
-            ('New algorithm', 'checkbutton'),
-            ('Radius:', 'label', 'Radius', 'spinfloat', 'xlbl_radius', 'llabel'),
-            ('Threshold:', 'label', 'Threshold', 'entry', 'xlbl_threshold', 'llabel'),
-            ('Min FWHM:', 'label', 'Min FWHM', 'spinfloat', 'xlbl_min_fwhm', 'llabel'),
-            ('Max FWHM:', 'label', 'Max FWHM', 'spinfloat', 'xlbl_max_fwhm', 'llabel'),
-            ('Ellipticity:', 'label', 'Ellipticity', 'entry', 'xlbl_ellipticity', 'llabel'),
-            ('Edge:', 'label', 'Edge', 'entry', 'xlbl_edge', 'llabel'),
-            )
+        captions = (('New algorithm', 'checkbutton'),
+                    ('Radius:', 'label', 'Radius', 'spinfloat',
+                     'xlbl_radius', 'llabel'),
+                    ('Threshold:', 'label', 'Threshold',
+                     'entry', 'xlbl_threshold', 'llabel'),
+                    ('Min FWHM:', 'label', 'Min FWHM', 'spinfloat',
+                     'xlbl_min_fwhm', 'llabel'),
+                    ('Max FWHM:', 'label', 'Max FWHM', 'spinfloat',
+                     'xlbl_max_fwhm', 'llabel'),
+                    ('Ellipticity:', 'label', 'Ellipticity', 'entry',
+                     'xlbl_ellipticity', 'llabel'),
+                    ('Edge:', 'label', 'Edge', 'entry',
+                     'xlbl_edge', 'llabel'),
+                    )
 
-        #w, b = GtkHelp.build_info(captions)
         w, b = Widgets.build_info(captions) 
         self.w.update(b)
 
@@ -230,25 +183,15 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         b.new_algorithm.set_state(self.use_new_algorithm)
         def new_alg_cb(w, tf):
             self.use_new_algorithm = tf
-        #b.new_algorithm.connect('toggled', new_alg_cb)
         b.new_algorithm.add_callback('activated', new_alg_cb)
 
         # radius control
-        #adj = b.radius.get_adjustment()
-        #b.radius.set_digits(2)
-        #b.radius.set_numeric(True)
-        #adj.configure(self.radius, 5.0, 200.0, 1.0, 10.0, 0)
-
         b.radius.set_decimals(2)
         b.radius.set_limits(5.0, 200.0, incr_value=1.0)
         b.radius.set_value(self.radius)
         def chg_radius(w, val):
-            #self.logger.info("########   %s" %str(val))
-            #self.radius = float(b.xlbl_radius.get_text())
-            #self.radius = float(w.get_text())
             self.radius = float(val)
             self.w.xlbl_radius.set_text(str(self.radius))
-            #b.xlbl_radius.set_text(str(self.radius))
             return True
         b.xlbl_radius.set_text(str(self.radius))
         b.radius.add_callback('value-changed', chg_radius)
@@ -266,15 +209,10 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         b.threshold.add_callback('activated', chg_threshold)
 
         # min fwhm
-        #adj = b.min_fwhm.get_adjustment()
-        #b.min_fwhm.set_digits(2)
-        #b.min_fwhm.set_numeric(True)
-        #adj.configure(self.min_fwhm, 0.1, 200.0, 0.1, 1, 0)
         b.min_fwhm.set_limits(0.1, 200.0, incr_value=0.1)
         b.min_fwhm.set_value(self.min_fwhm)
         b.min_fwhm.set_decimals(3)
         def chg_min(w, val):
-            #self.min_fwhm = w.get_value()
             self.min_fwhm = float(val)
             self.w.xlbl_min_fwhm.set_text(str(self.min_fwhm))
             return True
@@ -282,16 +220,10 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         b.min_fwhm.add_callback('value-changed', chg_min)
 
         # max fwhm
-        #adj = b.max_fwhm.get_adjustment()
-        #b.max_fwhm.set_digits(2)
-        #b.max_fwhm.set_numeric(True)
-        #adj.configure(self.max_fwhm, 0.1, 200.0, 0.1, 1, 0)
-
         b.max_fwhm.set_limits(0.1, 200.0, incr_value=0.1)
         b.max_fwhm.set_value(self.max_fwhm)
         b.max_fwhm.set_decimals(3)
         def chg_max(w, val):
-            #self.max_fwhm = w.get_value()
             self.max_fwhm = float(val)
             self.w.xlbl_max_fwhm.set_text(str(self.max_fwhm))
             return True
@@ -324,12 +256,6 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         b.xlbl_edge.set_text(str(self.edgew))
         b.edge.add_callback('activated', chg_edgew)
 
-        #label = gtk.Label("Settings")
-        #label.show()
-        #nb.append_page(w, label)
-        #nb.set_tab_reorderable(w, True)
-        #nb.set_tab_detachable(w, True)
-
         hbox = Widgets.HBox()
         hbox.add_widget(w, stretch=0)
         hbox.add_widget(Widgets.Label(''), stretch=1)
@@ -337,40 +263,25 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         vbox.add_widget(Widgets.Label(''), stretch=1)
 
-        #btns = gtk.HButtonBox()
         btns = Widgets.HBox()
-        #btns.set_layout(gtk.BUTTONBOX_START)
         btns.set_spacing(5)
-        #btn = gtk.Button('Ok')
         btn = Widgets.Button("Ok")
-        #btn.connect('clicked', lambda w: self.ok())
         btn.add_callback('activated', lambda w: self.ok())
-        #btns.add(btn)
         btns.add_widget(btn, stretch=1)
 
-        #btn = gtk.Button('Cancel')
         btn = Widgets.Button("Cancel")
         btn.add_callback('activated', lambda w: self.cancel()) 
-        #btn.connect('clicked', lambda w: self.cancel())
-        #btns.add(btn)
         btns.add_widget(btn, stretch=1)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
-        #vbox.pack_start(btns, fill=True, expand=False)
-        #vbox.show_all()
-
-        #cw = container.get_widget()
-        #cw.pack_start(sw, padding=0, fill=True, expand=True)
         vtop.add_widget(sw, stretch=1)
         vtop.add_widget(btns, stretch=0)
         container.add_widget(vtop, stretch=1)
-        self.have_gui = True
+        self.gui_up = True
 
     def set_message(self, msg):
-        #buf = self.tw.get_buffer()
-        #buf.set_text(msg)
-        #self.tw.modify_font(self.msgFont)
         self.tw.set_text(msg) 
+        self.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
         tags = self.fitsimage.getTagsByTagpfx('qdas-')
@@ -381,7 +292,6 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                 pass
 
     def instructions(self):
-        #self.set_message("""Place Destination by clicking left mouse button.  Draw a region with the right mouse button around the Object.  Press Ok or Cancel to finish.""")
         self.set_message("""Please mark object and destination.""")
 
     def start(self, future=None):
@@ -407,19 +317,16 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
             self.instructions()
 
         self.recenter = p.get('recenter', False)
-        #self.w.recenter.set_active(self.recenter)
         self.w.recenter.set_state(self.recenter)
         self.width = p.get('width', None)
         self.height = p.get('height', None)
 
         # Change the framelist
         self.frames = p.get('framelist', [])
-        #model = self.w.frame.get_model()
         model = self.w.frame
         model.clear()
         for frameid in self.frames:
             self.w.frame.append_text(frameid)
-        #self.w.frame.set_active(0)
         self.w.frame.set_index(0)
 
         try:
@@ -466,7 +373,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
-        self.have_gui = False
+        self.gui_up = False
         return True
 
     def release_caller(self):
@@ -553,7 +460,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                                  redraw=False)
 
         canvas.redraw(whence=3)
-        if self.have_gui:
+        if self.gui_up:
             self.record_dst(data_x, data_y)
 
     def record_dst(self, data_x, data_y):
@@ -590,7 +497,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                                  redraw=False)
 
         canvas.redraw(whence=3)
-        if self.have_gui:
+        if self.gui_up:
             self.record_obj(data_x, data_y)
 
     def record_obj(self, data_x, data_y):
@@ -630,7 +537,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                                  redraw=False)
 
         canvas.redraw(whence=3)
-        if self.have_gui:
+        if self.gui_up:
             self.record_region(x1, y1, x2, y2)
 
     def record_region(self, x1, y1, x2, y2):
@@ -655,15 +562,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         return True
 
     def toggle_dstsrc_cb(self, m, val):
-
-        # if val:
-        #     self.isDst = True
-        # else:
-        #     self.isDst = False
         self.isDst = val
-        #self.logger.info("!!!!!!!!!  is dst=%s !!!!!!!!!!!!!!!!!" %(self.isDst))
-        #self.logger.info("!!!!!!!!!  val=%s !!!!!!!!!!!!!!!!!" %str(val))
-
 
     def btndown(self, canvas, event, data_x, data_y):
         self.logger.debug("Setting mark at %d,%d isDst=%s" % (

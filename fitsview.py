@@ -44,7 +44,7 @@ default_layout = ['seq', {},
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
-                     ['ws', dict(name='left', width=300, group=2),
+                     ['ws', dict(name='left', width=340, group=2),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,
@@ -53,9 +53,9 @@ default_layout = ['seq', {},
                                              show_tabs=True, group=3)],
                                  ]
                         )]],
-                     ['vbox', dict(name='main', width=700),
+                     ['vbox', dict(name='main', width=1100),
                       dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
-                     ['ws', dict(name='right', width=400, group=2),
+                     ['ws', dict(name='right', width=560, group=2),
                       # (tabname, layout), ...
                       [("Dialogs", ['ws', dict(name='dialogs', group=2)
                                     ]
@@ -231,25 +231,13 @@ def main(options, args):
     ginga_toolkit.use(toolkit)
     tkname = ginga_toolkit.get_family()
 
-    if tkname == 'gtk':
-        from ginga.gtkw.GingaGtk import GingaView
-    elif tkname == 'qt':
-        from ginga.qtw.GingaQt import GingaView
-    else:
-        try:
-            from ginga.qtw.GingaQt import GingaView
-        except ImportError:
-            try:
-                from ginga.gtkw.GingaGtk import GingaView
-            except ImportError:
-                print("You need python-gtk or python-qt4 to run Ginga!")
-                sys.exit(1)
+    from ginga.gw.GingaGw import GingaView
 
     # TEMP: ginga needs to find its plugins
     gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]
-    ## widgetDir = tkname + 'w'
-    ## childDir = os.path.join(gingaHome, widgetDir, 'plugins')
-    ## sys.path.insert(0, childDir)
+    widgetDir = tkname + 'w'
+    childDir = os.path.join(gingaHome, widgetDir, 'plugins')
+    sys.path.insert(0, childDir)
     childDir = os.path.join(gingaHome, 'misc', 'plugins')
     sys.path.insert(0, childDir)
 
@@ -287,7 +275,7 @@ def main(options, args):
 
     # Did user specify a particular geometry?
     if options.geometry:
-        ginga.setGeometry(options.geometry)
+        ginga.set_geometry(options.geometry)
 
     # Add desired global plugins
     for spec in global_plugins:
@@ -329,8 +317,7 @@ def main(options, args):
     # Add custom fitsviewer channels
     instruments = options.channels.split(',')
     for chname in instruments:
-        datasrc = Datasrc.Datasrc(length=options.bufsize)
-        ginga.add_channel(chname, datasrc)
+        ginga.add_channel(chname)
     ginga.change_channel(instruments[0])
 
     receiver = Receive.ReceiveFITS(ginga, mymon, logger)
@@ -467,7 +454,7 @@ if __name__ == "__main__":
                       default=defaultServiceName,
                       help="Register using NAME as service name")
     optprs.add_option("-t", "--toolkit", dest="toolkit", metavar="NAME",
-                      default=None,
+                      default='gtk',
                       help="Prefer GUI toolkit (gtk|qt)")
     ssdlog.addlogopts(optprs)
 
