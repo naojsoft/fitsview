@@ -130,7 +130,7 @@ def main(options,args):
     y = points[:,1]
 
     qf = QuadraticFunction(logger=logger)
-    qf.find_coefficient(x_points=x, y_points=y)
+    qf.coefficient(x_points=x, y_points=y)
     func = qf.quadratic()
 
     vertex = qf.max_vertex()
@@ -144,6 +144,8 @@ def main(options,args):
     plt.xlim([x[0]-1, x[-1] + 1 ])
     #plt.plot(x, y, 'o-', x_new, y_est)
     plt.show()
+
+
 
 if __name__ == "__main__":
 

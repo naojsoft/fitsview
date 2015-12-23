@@ -54,7 +54,14 @@ default_layout = ['seq', {},
                                  ]
                         )]],
                      ['vbox', dict(name='main', width=760),
-                      dict(row=['ws', dict(name='channels', group=1)], stretch=1)],
+                      dict(row=['ws', dict(name='channels', group=1)], stretch=1),
+                      dict(row=['ws', dict(wstype='stack', name='cbar',
+                                           group=99)], stretch=0),
+                      dict(row=['ws', dict(wstype='stack', name='readout',
+                                           group=99)], stretch=0),
+                      dict(row=['ws', dict(wstype='stack', name='operations',
+                                           group=99)], stretch=0),
+                      ],
                      ['ws', dict(name='right', width=500, group=2),
                       # (tabname, layout), ...
                       [("Dialogs", ['ws', dict(name='dialogs', group=2)
@@ -76,11 +83,14 @@ global_plugins = [
     Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='Z'),
     Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
     Bunch(module='Contents', tab='Contents', ws='right', raisekey='c'),
+    Bunch(module='Colorbar', tab='_cbar', ws='cbar', start=True),
+    Bunch(module='Cursor', tab='_readout', ws='readout', start=True),
+    Bunch(module='Operations', tab='_opns', ws='operations', start=True),
     Bunch(module='WBrowser', tab='Help', ws='channels', raisekey='?', start=False),
     Bunch(module='Errors', tab='Errors', ws='right', start=True),
-    Bunch(module='RC', tab='RC', ws='right', start=False),
-    Bunch(module='SAMP', tab='SAMP', ws='right', start=False),
-    Bunch(module='IRAF', tab='IRAF', ws='right', start=False),
+    ## Bunch(module='RC', tab='RC', ws='right', start=False),
+    ## Bunch(module='SAMP', tab='SAMP', ws='right', start=False),
+    ## Bunch(module='IRAF', tab='IRAF', ws='right', start=False),
     Bunch(module='Log', tab='Log', ws='right', start=False),
     Bunch(module='Debug', tab='Debug', ws='right', start=False),
     ]
@@ -91,6 +101,7 @@ local_plugins = [
     Bunch(module='MultiDim', ws='lleft', shortkey='f4'),
     Bunch(module='Cuts', ws='dialogs', shortkey='f5'),
     Bunch(module='Histogram', ws='dialogs', shortkey='f6'),
+    Bunch(module='Crosshair', ws='dialogs'),
     Bunch(module='Overlays', ws='dialogs'),
     Bunch(module='Blink', ws='dialogs'),
     Bunch(module='PixTable', ws='dialogs', shortkey='f7'),
@@ -101,8 +112,8 @@ local_plugins = [
     Bunch(module='Drawing', ws='dialogs', shortkey='f11'),
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
     Bunch(module='Compose', ws='dialogs'),
-    Bunch(module='SPCAM', ws='dialogs'),
-    Bunch(module='HSC', ws='dialogs'),
+    ## Bunch(module='SPCAM', ws='dialogs'),
+    ## Bunch(module='HSC', ws='dialogs'),
     #Bunch(module='FOCAS', ws='dialogs'),
     ]
 
@@ -120,7 +131,7 @@ def get_displayfits(viewKlass):
             self.controller = None
             self.soundsink = soundsink
 
-            viewKlass.__init__(self, logger, ev_quit=ev_quit)
+            viewKlass.__init__(self, logger, ev_quit, threadPool)
             GingaControl.__init__(self, logger, threadPool, module_manager,
                                   preferences, ev_quit=ev_quit)
 
@@ -299,8 +310,12 @@ def main(options, args):
     ginga.update_pending()
 
     # TEMP?
-    ginga.ds.raise_tab('Info')
-    ginga.ds.raise_tab('Thumbs')
+    tab_names = list(map(lambda name: name.lower(),
+                         ginga.ds.get_tabnames(group=None)))
+    if 'info' in tab_names:
+        ginga.ds.raise_tab('Info')
+    if 'thumbs' in tab_names:
+        ginga.ds.raise_tab('Thumbs')
 
     # Load modules for "local" (per-channel) plug ins
     for spec in local_plugins:
