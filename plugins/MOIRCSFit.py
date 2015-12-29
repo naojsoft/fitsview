@@ -14,7 +14,9 @@ import gtk
 import pango
 
 import numpy as np
-from scipy.stats import binned_statistic
+## For Ubuntu 12.04
+## from scipy.stats import binned_statistic
+import binned_statistic
 import scipy.optimize as optimize
 
 import gtk, gobject
@@ -202,10 +204,13 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             frameid = d['FRAMEID']
             title = '%s: FOC-Z=%s, Slope=%.3g' % (frameid, focz, fit[0])
             self.ax[i].set_title(title)
-            self.ax[i].axis([0, 2048, 0.2, 1.2])
+            ## 27 December 2015 - Increase y-axis range
+            self.ax[i].axis([0, 2048, 0.2, 4.2])
             self.ax[i].set_xlabel('x [pixel]')
             self.ax[i].set_ylabel('FWHM [arcsec]')
-            self.ax[i].legend(fontsize='small')
+            ## For Ubuntu 12.04
+            ## self.ax[i].legend(fontsize='small')
+            self.ax[i].legend(prop={'size': 8})
             self.ax[i].set_xticks(np.arange(0, 2049, 512))
             self.logger.info(title)
 
@@ -328,6 +333,8 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
                         frameid = hdulist[0].header['FRAMEID']
                         det_id  = hdulist[0].header['DET-ID']
                         focz    = hdulist[0].header['FOC-VAL']
+                        ## 27 December 2015 - FOC-VAL is string in FITS header. Convert to float.
+                        focz = float(focz)
                 except Exception as e:
                     self.logger.error('Failed to get FRAMEID, DET-ID, or FOC-VAL from FITS headers for filepath %s: %s' % (filepath, str(e)))
                     continue
@@ -389,11 +396,15 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
             # Bin the data and compute the mean values of the FWHM in
             # each bin.
-            means, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_mean, bins=self.bins, range=data_range)
+            ## For Ubuntu 12.04
+            ## means, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_mean, bins=self.bins, range=data_range)
+            means, binedge, binnum = binned_statistic.binned_statistic(x_col, fwhm_col, statistic=compute_mean, bins=self.bins, range=data_range)
 
             # Bin the data and compute the median values of the FWHM
             # in each bin.
-            medians, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_median, bins=self.bins, range=data_range)
+            ## For Ubuntu 12.04
+            ## medians, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_median, bins=self.bins, range=data_range)
+            medians, binedge, binnum = binned_statistic.binned_statistic(x_col, fwhm_col, statistic=compute_median, bins=self.bins, range=data_range)
 
             # Some bins might not have enough samples. In that case,
             # the mean and median will be returned as NaN. Select only

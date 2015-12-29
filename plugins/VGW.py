@@ -1404,11 +1404,12 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Actually update the image
         self.fv.add_image(name, image, chname=chname)
 
-        readout = chinfo.readout
-        if readout:
-            recv_time = time.time()
-            frac_part = str(recv_time - int(recv_time)).split('.')[1][:3]
-            time_str = "%s.%s" % (time.strftime("%H:%M:%S"), frac_part)
+        # Show time image was received on readout
+        recv_time = time.time()
+        frac_part = str(recv_time - int(recv_time)).split('.')[1][:3]
+        time_str = "%s.%s" % (time.strftime("%H:%M:%S"), frac_part)
+        readout = chinfo.extdata.get('readout', None)
+        if readout is not None:
             readout.set_text(time_str)
 
         calctag = "%s-calc" % (chname)
