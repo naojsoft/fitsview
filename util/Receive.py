@@ -1,5 +1,5 @@
 #
-# Receive.py 
+# Receive.py
 #
 # Eric Jeschke (eric@naoj.org)
 #
@@ -8,6 +8,7 @@ import os, re
 import time
 import numpy
 import threading
+from io import BytesIO
 
 from astropy.io import fits as pyfits
 
@@ -54,19 +55,19 @@ class ReceiveFITS(object):
         if name is None:
             (dir, filename) = os.path.split(filepath)
             (name, ext) = os.path.splitext(filename)
-        
+
         match = re.match(r'^(.+)\[0\]$', name)
         if match:
             name = match.group(1)
 
         image.set(name=name)
         return image
-        
+
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
                   image_loader=None):
 
         dirname, filename = os.path.split(filepath)
-        
+
         if image_loader is None:
             image_loader = self.load_image
 
@@ -106,7 +107,7 @@ class ReceiveFITS(object):
 
             self.fv.gui_do(self.fv.show_error, errmsg + '\n' + tb_str)
             return None
-            
+
         header = image.get_header()
 
         try:
@@ -117,7 +118,7 @@ class ReceiveFITS(object):
                 frameid = header['FRAMEID'].strip()
 
             chname = self.insconfig.getNameByFrameId(frameid)
-                
+
         except Exception as e:
             self.logger.warn("Error getting FRAMEID from fits header of %s: %s" % (
                 filename, str(e)))
@@ -125,7 +126,7 @@ class ReceiveFITS(object):
 
         if not channel:
             channel = chname
-            
+
         image.set(name=name, chname=channel)
 
         # Display image.  If the wait parameter is False then don't wait
@@ -138,46 +139,109 @@ class ReceiveFITS(object):
         return image
 
 
-    def display_fitsbuf(self, fitsname, chname, data, width, height, na_type,
-                        header, metadata):
+    def display_fitsbuf(self, fitsname, chname, img_buf, width, height,
+                        na_type, header, metadata):
+        """Legacy API"""
+
+        # Setup for numpy interpretation of type.  This follows FITS
+        # BITPIX keyword conventions
+        dtype = 'float32'
+        if na_type == 8:
+            dtype = 'uint8'
+        elif na_type == 16:
+            dtype = 'int16'
+        elif na_type == 32:
+            dtype = 'int32'
+        elif na_type == -32:
+            dtype = 'float32'
+        elif na_type == -64:
+            dtype = 'float64'
+
+        return self.display_fitsbuf2(fitsname, chname, img_buf,
+                                     (height, width), dtype,
+                                     header, metadata)
+
+
+    def display_fitsbuf2(self, imname, chname, img_buf, shape, dtype,
+                         header, metadata):
         """Display a FITS image buffer.  Parameters:
-        _fitsfile_: name of the file or title for the title bar
-        _data_: ascii encoded numpy containing image data
-        _width_, _height_: image dimensions in pixels
-        _na_type_: numpy data type (currently ignored)
+        _imname_: name of the image
+        _chname_: name of the channel to display the image
+        _img_buf_: ascii encoded numpy containing image data
+        _shape_: numpy image shape as a tuple
+        _dtype_: numpy data type as a str
         _header_: fits file header as a dictionary
         _metadata_: metadata about image to attach to image
         """
 
-        # Decode binary data
-        data = ro.binary_decode(data)
-        print "Received data: len=%d width=%d height=%d" % \
-              (len(data), width, height)
+        self.logger.info("received image data: name=%s len=%d shape=%s dtype=%s" % (
+            imname, len(img_buf), str(shape), dtype))
 
-        # TODO: recreate pyfits object
-        
-        # Temporarily coerce numpy type  TODO: fix
+        # Decode binary data
+        img_buf = ro.binary_decode(img_buf)
+
+        if dtype == '':
+            dtype = numpy.float32
+        else:
+            # string to actual type
+            #dtype = getattr(numpy, dtype)
+            pass
+
         try:
-            na_type = numpy.float32
-            data = numpy.fromstring(data, dtype=na_type)
-            data.byteswap(True)
-            data = data.reshape((height, width))
-            #print data
+            if metadata.get('compressed', False):
+                img_buf = ro.uncompress(img_buf)
+
+            byteswap = metadata.get('byteswap', False)
+
+            # Create image container
+            image = AstroImage.AstroImage(logger=self.logger)
+            image.load_buffer(img_buf, shape, dtype, byteswap=byteswap,
+                              metadata=metadata)
+
+            image.set(name=imname)
+            image.update_keywords(header)
 
         except Exception, e:
             # Some kind of error decoding the value
             self.logger.error("Error creating image data for '%s': %s" % (
-                fitsname, str(e)))
+                imname, str(e)))
             return ro.ERROR
 
-        # Create image container
-        image = AstroImage.AstroImage(data, metadata=metadata,
-                                      logger=self.logger)
-        image.set(name=fitsname)
-        image.update_keywords(header)
-        
         # Enqueue image to display datasrc
-        self.fv.gui_do(self.fv.add_image, fitsname, image,
+        self.fv.gui_do(self.fv.add_image, imname, image,
+                            chname=chname)
+
+        return ro.OK
+
+
+    def display_fitsbuf3(self, imname, chname, img_buf, num_hdu,
+                         metadata):
+        # Decode binary data
+        img_buf = ro.binary_decode(img_buf)
+        self.logger.info("received image data '%s': len=%d" % (
+            imname, len(img_buf)))
+
+        if metadata.get('compressed', False):
+            img_buf = ro.uncompress(img_buf)
+
+        in_f = BytesIO(img_buf)
+
+        # Create image container
+        self.logger.info("opening buffer with FITS reader")
+        with pyfits.open(in_f, 'readonly') as fits_f:
+            
+            # Seems to be needed otherwise we sometimes get "unparsable card"
+            # errors for broken FITS files
+            fits_f.verify('fix')
+            
+            image = AstroImage.AstroImage(metadata=metadata,
+                                          logger=self.logger)
+            image.load_hdu(fits_f[num_hdu], fobj=fits_f)
+            image.set(name=imname)
+            self.logger.info("image name is '%s'" % image.get('name'))
+
+        # Enqueue image to display datasrc
+        self.fv.gui_do(self.fv.add_image, imname, image,
                             chname=chname)
 
         return ro.OK
@@ -210,7 +274,7 @@ class ReceiveFITS(object):
         if frame.inscode in ('HSC', 'SUP'):
             # Don't display raw HSC frames; mosaic plugin will display them
             return
-        
+
         frameid = str(frame)
 
         try:
@@ -226,7 +290,7 @@ class ReceiveFITS(object):
     def file_notify(self, filepath):
         self.file_notify_cb(self.fv, filepath)
         return 0
-    
+
     ## def executeCmd(self, subsys, tag, cmdName, args, kwdargs):
 
     ##     self.logger.debug("Command received: subsys=%s command=%s args=%s kwdargs=%s tag=%s" % (
@@ -244,7 +308,7 @@ class ReceiveFITS(object):
     ##     future = Future.Future(data=Bunch.Bunch(cmd=cmdName, tag=tag))
     ##     future.freeze(None, *args, **kwdargs)
     ##     future.add_callback('resolved', self.result_cb)
-        
+
     ##     future = self.fv.gui_do(method, *args)
     ##     return ro.OK
 
@@ -257,7 +321,7 @@ class ReceiveFITS(object):
         future = Future.Future(data=Bunch.Bunch(tag=tag))
         future.freeze(None, *args, **kwdargs)
         future.add_callback('resolved', self.result_cb)
-        
+
         self.fv.gui_do(self.fv.start_local_plugin,
                             chname, cmdName, future)
         # Wait for result
@@ -272,7 +336,7 @@ class ReceiveFITS(object):
         for chname in self.fv.get_channelNames():
             chinfo = self.fv.get_channelInfo(chname)
             chinfo.opmon.reloadPlugin(plname, chinfo=chinfo)
-            
+
     def reloadGlobalPlugin(self, plname):
         self.fv.mm.loadModule(plname)
         self.fv.gpmon.reloadPlugin(plname)
@@ -370,12 +434,12 @@ class ReceiveFITS(object):
         self.ev_quit.set()
 
         return ro.OK
-        
-        
+
+
     def arr_fitsinfo(self, payload, name, channels):
         """Called via the monitor if new information becomes available
         about fits images."""
-        
+
         self.logger.debug("received values '%s'" % str(payload))
 
         try:

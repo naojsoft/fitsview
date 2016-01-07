@@ -118,7 +118,7 @@ local_plugins = [
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
     ]
 
-default_channels = [('AG', 'sub1'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
+default_channels = [('AG', 'channels'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
                     ('QDAS_VGW', 'sub2'), ('DSS', 'sub2'),
                     ('SH', 'channels'),
                     ('HSCSHAG', 'channels'), ('HSCSH', 'channels'),
