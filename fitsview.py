@@ -92,7 +92,7 @@ global_plugins = [
     ## Bunch(module='SAMP', tab='SAMP', ws='right', start=False),
     ## Bunch(module='IRAF', tab='IRAF', ws='right', start=False),
     Bunch(module='Log', tab='Log', ws='right', start=False),
-    Bunch(module='Debug', tab='Debug', ws='right', start=False),
+    Bunch(module='Command', tab='Command', ws='right', start=True),
     ]
 
 local_plugins = [

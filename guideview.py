@@ -100,7 +100,7 @@ global_plugins = [
     Bunch(module='WBrowser', tab='Help', ws='right', raisekey='?'),
     Bunch(module='Errors', tab='Errors', ws='right'),
     Bunch(module='Log', tab='Log', ws='right', start=False),
-    Bunch(module='Debug', tab='Debug', ws='right', start=False),
+    Bunch(module='Command', tab='Command', ws='right', start=True),
     ]
 
 local_plugins = [

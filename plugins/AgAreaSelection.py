@@ -4,7 +4,7 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from ginga.misc import Widgets, Plot, Bunch, CanvasTypes
+from ginga.misc import Widgets, Plot, Bunch
 from ginga import GingaPlugin
 
 # Local application imports
@@ -18,7 +18,7 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
 
         self.layertag = 'qdas-agareaselection'
 
-        self.dc = fv.getDrawClasses()
+        self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
         canvas.enable_draw(True)
         self.canvas = canvas
@@ -29,7 +29,7 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
         canvas.set_callback('draw-event', self.setpickregion)
         canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
                             drawdims=True)
-        canvas.setSurface(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
 
         self.exptime = 6000
 
@@ -165,10 +165,10 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
         self.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
-        tags = self.fitsimage.getTagsByTagpfx('qdas-')
+        tags = self.fitsimage.get_tags_by_tag_pfx('qdas-')
         for tag in tags:
             try:
-                self.fitsimage.deleteObjectByTag(tag)
+                self.fitsimage.delete_object_by_tag(tag)
             except:
                 pass
 
@@ -187,13 +187,13 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         # insert our canvas to fitsimage if it is not already
         try:
-            obj = self.fitsimage.getObjectByTag(self.layertag)
+            obj = self.fitsimage.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
-        self.canvas.deleteAllObjects(redraw=False)
+        self.canvas.delete_all_objects(redraw=False)
         self.instructions()
 
         # Save calling parameters
@@ -207,16 +207,16 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         if p.has_key('er_x1'):
             self.logger.info("Exposure region at %dx%d, %dx%d" % (
                 p.er_x1, p.er_y1, p.er_x2, p.er_y2))
-            self.canvas.add(CanvasTypes.CompoundObject(
-                CanvasTypes.Rectangle(p.er_x1, p.er_y1, p.er_x2, p.er_y2,
-                                      color=self.eregcolor),
-                CanvasTypes.Text(p.er_x1, p.er_y2+4, "Exposure Range",
-                                 color=self.eregcolor)),
+            self.canvas.add(self.dc.CompoundObject(
+                self.dc.Rectangle(p.er_x1, p.er_y1, p.er_x2, p.er_y2,
+                                  color=self.eregcolor),
+                self.dc.Text(p.er_x1, p.er_y2+4, "Exposure Range",
+                             color=self.eregcolor)),
                             redraw=False)
 
-        tag = self.canvas.add(CanvasTypes.Rectangle(p.x1, p.y1, p.x2, p.y2,
-                                                    color='cyan',
-                                                    linestyle='dash'))
+        tag = self.canvas.add(self.dc.Rectangle(p.x1, p.y1, p.x2, p.y2,
+                                                color='cyan',
+                                                linestyle='dash'))
         self.setpickregion(self.canvas, tag)
 
 
@@ -251,7 +251,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         p = self.callerInfo.get_data()
 
         try:
-            obj = self.canvas.getObjectByTag(self.picktag)
+            obj = self.canvas.get_object_by_tag(self.picktag)
         except KeyError:
             # No rectangle drawn
             # TODO: throw up a popup
@@ -279,7 +279,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         p.result = 'cancel'
 
         try:
-            obj = self.canvas.getObjectByTag(self.picktag)
+            obj = self.canvas.get_object_by_tag(self.picktag)
             if obj.kind == 'compound':
                 bbox  = obj.objects[0]
                 point = obj.objects[1]
@@ -297,7 +297,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         # insert our canvas to fitsimage if it is not already
         try:
-            obj = self.fitsimage.getObjectByTag(self.layertag)
+            obj = self.fitsimage.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
@@ -305,27 +305,27 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         self.agarea = p.ag_area.upper()
 
-        self.canvas.deleteAllObjects(redraw=False)
+        self.canvas.delete_all_objects(redraw=False)
 
         # Draw exposure region, if any
         if p.has_key('er_x1'):
             self.logger.info("Exposure region at %dx%d, %dx%d" % (
                 p.er_x1, p.er_y1, p.er_x2, p.er_y2))
-            self.canvas.add(CanvasTypes.CompoundObject(
-                CanvasTypes.Rectangle(p.er_x1, p.er_y1, p.er_x2, p.er_y2,
-                                      color=self.eregcolor),
-                CanvasTypes.Text(p.er_x1, p.er_y2+4, "Exposure Range",
-                                 color=self.eregcolor)),
+            self.canvas.add(self.dc.CompoundObject(
+                self.dc.Rectangle(p.er_x1, p.er_y1, p.er_x2, p.er_y2,
+                                  color=self.eregcolor),
+                self.dc.Text(p.er_x1, p.er_y2+4, "Exposure Range",
+                             color=self.eregcolor)),
                             redraw=False)
 
         # Draw area selection
-        tag = self.canvas.add(CanvasTypes.CompoundObject(
-            CanvasTypes.Rectangle(p.x1, p.y1, p.x2, p.y2,
-                                  color=self.pickcolor),
-            CanvasTypes.Point(p.x, p.y, 10, color='green'),
-            CanvasTypes.Text(p.x1, p.y2+4, self.agarea,
-                             color=self.pickcolor)),
-                         redraw=True)
+        tag = self.canvas.add(self.dc.CompoundObject(
+            self.dc.Rectangle(p.x1, p.y1, p.x2, p.y2,
+                              color=self.pickcolor),
+            self.dc.Point(p.x, p.y, 10, color='green'),
+            self.dc.Text(p.x1, p.y2+4, self.agarea,
+                         color=self.pickcolor)),
+                              redraw=True)
         self.picktag = tag
 
         # disable canvas
@@ -334,7 +334,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
 
     def redo(self):
-        obj = self.canvas.getObjectByTag(self.picktag)
+        obj = self.canvas.get_object_by_tag(self.picktag)
         if obj.kind != 'compound':
             return True
         bbox  = obj.objects[0]
@@ -412,7 +412,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
             self.wdetail.star_size.set_text('%.3f' % starsize)
 
-        except Exception, e:
+        except Exception as e:
             point.color = 'red'
             self.logger.error("Error calculating quality metrics: %s" % (
                 str(e)))
@@ -435,7 +435,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
     def update(self, canvas, event, data_x, data_y):
         try:
-            obj = self.canvas.getObjectByTag(self.picktag)
+            obj = self.canvas.get_object_by_tag(self.picktag)
             if obj.kind == 'rectangle':
                 bbox = obj
             else:
@@ -444,7 +444,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             x1, y1, x2, y2 = bbox.get_llur()
             self.dx = (x2 - x1) // 2
             self.dy = (y2 - y1) // 2
-        except Exception, e:
+        except Exception as e:
             pass
 
         dx = self.dx
@@ -452,16 +452,16 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         # Mark center of object and region on main image
         try:
-            self.canvas.deleteObjectByTag(self.picktag, redraw=False)
+            self.canvas.delete_object_by_tag(self.picktag, redraw=False)
         except:
             pass
 
         x1, y1 = data_x - dx, data_y - dy
         x2, y2 = data_x + dx, data_y + dy
 
-        tag = self.canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
-                                                    color='cyan',
-                                                    linestyle='dash'),
+        tag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
+                                                color='cyan',
+                                                linestyle='dash'),
                               redraw=False)
 
         self.setpickregion(self.canvas, tag)
@@ -469,7 +469,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
     def drag(self, canvas, event, data_x, data_y):
 
-        obj = self.canvas.getObjectByTag(self.picktag)
+        obj = self.canvas.get_object_by_tag(self.picktag)
         if obj.kind == 'compound':
             bbox = obj.objects[0]
         elif obj.kind == 'rectangle':
@@ -495,13 +495,13 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         if (not obj) or (obj.kind == 'compound'):
             # Replace compound image with rectangle
             try:
-                self.canvas.deleteObjectByTag(self.picktag, redraw=False)
+                self.canvas.delete_object_by_tag(self.picktag, redraw=False)
             except:
                 pass
 
-            self.picktag = self.canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
-                                                                 color='cyan',
-                                                                 linestyle='dash'))
+            self.picktag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
+                                                             color='cyan',
+                                                             linestyle='dash'))
         else:
             # Update current rectangle with new coords and redraw
             bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
@@ -510,14 +510,14 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         return True
 
     def setpickregion(self, canvas, tag):
-        obj = canvas.getObjectByTag(tag)
+        obj = canvas.get_object_by_tag(tag)
         if obj.kind != 'rectangle':
             return True
-        canvas.deleteObjectByTag(tag, redraw=False)
+        canvas.delete_object_by_tag(tag, redraw=False)
 
         if self.picktag:
             try:
-                canvas.deleteObjectByTag(self.picktag, redraw=False)
+                canvas.delete_object_by_tag(self.picktag, redraw=False)
             except:
                 pass
 
@@ -526,12 +526,12 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         x = x1 + (x2 - x1) // 2
         y = y1 + (y2 - y1) // 2
 
-        tag = canvas.add(CanvasTypes.CompoundObject(
-            CanvasTypes.Rectangle(x1, y1, x2, y2,
-                                  color=self.pickcolor),
-            CanvasTypes.Point(x, y, 10, color='red'),
-            CanvasTypes.Text(x1, y2+4, self.agarea,
-                             color=self.pickcolor)),
+        tag = canvas.add(self.dc.CompoundObject(
+            self.dc.Rectangle(x1, y1, x2, y2,
+                              color=self.pickcolor),
+            self.dc.Point(x, y, 10, color='red'),
+            self.dc.Text(x1, y2+4, self.agarea,
+                         color=self.pickcolor)),
                          redraw=False)
         self.picktag = tag
 

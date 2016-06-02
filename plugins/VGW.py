@@ -11,10 +11,11 @@ from operator import itemgetter
 
 # Ginga imports
 from ginga import GingaPlugin
-from ginga.misc import Future, Bunch, CanvasTypes
+from ginga.misc import Future, Bunch
 from ginga import AstroImage
 from ginga.util import wcs, dp
-
+from ginga.canvas.CanvasObject import get_canvas_types
+cvtypes = get_canvas_types()
 
 # PYHOME imports
 import remoteObjects as ro
@@ -66,6 +67,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.colorcalc = 'cyan'
         self.qdaschname = 'QDAS_VGW'
+        self.dc = fv.get_draw_classes()
 
         self.catalogs = self.fv.get_ServerBank()
 
@@ -124,7 +126,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             self._mark(chname, canvas, x, y, mode, mark, size, color)
             p.setvals(result='ok')
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         future.resolve(0)
@@ -199,7 +201,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 future.resolve(0)
                 return
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Automatic region selection failed: %s" % str(e)
                 self.logger.error(errmsg)
                 self.fv.play_soundfile(snd_region_failure, priority=19)
@@ -224,10 +226,16 @@ class VGW(GingaPlugin.GlobalPlugin):
             if p.result == 'ok':
                 self.map_back_to_ccd(p, image)
 
-        except Exception, e:
+            elif p.result == 'cancel':
+                raise VGWError("User cancelled")
+
+            else:
+                raise VGWError("No result")
+
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
-        self.logger.debug("region selection cb terminating: res=%s" % (str(p)))
+        self.logger.info("region selection cb terminating: res=%s" % (str(p)))
         future.resolve(0)
 
     def _auto_region_selection(self, image, p):
@@ -341,7 +349,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 future.resolve(0)
                 return
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Automatic ag area selection failed: %s" % str(e)
                 self.logger.error(errmsg)
                 self.fv.play_soundfile(snd_agarea_failure, priority=19)
@@ -365,7 +373,13 @@ class VGW(GingaPlugin.GlobalPlugin):
             if p.result == 'ok':
                 self.map_back_to_ccd(p, image)
 
-        except Exception, e:
+            elif p.result == 'cancel':
+                raise VGWError("User cancelled")
+
+            else:
+                raise VGWError("No result")
+
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         self.logger.debug("region selection cb terminating: res=%s" % (str(p)))
@@ -470,7 +484,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 p.rel_ra = radec.offsetRaDegToString(sep_ra)
                 p.rel_dec = radec.decDegToString(sep_dec)
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         self.logger.debug("sv_drive cb terminating: res=%s" % (str(p)))
@@ -813,7 +827,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 p.ag_x2 = agcodes[2]
                 p.ag_y2 = agcodes[3]
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         # These won't pass back over remoteObjects
@@ -911,7 +925,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 else:
                     p.selected = []
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Error querying star catalog: %s" % (str(e))
                 self.logger.error(errmsg)
                 self.fv.show_error(errmsg)
@@ -1004,7 +1018,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 p.exp_ag = ag_config.calc_exposure_sh('ag', star_mag)
                 p.exp_sh = ag_config.calc_exposure_sh('sh', star_mag)
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         # These won't pass back over remoteObjects
@@ -1257,7 +1271,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                     p.info = info
                     self.logger.debug("info=%s" % (str(info)))
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Error querying star catalog: %s" % (str(e))
                 p.setvals(result='error', errmsg=errmsg)
                 self.logger.error(errmsg)
@@ -1312,7 +1326,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         try:
             pluginObj.plot(future2, plotObj)
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Error filtering stars: %s" % (str(e))
             p.setvals(result='error', errmsg=errmsg)
             self.logger.error(errmsg)
@@ -1374,7 +1388,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 #p.exp_time = ag_config.calc_exposure('popt2', star_mag)
                 p.exp_time = 0
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         # These won't pass back over remoteObjects
@@ -1414,7 +1428,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         calctag = "%s-calc" % (chname)
         try:
-            obj = fitsimage.getObjectByTag(calctag)
+            obj = fitsimage.get_object_by_tag(calctag)
 
         except KeyError:
             obj = None
@@ -1427,10 +1441,10 @@ class VGW(GingaPlugin.GlobalPlugin):
                 self.logger.debug("Guiding is on region is (%d,%d) (%d,%d)" % (
                     x1, y1, x2, y2))
                 if obj is None:
-                    fitsimage.add(CanvasTypes.CompoundObject(
-                        CanvasTypes.Rectangle(x1, y1, x2, y2,
+                    fitsimage.add(self.dc.CompoundObject(
+                        self.dc.Rectangle(x1, y1, x2, y2,
                                               color=self.colorcalc),
-                        CanvasTypes.Text(x1, y2+4, "Calc Region",
+                        self.dc.Text(x1, y2+4, "Calc Region",
                                          color=self.colorcalc),
                         ), tag=calctag, redraw=False)
                 else:
@@ -1439,7 +1453,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             else:
                 # Not guiding, clear the region, if any
                 if obj is not None:
-                    fitsimage.deleteObject(obj)
+                    fitsimage.delete_object(obj)
 
 
     def display_fitsbuf(self, fitsname, chname, data, width, height, na_type,
@@ -1467,7 +1481,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             data = data.reshape((height, width))
             #print data
 
-        except Exception, e:
+        except Exception as e:
             # Some kind of error decoding the value
             self.logger.error("Error creating image data for '%s': %s" % (
                 fitsname, str(e)))
@@ -1496,7 +1510,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             chinfo2.fitsimage.set_image(image)
             return image
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Failed to load %s image into %s: is there an image present?" % (
                 chname1, chname2)
             self.logger.error(str(e))
@@ -1544,8 +1558,8 @@ class VGW(GingaPlugin.GlobalPlugin):
         # mode is CLEAR | DRAW
         mode = mode.upper()
         if mode == 'CLEAR':
-            objs = canvas.getObjectsByTagpfx("vgw_mark")
-            canvas.deleteObjects(objs)
+            objs = canvas.get_objects_by_tag_pfx("vgw_mark")
+            canvas.delete_objects(objs)
 
         elif mode == 'DRAW':
             color = color.lower()
@@ -1555,22 +1569,22 @@ class VGW(GingaPlugin.GlobalPlugin):
 
             # mark is POINT | CROSS | CIRCLE | SQUARE
             if mark == 'cross':
-                tag = canvas.add(CanvasTypes.Point(x, y, size,
+                tag = canvas.add(self.dc.Point(x, y, size,
                                                     color=color),
                                  tag=tag)
             elif mark == 'point':
-                tag = canvas.add(CanvasTypes.Circle(x, y, size,
+                tag = canvas.add(self.dc.Circle(x, y, size,
                                                     color=color,
                                                     fill=True),
                                  tag=tag)
             elif mark == 'circle':
-                tag = canvas.add(CanvasTypes.Circle(x, y, size,
+                tag = canvas.add(self.dc.Circle(x, y, size,
                                                     color=color),
                                  tag=tag)
             elif mark == 'square':
                 half = size #// 2
                 x1, y1, x2, y2 = x-half, y-half, x+half, y+half
-                tag = canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
+                tag = canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
                                                        color=color),
                                  tag=tag)
 
@@ -1659,27 +1673,27 @@ class TELESCOPEfov(object):
 
         # Draw AG probe outer movable area fov
         canvas.add(
-            CanvasTypes.Circle(p.ctr_x, p.ctr_y, self.outer_radius,
+            cvtypes.Circle(p.ctr_x, p.ctr_y, self.outer_radius,
                                color=color.outer,
                                linestyle='dash', linewidth=thickness),
             redraw=False)
 
         ## # Draw AG probe inner movable area fov
         ## canvas.add(
-        ##     CanvasTypes.Circle(p.ctr_x, p.ctr_y, self.inner_radius,
+        ##     cvtypes.Circle(p.ctr_x, p.ctr_y, self.inner_radius,
         ##                        color=color.inner,
         ##                        linestyle='dash', linewidth=thickness),
         ##     redraw=False)
 
         # Draw AG probe position as a circle
         canvas.add(
-            CanvasTypes.Circle(p.probe_x, p.probe_y, self.probe_radius,
+            cvtypes.Circle(p.probe_x, p.probe_y, self.probe_radius,
                                color=color.probe,
                                linestyle='dash', linewidth=thickness),
             redraw=False)
 
         # Draw vignette map
-        self.vig_obj = CanvasTypes.Polygon(self.vignette_map,
+        self.vig_obj = cvtypes.Polygon(self.vignette_map,
                                            color=color.vignette,
                                            linestyle='dash',
                                            linewidth=thickness)
@@ -1711,7 +1725,7 @@ class GENERICfov(TELESCOPEfov):
 
         # Draw instrument fov
         canvas.add(
-            CanvasTypes.Circle(p.ctr_x, p.ctr_y, self.inst_radius,
+            cvtypes.Circle(p.ctr_x, p.ctr_y, self.inst_radius,
                                color=color.inst,
                                linestyle='dash', linewidth=thickness),
             redraw=False)
@@ -1778,20 +1792,20 @@ class MOIRCSfov(TELESCOPEfov):
         thickness = self.ring_thickness
         color = self.colors
 
-        obj = CanvasTypes.CompoundObject()
+        obj = cvtypes.CompoundObject()
         canvas.add(obj, redraw=False)
 
-        obj.addObject(CanvasTypes.Polygon(self.fov_pts,
+        obj.addObject(cvtypes.Polygon(self.fov_pts,
                                           color=color.inst,
                                           linestyle='dash',
                                           linewidth=thickness))
-        obj.addObject(CanvasTypes.Polygon(self.vig_pts,
+        obj.addObject(cvtypes.Polygon(self.vig_pts,
                                             color='blue',
                                             linestyle='solid',
                                             linewidth=thickness))
-        obj.addObject(CanvasTypes.Text(self.c1x, self.c1y, "Chip1",
+        obj.addObject(cvtypes.Text(self.c1x, self.c1y, "Chip1",
                                        color='white'))
-        obj.addObject(CanvasTypes.Text(self.c2x, self.c2y, "Chip2",
+        obj.addObject(cvtypes.Text(self.c2x, self.c2y, "Chip2",
                                        color='white'))
         obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
 
@@ -1874,34 +1888,34 @@ class SPCAMfov(object):
         color = self.colors
         p = self.p
 
-        obj = CanvasTypes.CompoundObject()
+        obj = cvtypes.CompoundObject()
         canvas.add(obj, redraw=False)
 
         # Draw instrument fov
         obj.addObject(
-            CanvasTypes.Circle(p.ctr_x, p.ctr_y, self.inst_radius,
+            cvtypes.Circle(p.ctr_x, p.ctr_y, self.inst_radius,
                                color=color.inst,
                                linestyle='dash', linewidth=thickness))
 
         # Draw outer telescope foci fov
         obj.addObject(
-            CanvasTypes.Circle(p.ctr_x, p.ctr_y, self.outer_radius,
+            cvtypes.Circle(p.ctr_x, p.ctr_y, self.outer_radius,
                                color=color.outer,
                                linestyle='dash', linewidth=thickness))
 
         # Draw probe position
         obj.addObject(
-            CanvasTypes.Circle(p.probe_x, p.probe_y, self.probe_radius,
+            cvtypes.Circle(p.probe_x, p.probe_y, self.probe_radius,
                                color=color.probe,
                                linestyle='dash', linewidth=thickness))
         ## # Draw AG probe inner movable area fov
         ## obj.addObject(
-        ##     CanvasTypes.Circle(p.ctr_x, p.ctr_y, self.inner_radius,
+        ##     cvtypes.Circle(p.ctr_x, p.ctr_y, self.inner_radius,
         ##                        color=color.inner,
         ##                        linestyle='dash', linewidth=thickness))
 
         # Draw probe movable area
-        self.prb_area = CanvasTypes.Polygon(self.fov_pts,
+        self.prb_area = cvtypes.Polygon(self.fov_pts,
                                             color=color.probe,
                                             linestyle='dash',
                                             linewidth=thickness)
@@ -1940,27 +1954,27 @@ class HSCfov(object):
         for points in p.polygons:
             # Add CCD image polygon
             self.logger.info("Plotting polygon %s" % str(points))
-            gons.append(CanvasTypes.Polygon(points,
+            gons.append(cvtypes.Polygon(points,
                                             color=color.inst,
                                             linestyle='dash',
                                             linewidth=thickness))
-        self.ccds_obj = CanvasTypes.CompoundObject(*gons)
+        self.ccds_obj = cvtypes.CompoundObject(*gons)
         canvas.add(self.ccds_obj, redraw=False)
 
         pixgons = []
         for points in p.agarea_pixel_polygons:
             # Add internal dither image polygon
             self.logger.info("Plotting dithering polygon %s" % str(points))
-            pixgons.append(CanvasTypes.Polygon(points,
+            pixgons.append(cvtypes.Polygon(points,
                                             color=color.vignette,
                                             linestyle='dash',
                                             linewidth=1))
-        self.dith_obj = CanvasTypes.CompoundObject(*pixgons)
+        self.dith_obj = cvtypes.CompoundObject(*pixgons)
         canvas.add(self.dith_obj, redraw=False)
 
         # for (x, y, r) in p.circles:
         #     canvas.add(
-        #         CanvasTypes.Circle(x, y, r,
+        #         cvtypes.Circle(x, y, r,
         #                            color=color.probe,
         #                            linestyle='solid', linewidth=1),
         #         redraw=False)
@@ -2098,7 +2112,7 @@ class SHfov(object):
 
         # Draw prove movable area fov
         canvas.add(
-            CanvasTypes.Circle(p.ctr_x, p.ctr_y, p.outer_radius,
+            cvtypes.Circle(p.ctr_x, p.ctr_y, p.outer_radius,
                                color=color.outer,
                                linestyle='dash', linewidth=thickness),
             redraw=False)
@@ -2106,7 +2120,7 @@ class SHfov(object):
         # Draw coincentric catalog radii every 0.5 deg
         for cat_radius in p.cat_radii:
             canvas.add(
-                CanvasTypes.Circle(p.ctr_x, p.ctr_y, cat_radius,
+                cvtypes.Circle(p.ctr_x, p.ctr_y, cat_radius,
                                    color='white',
                                    linestyle='dash', linewidth=thickness),
                 redraw=False)

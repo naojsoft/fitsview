@@ -19,11 +19,10 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         self.layertag = 'qdas-svdrive'
 
-        self.dc = fv.getDrawClasses()
+        self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
         canvas.enable_draw(True)
         self.canvas = canvas
-
 
         #self.canvas.set_callback('button-press', self.update)
         canvas.set_callback('key-press', self.keydown)
@@ -31,7 +30,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         canvas.set_callback('draw-event', self.setpickregion)
         canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
                             drawdims=True)
-        canvas.setSurface(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
 
         self.objtag = None
         self.dsttag = None
@@ -284,10 +283,10 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         self.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
-        tags = self.fitsimage.getTagsByTagpfx('qdas-')
+        tags = self.fitsimage.get_tags_by_tag_pfx('qdas-')
         for tag in tags:
             try:
-                self.fitsimage.deleteObjectByTag(tag)
+                self.fitsimage.delete_object_by_tag(tag)
             except:
                 pass
 
@@ -304,13 +303,13 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         # insert our canvas to fitsimage if it is not already
         try:
-            obj = self.fitsimage.getObjectByTag(self.layertag)
+            obj = self.fitsimage.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
-        self.canvas.deleteAllObjects(redraw=False)
+        self.canvas.delete_all_objects(redraw=False)
         if p.has_key('msg'):
             self.set_message(p.msg)
         else:
@@ -349,7 +348,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                 self.place_region(self.canvas, p.x1, p.y1, p.x2, p.y2,
                                   error=error)
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error placing dst and objs: %s" % (
                 str(e)))
             # carry on...
@@ -422,7 +421,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                 p.frameid = None
             p.result = 'ok'
 
-        except Exception, e:
+        except Exception as e:
             p.result = 'error'
             p.errmsg = "Error collecting dst and obj coords: %s" % (
                 str(e))
@@ -447,7 +446,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def place_dst(self, canvas, data_x, data_y):
         if self.dsttag:
             try:
-                canvas.deleteObjectByTag(self.dsttag, redraw=False)
+                canvas.delete_object_by_tag(self.dsttag, redraw=False)
             except:
                 pass
 
@@ -471,7 +470,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         image = self.fitsimage.get_image()
         try:
             ra_txt, dec_txt = image.pixtoradec(data_x, data_y, format='str')
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error calculating ra/dec of dst: %s" % (
                 str(e)))
             ra_txt = 'BAD WCS'
@@ -483,7 +482,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def place_obj(self, canvas, data_x, data_y):
         if self.objtag:
             try:
-                canvas.deleteObjectByTag(self.objtag, redraw=False)
+                canvas.delete_object_by_tag(self.objtag, redraw=False)
             except:
                 pass
 
@@ -508,7 +507,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         image = self.fitsimage.get_image()
         try:
             ra_txt, dec_txt = image.pixtoradec(data_x, data_y, format='str')
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error calculating ra/dec of object: %s" % (
                 str(e)))
             ra_txt = 'BAD WCS'
@@ -521,7 +520,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def place_region(self, canvas, x1, y1, x2, y2, error=False):
         if self.regiontag:
             try:
-                canvas.deleteObjectByTag(self.regiontag, redraw=False)
+                canvas.delete_object_by_tag(self.regiontag, redraw=False)
             except:
                 pass
 
@@ -593,10 +592,10 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
             return True
 
     def setpickregion(self, canvas, tag):
-        bbox = canvas.getObjectByTag(tag)
+        bbox = canvas.get_object_by_tag(tag)
         if bbox.kind != 'rectangle':
             return True
-        canvas.deleteObjectByTag(tag, redraw=False)
+        canvas.delete_object_by_tag(tag, redraw=False)
 
         # make sure corners are LL, UR
         x1, y1, x2, y2 = bbox.get_llur()
@@ -611,7 +610,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         canvas = self.canvas
         if self.objtag:
             try:
-                canvas.deleteObjectByTag(self.objtag, redraw=False)
+                canvas.delete_object_by_tag(self.objtag, redraw=False)
             except:
                 pass
 
@@ -668,7 +667,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
             self.set_message("Automatic target reacquisition succeeded.")
             result = True
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error calculating quality metrics: %s" % (
                 str(e)))
             # determine center of rectangle
@@ -692,7 +691,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         # Calc RA, DEC, EQUINOX of X/Y object pixel
         try:
             ra_txt, dec_txt = image.pixtoradec(obj_x, obj_y, format='str')
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error calculating ra/dec of obj: %s" % (
                 str(e)))
             ra_txt = 'BAD WCS'
@@ -715,13 +714,13 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         # insert our canvas to fitsimage if it is not already
         try:
-            obj = self.fitsimage.getObjectByTag(self.layertag)
+            obj = self.fitsimage.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
-        self.canvas.deleteAllObjects(redraw=False)
+        self.canvas.delete_all_objects(redraw=False)
 
         print "placing dst"
         self.place_dst(self.canvas, p.dst_x, p.dst_y)

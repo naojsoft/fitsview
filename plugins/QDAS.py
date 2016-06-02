@@ -10,7 +10,7 @@ import os
 import numpy
 
 from ginga import GingaPlugin, AstroImage
-from ginga.misc import Future, Bunch, CanvasTypes
+from ginga.misc import Future, Bunch
 from ginga.util import wcs
 
 import remoteObjects as ro
@@ -51,6 +51,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         #fv.set_callback('add-image', self.add_image)
 
         self.colorcalc = 'cyan'
+        self.dc = fv.get_draw_classes()
 
         # For image FWHM type calculations
         self.iqcalc = g2calc.IQCalc(self.logger)
@@ -144,7 +145,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 future.resolve(0)
                 return
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Automatic region selection failed: %s" % str(e)
                 self.logger.error(errmsg)
                 self.fv.play_soundfile(snd_region_failure, priority=19)
@@ -326,7 +327,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                     return
                 p.msg = "Please confirm target acquisition."
 
-            except Exception, e:
+            except Exception as e:
                 ## self.fv.gui_do(pluginObj.check_region, x1, y1, x2, y2,
                 ##                width=width, height=height)
                 errmsg = "Automatic target reacquisition failed: %s" % str(e)
@@ -377,7 +378,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                     p.rel_dec = sep_dec
                     #p.rel_ra = radec.offsetRaDegToString(sep_ra)
                     #p.rel_dec = radec.decDegToString(sep_dec)
-                except Exception, e:
+                except Exception as e:
                     if p.badwcs != 'OK':
                         raise(e)
                     p.dst_ra = 'BAD_WCS'
@@ -402,7 +403,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 p.delta_x = p.obj_x - p.dst_x
                 p.delta_y = p.obj_y - p.dst_y
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
 
         # Function objects cannot be marshalled
@@ -435,7 +436,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             z = rsobj.focus_fitting(file_list, x1, y1, x2, y2)
             p.setvals(result='ok', z=z)
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Focus fitting failed: %s" % str(e)
             self.logger.error(errmsg)
             p.setvals(result='error', errmsg=str(e))
@@ -464,7 +465,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 z = rsobj.focus_fitting(param, file_list)
                 p.setvals(result='ok', z=z)
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Focus fitting failed: %s" % str(e)
                 self.logger.error(errmsg)
                 p.setvals(result='error', errmsg=str(e))
@@ -473,7 +474,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 z = rsobj.focus_best(best_fit_type)
                 p.setvals(result='ok', z=z)
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Best fitting failed: %s" % str(e)
                 self.logger.error(errmsg)
                 p.setvals(result='error', errmsg=str(e))
@@ -482,7 +483,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 z = rsobj.close()
                 p.setvals(result='ok', z=z)
 
-            except Exception, e:
+            except Exception as e:
                 errmsg = "Init failed: %s" % str(e)
                 self.logger.error(errmsg)
                 p.setvals(result='error', errmsg=str(e))
@@ -510,7 +511,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             rsobj.seeing_size(avg, std, dp)
             p.setvals(result='ok')
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Seeing size failed: %s" % str(e)
             self.logger.error(errmsg)
             p.setvals(result='error', errmsg=str(e))
@@ -564,7 +565,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self._mark(chname, canvas, x, y, mode, mark, size, color)
             p.setvals(result='ok')
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
             
         future.resolve(0)
@@ -649,7 +650,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
             return image
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Failed to load '%s' into %s: %s" % (
                 filepath, dst_chname, str(e))
             self.logger.error(errmsg)
@@ -680,7 +681,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                    QDASError("Null image for '%s'" % (src_chname))
             return image
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Failed to load '%s' image into %s: %s" % (
                 imagename, dst_chname, str(e))
             self.logger.error(errmsg)
@@ -698,8 +699,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # mode is CLEAR | DRAW
         mode = mode.upper()
         if mode == 'CLEAR':
-            objs = canvas.getObjectsByTagpfx("qdas_mark")
-            canvas.deleteObjects(objs)
+            objs = canvas.get_objects_by_tag_pfx("qdas_mark")
+            canvas.delete_objects(objs)
             
         elif mode == 'DRAW':
             color = color.lower()
@@ -709,22 +710,22 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
             # mark is POINT | CROSS | CIRCLE | SQUARE
             if mark == 'cross':
-                tag = canvas.add(CanvasTypes.Point(x, y, size,
+                tag = canvas.add(self.dc.Point(x, y, size,
                                                     color=color),
                                  tag=tag)
             elif mark == 'point':
-                tag = canvas.add(CanvasTypes.Circle(x, y, size,
+                tag = canvas.add(self.dc.Circle(x, y, size,
                                                     color=color,
                                                     fill=True),
                                  tag=tag)
             elif mark == 'circle':
-                tag = canvas.add(CanvasTypes.Circle(x, y, size,
+                tag = canvas.add(self.dc.Circle(x, y, size,
                                                     color=color),
                                  tag=tag)
             elif mark == 'square':
                 half = size #// 2
                 x1, y1, x2, y2 = x-half, y-half, x+half, y+half
-                tag = canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
+                tag = canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
                                                        color=color),
                                  tag=tag)
 

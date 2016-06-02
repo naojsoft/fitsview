@@ -4,7 +4,7 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from ginga.misc import Widgets, Plot, Bunch, CanvasTypes
+from ginga.misc import Widgets, Plot, Bunch
 from ginga import GingaPlugin
 
 
@@ -20,7 +20,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         self.layertag = 'qdas-regionselection'
 
-        self.dc = fv.getDrawClasses()
+        self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
 
         canvas.enable_draw(True)
@@ -30,7 +30,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         canvas.set_callback('draw-event', self.setobjregion)
         canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
                             drawdims=True)
-        canvas.setSurface(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
 
         self.canvas = canvas
 
@@ -170,10 +170,10 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
-        tags = self.fitsimage.getTagsByTagpfx('qdas-')
+        tags = self.fitsimage.get_tags_by_tag_pfx('qdas-')
         for tag in tags:
             try:
-                self.fitsimage.deleteObjectByTag(tag)
+                self.fitsimage.delete_object_by_tag(tag)
             except:
                 pass
 
@@ -196,7 +196,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
             # Add canvas layer
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
-        self.canvas.deleteAllObjects(redraw=False)
+        self.canvas.delete_all_objects(redraw=False)
         self.instructions()
 
         # Set up some defaults
@@ -207,9 +207,9 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         self.resume()
 
-        tag = self.canvas.add(CanvasTypes.Rectangle(p.x1, p.y1, p.x2, p.y2,
-                                                    color='cyan',
-                                                    linestyle='dash'))
+        tag = self.canvas.add(self.dc.Rectangle(p.x1, p.y1, p.x2, p.y2,
+                                                color='cyan',
+                                                linestyle='dash'))
         self.setobjregion(self.canvas, tag)
 
 
@@ -244,7 +244,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         p = self.callerInfo.get_data()
 
         try:
-            obj = self.canvas.getObjectByTag(self.objtag)
+            obj = self.canvas.get_object_by_tag(self.objtag)
         except KeyError:
             # No rectangle drawn
             # TODO: throw up a popup
@@ -290,7 +290,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         p.result = 'cancel'
 
         try:
-            obj = self.canvas.getObjectByTag(self.objtag)
+            obj = self.canvas.get_object_by_tag(self.objtag)
             if obj.kind == 'compound':
                 bbox  = obj.objects[0]
                 point = obj.objects[1]
@@ -308,21 +308,21 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         # insert our canvas to fitsimage if it is not already
         try:
-            obj = self.fitsimage.getObjectByTag(self.layertag)
+            obj = self.fitsimage.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
-        self.canvas.deleteAllObjects(redraw=False)
+        self.canvas.delete_all_objects(redraw=False)
 
-        tag = self.canvas.add(CanvasTypes.CompoundObject(
-            CanvasTypes.Rectangle(p.x1, p.y1, p.x2, p.y2,
-                                  color=self.objcolor),
-            CanvasTypes.Point(p.obj_x, p.obj_y, 10, color='green'),
-            CanvasTypes.Text(p.x1, p.y2+4, "Region Selection",
-                             color=self.objcolor)),
-                         redraw=True)
+        tag = self.canvas.add(self.dc.CompoundObject(
+            self.dc.Rectangle(p.x1, p.y1, p.x2, p.y2,
+                              color=self.objcolor),
+            self.dc.Point(p.obj_x, p.obj_y, 10, color='green'),
+            self.dc.Text(p.x1, p.y2+4, "Region Selection",
+                         color=self.objcolor)),
+                              redraw=True)
         self.objtag = tag
         self.exptime = p.exptime
         self.skylevel = p.skylevel
@@ -336,7 +336,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
 
     def redo(self):
-        obj = self.canvas.getObjectByTag(self.objtag)
+        obj = self.canvas.get_object_by_tag(self.objtag)
         if obj.kind != 'compound':
             return True
         bbox  = obj.objects[0]
@@ -414,7 +414,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
                 starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
                 self.wdetail.star_size.set_text('%.3f' % starsize)
 
-            except Exception, e:
+            except Exception as e:
                 # These are only for display purposes
                 self.logger.error("Error calculating RA/DEC (Bad WCS?): %s" % (
                     str(e)))
@@ -423,7 +423,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
             self.wdetail.ra.set_text(ra_txt)
             self.wdetail.dec.set_text(dec_txt)
 
-        except Exception, e:
+        except Exception as e:
             point.color = 'red'
             self.logger.error("Error calculating quality metrics: %s" % (
                 str(e)))
@@ -444,7 +444,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
     def update(self, canvas, event, data_x, data_y):
         try:
-            obj = self.canvas.getObjectByTag(self.objtag)
+            obj = self.canvas.get_object_by_tag(self.objtag)
             if obj.kind == 'rectangle':
                 bbox = obj
             else:
@@ -456,7 +456,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
             self.dx = (x2 - x1) // 2
             self.dy = (y2 - y1) // 2
-        except Exception, e:
+        except Exception as e:
             pass
 
         dx = self.dx
@@ -464,16 +464,16 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         # Mark center of object and region on main image
         try:
-            self.canvas.deleteObjectByTag(self.objtag, redraw=False)
+            self.canvas.delete_object_by_tag(self.objtag, redraw=False)
         except:
             pass
 
         x1, y1 = data_x - dx, data_y - dy
         x2, y2 = data_x + dx, data_y + dy
 
-        tag = self.canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
-                                                    color='cyan',
-                                                    linestyle='dash'),
+        tag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
+                                                color='cyan',
+                                                linestyle='dash'),
                               redraw=False)
 
         self.setobjregion(self.canvas, tag)
@@ -507,13 +507,13 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         if (not obj) or (obj.kind == 'compound'):
             # Replace compound image with rectangle
             try:
-                self.canvas.deleteObjectByTag(self.objtag, redraw=False)
+                self.canvas.delete_object_by_tag(self.objtag, redraw=False)
             except:
                 pass
 
-            self.objtag = self.canvas.add(CanvasTypes.Rectangle(x1, y1, x2, y2,
-                                                                 color='cyan',
-                                                                 linestyle='dash'))
+            self.objtag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
+                                                            color='cyan',
+                                                            linestyle='dash'))
         else:
             # Update current rectangle with new coords and redraw
             bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
@@ -522,14 +522,14 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         return True
 
     def setobjregion(self, canvas, tag):
-        obj = canvas.getObjectByTag(tag)
+        obj = canvas.get_object_by_tag(tag)
         if obj.kind != 'rectangle':
             return True
-        canvas.deleteObjectByTag(tag, redraw=False)
+        canvas.delete_object_by_tag(tag, redraw=False)
 
         if self.objtag:
             try:
-                canvas.deleteObjectByTag(self.objtag, redraw=False)
+                canvas.delete_object_by_tag(self.objtag, redraw=False)
             except:
                 pass
 
@@ -539,12 +539,12 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         x = x1 + (x2 - x1) // 2
         y = y1 + (y2 - y1) // 2
 
-        tag = canvas.add(CanvasTypes.CompoundObject(
-            CanvasTypes.Rectangle(x1, y1, x2, y2,
-                                  color=self.objcolor),
-            CanvasTypes.Point(x, y, 10, color='red'),
-            CanvasTypes.Text(x1, y2+4, "Region Selection",
-                             color=self.objcolor)),
+        tag = canvas.add(self.dc.CompoundObject(
+            self.dc.Rectangle(x1, y1, x2, y2,
+                              color=self.objcolor),
+            self.dc.Point(x, y, 10, color='red'),
+            self.dc.Text(x1, y2+4, "Region Selection",
+                         color=self.objcolor)),
                          redraw=False)
         self.objtag = tag
 

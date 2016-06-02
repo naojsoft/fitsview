@@ -78,16 +78,16 @@ class AgAutoSelect(Catalogs.Catalogs):
 
         hilite = self.dc.CompoundObject()
         # TODO: we have to add this to the canvas first--fix this
-        self.hilite.addObject(hilite)
+        self.hilite.add_object(hilite)
         
-        hilite.addObject(self.dc.Circle(x, y, radius,
-                                        linewidth=4, color=color))
+        hilite.add_object(self.dc.Circle(x, y, radius,
+                                         linewidth=4, color=color))
         # TODO: consider calling back into the plotObj for a custom
         # highlight
         if self.probe_vignette_radius is not None:
-            hilite.addObject(self.dc.Circle(x, y, self.probe_vignette_radius,
-                                            linewidth=2, color='green',
-                                            linestyle='dash'))
+            hilite.add_object(self.dc.Circle(x, y, self.probe_vignette_radius,
+                                             linewidth=2, color='green',
+                                             linestyle='dash'))
         if redraw:
             self.canvas.update_canvas()
         
