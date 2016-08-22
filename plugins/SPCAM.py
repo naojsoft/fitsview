@@ -54,7 +54,7 @@ class SPCAM(Mosaic.Mosaic):
                                   mosaic_hdus=False, skew_limit=0.1,
                                   allow_expand=False, expand_pad_deg=0.01,
                                   use_flats=False, flat_dir='',
-                                  mosaic_new=True, make_thumbs=True,
+                                  mosaic_new=True, make_thumbs=False,
                                   reuse_image=False)
         self.settings.load(onError='silent')
 
@@ -72,10 +72,10 @@ class SPCAM(Mosaic.Mosaic):
 
         self.timer = self.fv.get_timer()
         self.timer.add_callback('expired', self.process_frames)
-        self.process_interval = 0.2
+        self.process_interval = 2.0
 
         self.dr = spcam.SuprimeCamDR(logger=self.logger)
-        self.basedir = "/home/eric/testdata/SPCAM"
+        self.basedir = "/gen2/share/data/SPCAM"
 
         # mosaic results channel
         self.mosaic_chname = 'SPCAM_Online'
@@ -232,6 +232,9 @@ class SPCAM(Mosaic.Mosaic):
             return
 
     def process_frames(self, timer):
+        self.fv.gui_do(self._process_frames)
+        
+    def _process_frames(self):
         self.logger.info("processing queued frames")
 
         # Get all files stored in the queue
@@ -280,8 +283,9 @@ class SPCAM(Mosaic.Mosaic):
         frid = self.w.exposure.get_text().strip()
         path = os.path.join(self.basedir, frid)
         paths = self.dr.get_file_list(path)
-        self.logger.debug("paths are: %s" % (paths))
-        return self.mosaic(paths, new_mosaic=True)
+        self.logger.info("paths are: %s" % (paths))
+        new_paths, new_mosaic, imname, exposures = self.get_latest_frames(paths)
+        self.fv.nongui_do(self.mosaic, paths, name=imname, new_mosaic=True)
 
     def mangle_image(self, image):
         d = self.dr.get_regions(image)

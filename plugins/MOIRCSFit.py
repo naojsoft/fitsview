@@ -14,9 +14,7 @@ import gtk
 import pango
 
 import numpy as np
-## For Ubuntu 12.04
-## from scipy.stats import binned_statistic
-import binned_statistic
+from scipy.stats import binned_statistic
 import scipy.optimize as optimize
 
 import gtk, gobject
@@ -26,7 +24,7 @@ import matplotlib.pyplot as plt
 from  matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as figurecanvas
 
 import sewpy
-import pyfits
+from astropy.io import fits as pyfits
 
 from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
 from ginga.gtkw import Plot
@@ -205,7 +203,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             title = '%s: FOC-Z=%s, Slope=%.3g' % (frameid, focz, fit[0])
             self.ax[i].set_title(title)
             ## 27 December 2015 - Increase y-axis range
-            self.ax[i].axis([0, 2048, 0.2, 4.2])
+            self.ax[i].axis([0, 2048, 0.2, 1.2])
             self.ax[i].set_xlabel('x [pixel]')
             self.ax[i].set_ylabel('FWHM [arcsec]')
             ## For Ubuntu 12.04
@@ -243,7 +241,10 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         else: # best_fit_type == 'LINEAR':
             qf = polynomial.QuadraticFunction(self.logger)
             qf.coefficient(x, y)
-            best, yv = qf.min_vertex()
+            try:
+                best, yv = qf.min_vertex()
+            except polynomial.QuadraticError as e:
+                self.logger.error('Unable to determine min_vertex for det_id %s Coefficients are: a %f b %f c %f: %s' % (det_id, qf.a, qf.b, qf.c, str(e)))
             x_fit = np.linspace(x[0],x[-1],200)
             fit_fn = qf.quadratic()
             y_fit = fit_fn(x_fit)
@@ -396,15 +397,11 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
             # Bin the data and compute the mean values of the FWHM in
             # each bin.
-            ## For Ubuntu 12.04
-            ## means, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_mean, bins=self.bins, range=data_range)
-            means, binedge, binnum = binned_statistic.binned_statistic(x_col, fwhm_col, statistic=compute_mean, bins=self.bins, range=data_range)
+            means, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_mean, bins=self.bins, range=data_range)
 
             # Bin the data and compute the median values of the FWHM
             # in each bin.
-            ## For Ubuntu 12.04
-            ## medians, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_median, bins=self.bins, range=data_range)
-            medians, binedge, binnum = binned_statistic.binned_statistic(x_col, fwhm_col, statistic=compute_median, bins=self.bins, range=data_range)
+            medians, binedge, binnum = binned_statistic(x_col, fwhm_col, statistic=compute_median, bins=self.bins, range=data_range)
 
             # Some bins might not have enough samples. In that case,
             # the mean and median will be returned as NaN. Select only

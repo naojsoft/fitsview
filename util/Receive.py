@@ -81,12 +81,13 @@ class ReceiveFITS(object):
                 idx = max(0, info.numhdu)
                 kwdargs['idx'] = idx
 
-            #image = image_loader(filepath, **kwdargs)
+            ## image = image_loader(filepath, **kwdargs)
             future = Future.Future()
             future.freeze(image_loader, filepath, **kwdargs)
             image = future.thaw()
             assert isinstance(image, AstroImage.AstroImage), \
-                   ValueError("Failed to load FITS file: %s" % (str(e)))
+                   ValueError("Loader did not produce an AstroImage: %s" % (
+                str(type(image))))
 
             # Save a future for this image to reload it later if we
             # have to remove it from memory
@@ -403,6 +404,9 @@ class ReceiveFITS(object):
             errmsg = str(res)
             resdata = { 'gui_done': time.time(), 'result': 'error',
                         'errmsg': errmsg }
+
+            self._rpc_cleanse(resdata)
+
             self.logger.error("Command (%s) terminated by exception: %s" % (
                 tag, errmsg))
             self.monitor.setvals(['g2task'], tag, **resdata)
@@ -425,10 +429,20 @@ class ReceiveFITS(object):
 
         resdata = { 'gui_done': time.time() }
         resdata.update(data)
+
+        self._rpc_cleanse(resdata)
         self.logger.debug("Result is: %s" % (str(resdata)))
 
         self.monitor.setvals(['g2task'], tag, **resdata)
 
+
+    def _rpc_cleanse(self, d):
+        # RPC cleansing of return data dictionaries
+        for key, val in list(d.items()):
+            if isinstance(val, numpy.integer):
+                d[key] = int(val)
+            elif isinstance(val, numpy.floating):
+                d[key] = float(val)
 
     def quit(self):
         self.ev_quit.set()

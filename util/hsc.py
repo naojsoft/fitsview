@@ -20,10 +20,10 @@ num_ccds = 112
 fov = 2.0
 
 class HyperSuprimeCamDR(spcam.SuprimeCamDR):
-    
+
     def __init__(self, logger=None):
         super(HyperSuprimeCamDR, self).__init__(logger=logger)
-        
+
         self.pfx = 'T'
         self.num_frames = num_frames
         self.num_ccds = num_ccds
@@ -602,11 +602,166 @@ _hsc_ccd_data = {
           4: {'osminx': 1608, 'osminy': 4225, 'osmaxx': 1623, 'osmaxy': 4240, 'startposx': 1536, 'efmaxy': 4224, 'efmaxx': 2135, 'efminy': 49, 'efminx': 1624, 'gain': 3.5499999999999998},
           'image': {'xcut': 64, 'newwd': 2048, 'newht': 4176, 'ccd_id': 111, 'ycut': 16}}}
 
+_ccd_addl_info1 = {
+    0: {'bee_id': 1, 'sdo_id': 53},
+    1: {'bee_id': 1, 'sdo_id': 54},
+    2: {'bee_id': 1, 'sdo_id': 55},
+    3: {'bee_id': 1, 'sdo_id': 56},
+    4: {'bee_id': 1, 'sdo_id': 42},
+    5: {'bee_id': 1, 'sdo_id': 43},
+    6: {'bee_id': 1, 'sdo_id': 44},
+    7: {'bee_id': 1, 'sdo_id': 45},
+    8: {'bee_id': 1, 'sdo_id': 46},
+    9: {'bee_id': 1, 'sdo_id': 47},
+    10: {'bee_id': 1, 'sdo_id': 36},
+    11: {'bee_id': 1, 'sdo_id': 37},
+    12: {'bee_id': 1, 'sdo_id': 38},
+    13: {'bee_id': 1, 'sdo_id': 39},
+    14: {'bee_id': 1, 'sdo_id': 40},
+    15: {'bee_id': 1, 'sdo_id': 41},
+    16: {'bee_id': 0, 'sdo_id': 30},
+    17: {'bee_id': 0, 'sdo_id': 29},
+    18: {'bee_id': 0, 'sdo_id': 28},
+    19: {'bee_id': 1, 'sdo_id': 32},
+    20: {'bee_id': 1, 'sdo_id': 33},
+    21: {'bee_id': 1, 'sdo_id': 34},
+    22: {'bee_id': 0, 'sdo_id': 27},
+    23: {'bee_id': 0, 'sdo_id': 26},
+    24: {'bee_id': 0, 'sdo_id': 25},
+    25: {'bee_id': 0, 'sdo_id': 24},
+    26: {'bee_id': 1, 'sdo_id': 0},
+    27: {'bee_id': 1, 'sdo_id': 1},
+    28: {'bee_id': 1, 'sdo_id': 2},
+    29: {'bee_id': 1, 'sdo_id': 3},
+    30: {'bee_id': 0, 'sdo_id': 23},
+    31: {'bee_id': 0, 'sdo_id': 22},
+    32: {'bee_id': 0, 'sdo_id': 21},
+    33: {'bee_id': 0, 'sdo_id': 20},
+    34: {'bee_id': 1, 'sdo_id': 4},
+    35: {'bee_id': 1, 'sdo_id': 5},
+    36: {'bee_id': 1, 'sdo_id': 6},
+    37: {'bee_id': 1, 'sdo_id': 7},
+    38: {'bee_id': 0, 'sdo_id': 19},
+    39: {'bee_id': 0, 'sdo_id': 18},
+    40: {'bee_id': 0, 'sdo_id': 17},
+    41: {'bee_id': 0, 'sdo_id': 16},
+    42: {'bee_id': 1, 'sdo_id': 8},
+    43: {'bee_id': 1, 'sdo_id': 9},
+    44: {'bee_id': 1, 'sdo_id': 10},
+    45: {'bee_id': 1, 'sdo_id': 11},
+    46: {'bee_id': 0, 'sdo_id': 15},
+    47: {'bee_id': 0, 'sdo_id': 14},
+    48: {'bee_id': 0, 'sdo_id': 13},
+    49: {'bee_id': 0, 'sdo_id': 12},
+    50: {'bee_id': 1, 'sdo_id': 12},
+    51: {'bee_id': 1, 'sdo_id': 13},
+    52: {'bee_id': 1, 'sdo_id': 14},
+    53: {'bee_id': 1, 'sdo_id': 15},
+    54: {'bee_id': 0, 'sdo_id': 11},
+    55: {'bee_id': 0, 'sdo_id': 10},
+    56: {'bee_id': 0, 'sdo_id': 9},
+    57: {'bee_id': 0, 'sdo_id': 8},
+    58: {'bee_id': 1, 'sdo_id': 16},
+    59: {'bee_id': 1, 'sdo_id': 17},
+    60: {'bee_id': 1, 'sdo_id': 18},
+    61: {'bee_id': 1, 'sdo_id': 19},
+    62: {'bee_id': 0, 'sdo_id': 7},
+    63: {'bee_id': 0, 'sdo_id': 6},
+    64: {'bee_id': 0, 'sdo_id': 5},
+    65: {'bee_id': 0, 'sdo_id': 4},
+    66: {'bee_id': 1, 'sdo_id': 20},
+    67: {'bee_id': 1, 'sdo_id': 21},
+    68: {'bee_id': 1, 'sdo_id': 22},
+    69: {'bee_id': 1, 'sdo_id': 23},
+    70: {'bee_id': 0, 'sdo_id': 3},
+    71: {'bee_id': 0, 'sdo_id': 2},
+    72: {'bee_id': 0, 'sdo_id': 1},
+    73: {'bee_id': 0, 'sdo_id': 0},
+    74: {'bee_id': 1, 'sdo_id': 24},
+    75: {'bee_id': 1, 'sdo_id': 25},
+    76: {'bee_id': 1, 'sdo_id': 26},
+    77: {'bee_id': 1, 'sdo_id': 27},
+    78: {'bee_id': 0, 'sdo_id': 34},
+    79: {'bee_id': 0, 'sdo_id': 33},
+    80: {'bee_id': 0, 'sdo_id': 32},
+    81: {'bee_id': 1, 'sdo_id': 28},
+    82: {'bee_id': 1, 'sdo_id': 29},
+    83: {'bee_id': 1, 'sdo_id': 30},
+    84: {'bee_id': 0, 'sdo_id': 41},
+    85: {'bee_id': 0, 'sdo_id': 40},
+    86: {'bee_id': 0, 'sdo_id': 39},
+    87: {'bee_id': 0, 'sdo_id': 38},
+    88: {'bee_id': 0, 'sdo_id': 37},
+    89: {'bee_id': 0, 'sdo_id': 36},
+    90: {'bee_id': 0, 'sdo_id': 47},
+    91: {'bee_id': 0, 'sdo_id': 46},
+    92: {'bee_id': 0, 'sdo_id': 45},
+    93: {'bee_id': 0, 'sdo_id': 44},
+    94: {'bee_id': 0, 'sdo_id': 43},
+    95: {'bee_id': 0, 'sdo_id': 42},
+    96: {'bee_id': 0, 'sdo_id': 56},
+    97: {'bee_id': 0, 'sdo_id': 55},
+    98: {'bee_id': 0, 'sdo_id': 54},
+    99: {'bee_id': 0, 'sdo_id': 53},
+    100: {'bee_id': 0, 'sdo_id': 31},
+    101: {'bee_id': 1, 'sdo_id': 35},
+    102: {'bee_id': 0, 'sdo_id': 35},
+    103: {'bee_id': 1, 'sdo_id': 31},
+    104: {'bee_id': 1, 'sdo_id': 48},
+    105: {'bee_id': 1, 'sdo_id': 51},
+    106: {'bee_id': 1, 'sdo_id': 52},
+    107: {'bee_id': 1, 'sdo_id': 57},
+    108: {'bee_id': 0, 'sdo_id': 57},
+    109: {'bee_id': 0, 'sdo_id': 52},
+    110: {'bee_id': 0, 'sdo_id': 51},
+    111: {'bee_id': 0, 'sdo_id': 48},
+    }
+
+_hsc_ccd_additional = {
+    0: { },
+    29: { 'flipv': True, },
+    37: { 'flipv': True, },
+    45: { 'flipv': True, },
+    53: { 'flipv': True, },
+    61: { 'flipv': True, },
+    69: { 'flipv': True, },
+    77: { 'flipv': True, },
+    }
+
 hsc_ccd_data = {}
 for ccd_id in _hsc_ccd_data.keys():
-    res = Bunch.Bunch()
+    res = Bunch.Bunch(flipv=False, fliph=False, swapxy=False)
     for key, dv in _hsc_ccd_data[ccd_id].items():
         res[key] = Bunch.Bunch(dv)
+
+    addl_d = _ccd_addl_info1.get(ccd_id, {})
+    sdo_id = addl_d['sdo_id']
+    if addl_d['bee_id'] == 0:
+        if sdo_id in (48, 51, 52, 57):
+            # focus ccd
+            res.fliph = True
+        else:
+            res.fliph = True
+    if addl_d['bee_id'] == 1:
+        if sdo_id in (48, 51, 52, 57):
+            # focus ccd
+            res.flipv = True
+        else:
+            res.flipv = True
+
+    if ccd_id in (100, 101, 102, 103):
+        # rotated corner ccd
+        res.swapxy = True
+        res.flipv = res.fliph = False
+        if ccd_id in (100, 101):   # had 102
+            res.flipv = res.fliph = True
+
+    ## addl_d = _hsc_ccd_additional.get(ccd_id, {})
+    ## if addl_d.get('flipv', False):
+    ##     res.flipv = True
+    ## if addl_d.get('fliph', False):
+    ##     res.fliph = True
+
     hsc_ccd_data[ccd_id] = res
 
 #END
