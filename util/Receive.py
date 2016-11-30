@@ -6,20 +6,21 @@
 import sys, traceback
 import os, re
 import time
-import numpy
 import threading
 from io import BytesIO
 
 from astropy.io import fits as pyfits
-
-import remoteObjects as ro
-import remoteObjects.Monitor as Monitor
-import cfg.INS as INSconfig
+import numpy
 
 from ginga.misc import Bunch, Future
 from ginga import AstroImage, RGBImage
 from ginga.util import wcs
 
+from g2base.remoteObjects import remoteObjects as ro
+from g2base.remoteObjects import Monitor
+
+# Gen2 imports
+import cfg.INS as INSconfig
 from astro.frame import Frame
 
 # Regex used to discover/parse frame info
@@ -96,14 +97,14 @@ class ReceiveFITS(object):
             if image.get('path', None) is None:
                 image.set(path=filepath)
 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Failed to load file '%s': %s" % (
                 filepath, str(e))
             self.logger.error(errmsg)
             try:
                 (type, value, tb) = sys.exc_info()
                 tb_str = "\n".join(traceback.format_tb(tb))
-            except Exception, e:
+            except Exception as e:
                 tb_str = "Traceback information unavailable."
 
             self.fv.gui_do(self.fv.show_error, errmsg + '\n' + tb_str)
@@ -202,7 +203,7 @@ class ReceiveFITS(object):
             image.set(name=imname)
             image.update_keywords(header)
 
-        except Exception, e:
+        except Exception as e:
             # Some kind of error decoding the value
             self.logger.error("Error creating image data for '%s': %s" % (
                 imname, str(e)))
@@ -230,11 +231,11 @@ class ReceiveFITS(object):
         # Create image container
         self.logger.info("opening buffer with FITS reader")
         with pyfits.open(in_f, 'readonly') as fits_f:
-            
+
             # Seems to be needed otherwise we sometimes get "unparsable card"
             # errors for broken FITS files
             fits_f.verify('fix')
-            
+
             image = AstroImage.AstroImage(metadata=metadata,
                                           logger=self.logger)
             image.load_hdu(fits_f[num_hdu], fobj=fits_f)
@@ -256,7 +257,7 @@ class ReceiveFITS(object):
         try:
             image = self.open_fits(fitspath, frameid=frameid)
 
-        except IOError, e:
+        except IOError as e:
             self.logger.error("Error opening FITS file '%s': %s" % (
                     fitspath, str(e)))
             return ro.ERROR
@@ -284,7 +285,7 @@ class ReceiveFITS(object):
                     filepath))
                 self.display_fitsfile(filepath, frameid=frameid)
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error displaying '%s': %s" % (
                 filepath, str(e)))
 
@@ -489,12 +490,12 @@ class ReceiveFITS(object):
                 str(payload), str(e)))
             return
 
-        if not bnch.has_key('value'):
+        if 'value' not in bnch:
             # delete (vaccuum) packet
             return
         vals = bnch.value
 
-        if vals.has_key('task_code'):
+        if 'task_code' in vals:
             res = vals['task_code']
             # Interpret task results:
             #   task_code == 0 --> OK   task_code != 0 --> ERROR

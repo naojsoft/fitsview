@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Takeshi Inagaki (tinagaki@naoj.org)
 #
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     elif options.profile:
         import profile
 
-        print "%s profile:" % sys.argv[0]
+        print("%s profile:" % sys.argv[0])
         profile.run('main(options, args)')
 
     else:

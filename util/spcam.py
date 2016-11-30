@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # spcam.py -- Suprime-Cam data processing routines
 #
@@ -19,6 +20,8 @@ from ginga.util import dp
 from ginga.util import mosaic, wcs
 
 from astro.frame import Frame
+from six.moves import map
+from six.moves import zip
 
 
 class SuprimeCamDR(object):
@@ -254,7 +257,7 @@ class SuprimeCamDR(object):
 
         # Get the median values for each CCD image
         flats = []
-        for i in xrange(self.num_frames):
+        for i in range(self.num_frames):
             flatlist = []
             for exp in explist:
                 path = os.path.join(datadir, exp.upper()+'.fits')
@@ -325,7 +328,7 @@ class SuprimeCamDR(object):
 
         # make a list of all the exposure ids
         explist = []
-        for i in xrange(num_exp):
+        for i in range(num_exp):
             frame = Frame(path=path)
             frame.number += i * self.num_frames
             explist.append(str(frame))
@@ -422,8 +425,8 @@ class SuprimeCamDR(object):
         time_end = time.time()
         time_total = time_end - time_start
 
-        print ("total time: %.2f t1=%.3f t2=%.3f t3=%.3f" % (
-            time_total, t1_sum, t2_sum, t3_sum))
+        print(("total time: %.2f t1=%.3f t2=%.3f t3=%.3f" % (
+            time_total, t1_sum, t2_sum, t3_sum)))
         return img_mosaic
 
     def make_multi_hdu(self, images, compress=False):
@@ -484,7 +487,7 @@ class SuprimeCamDR(object):
             i += 1
 
         # stack HDUs in detector ID order
-        for i in xrange(self.num_ccds):
+        for i in range(self.num_ccds):
             fitsobj.append(hdus[i])
 
         # fix up to FITS standard as much as possible

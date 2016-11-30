@@ -1,24 +1,27 @@
 #
 # QDAS.py -- QDAS plugin for fits viewer
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 # Takeshi Inagaki (tinagaki@naoj.org)
 #
 import math
-
 import os
+
 import numpy
 
 from ginga import GingaPlugin, AstroImage
 from ginga.misc import Future, Bunch
 from ginga.util import wcs
 
-import remoteObjects as ro
+# g2base imports
+from g2base.remoteObjects import remoteObjects as ro
+
+# $PYHOME imports
 import astro.radec as radec
 import cfg.g2soss as g2soss
 
 # Local application imports
-from util import g2calc
+from Gen2.fitsview.util import g2calc
 
 class QDASError(Exception):
     pass
@@ -62,7 +65,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
     def qdas_display(self, tag, future,
                      instrument_name=None, input_frame=None):
-        
+
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_frame(instrument_name, input_frame, chname)
@@ -72,12 +75,12 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # remove all other QDAS layers
         chinfo = self.fv.get_channelInfo(chname)
         self.withdraw_qdas_layers(chinfo.fitsimage)
-        
+
         #self.fv.ds.raise_tab(chname)
 
         p = future.get_data()
         p.result = 'ok'
-        
+
         future.resolve(0)
 
 
@@ -85,7 +88,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                      motor=None, instrument_name=None, mode=None,
                      input_frame=None, select_mode=None,
                      x_region=None, y_region=None):
-    
+
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
@@ -136,7 +139,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             try:
                 p.x1, p.y1 = 0, 0
                 p.x2, p.y2 = image.width-1, image.height-1
-                
+
                 self._auto_region_selection(image, p)
 
                 rsobj.show_region(p)
@@ -151,14 +154,14 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 self.fv.play_soundfile(snd_region_failure, priority=19)
 
         #elif select_mode in ('manual', ):
-            
+
         # Invoke the operation manually
         chinfo.opmon.start_plugin_future(chname, pluginName,
                                          future)
-            
+
         self.fv.update_pending(timeout=0.10)
         self.fv.play_soundfile(snd_region_select_manual, priority=20)
-            
+
 
     def _auto_region_selection(self, image, p):
 
@@ -167,7 +170,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         else:
             # NOTE: qualsize_old is Kosugi-san's old algorithm
             qualsize = self.iqcalc.qualsize_old
-            
+
         qs = qualsize(image, p.x1, p.y1, p.x2, p.y2,
                       radius=p.radius, threshold=p.threshold)
         p.x, p.y = qs.x, qs.y
@@ -235,7 +238,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._telescope_move_cb, future,
                              p, image)
-        
+
         # Invoke the operation manually
         chinfo.opmon.start_plugin_future(chname, pluginName, future2)
 
@@ -264,7 +267,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._telescope_move_cb, future,
                              p, image)
-        
+
         # Set defaults and adjust for difference between data coords and
         # fits coords
         if x1 is None:
@@ -316,7 +319,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         if (thr == ''):
             thr = None
         p.setvals(radius=pluginObj.radius, threshold=thr)
-            
+
         if select_mode in ('auto', 'semiauto', 'override'):
             try:
                 self._auto_region_selection(image, p)
@@ -339,7 +342,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                     p.setvals(result='error', errmsg=errmsg)
                     future2.resolve(0)
                     return
-                
+
                 p.autoerr = True
                 p.msg = "Automatic target reacquisition failed. Please acquire the target manually."
         else:
@@ -411,8 +414,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         self.logger.debug("telescope move cb terminating: res=%s" % (str(p)))
         future.resolve(0)
-        
-    
+
+
     def focus_fitting(self, tag, future,
                       instrument_name, file_list, x1, y1, x2, y2):
 
@@ -425,7 +428,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         rsobj = rsinfo.obj
 
         p = future.get_data()
-        
+
         # Invoke the gui
         if not chinfo.opmon.is_active('FocusFit'):
             chinfo.opmon.start_plugin(chname, 'FocusFit', alreadyOpenOk=True)
@@ -455,7 +458,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         rsobj = rsinfo.obj
 
         p = future.get_data()
-        
+
         # Invoke the gui
         if not chinfo.opmon.is_active('MOIRCSFit'):
             chinfo.opmon.start_plugin(chname, 'MOIRCSFit', alreadyOpenOk=True)
@@ -502,7 +505,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         rsobj = rsinfo.obj
 
         p = future.get_data()
-        
+
         # Invoke the gui
         if not chinfo.opmon.is_active('FocusFit'):
             chinfo.opmon.start_plugin(chname, 'FocusFit', alreadyOpenOk=True)
@@ -530,7 +533,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         rsobj = rsinfo.obj
 
         p = future.get_data()
-        
+
         # Invoke the gui
         if not chinfo.opmon.is_active('CurveFit'):
             chinfo.opmon.start_plugin(chname, 'CurveFit', alreadyOpenOk=True)
@@ -567,15 +570,15 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         except Exception as e:
             p.setvals(result='error', errmsg=str(e))
-            
+
         future.resolve(0)
-        
-                
+
+
     def load_image(self, tag, future, instrument_name, path):
 
         if not path:
             return
-        
+
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_file(path, chname)
@@ -585,7 +588,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # remove all other QDAS layers
         chinfo = self.fv.get_channelInfo(chname)
         self.withdraw_qdas_layers(chinfo.fitsimage)
-        
+
         self.fv.ds.raise_tab(chname)
         return 0
 
@@ -598,7 +601,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         chname2 = '%s_Online' % (instrument_name)
         ch2_exists = self.fv.has_channel(chname2)
-        
+
         p = future.get_data()
 
         if motor == 'ON':
@@ -615,7 +618,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             if ch2_exists:
                 self.fv.delete_channel(chname2)
 
-        
+
         p.setvals(result='ok')
         future.resolve(0)
         return 0
@@ -641,7 +644,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 fitsimage.deleteObjectByTag(tag)
             except:
                 pass
-        
+
     def load_file(self, filepath, dst_chname):
         try:
             self.logger.debug("Attempting to load '%s' into %s" % (
@@ -656,14 +659,14 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.logger.error(errmsg)
             raise QDASError(errmsg)
 
-        
+
     def load_frame(self, src_chname, imagename, dst_chname):
         """Load image named (imagename) from channel named (chname1) into
         channel named (chname2).
         """
         try:
             chinfo1 = self.fv.get_channelInfo(src_chname)
-            if chinfo1.datasrc.has_key(imagename):
+            if imagename in chinfo1.datasrc:
                 # Image is still in the heap
                 image = chinfo1.datasrc[imagename]
                 self.fv.change_channel(dst_chname, image=image)
@@ -687,10 +690,10 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.logger.error(errmsg)
             raise QDASError(errmsg)
 
-        
+
     ## def add_image(self, viewer, chname, image):
     ##     chinfo = self.fv.get_channelInfo(chname)
-        
+
     ##     data = image.get_data()
     ##     # Get metadata for mouse-over tooltip
     ##     header = image.get_header()
@@ -701,7 +704,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         if mode == 'CLEAR':
             objs = canvas.get_objects_by_tag_pfx("qdas_mark")
             canvas.delete_objects(objs)
-            
+
         elif mode == 'DRAW':
             color = color.lower()
             mark  = mark.lower()
@@ -734,6 +737,6 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
     def __str__(self):
         return 'qdas'
-    
+
 
 #END

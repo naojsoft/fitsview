@@ -25,7 +25,8 @@ NOTE: this requires the "naojutils" module, available at
 """
 import os, re, glob
 import time
-import threading, Queue
+import threading
+from six.moves import queue as Queue
 
 from ginga import AstroImage
 from ginga.misc.plugins import Mosaic
@@ -233,7 +234,7 @@ class SPCAM(Mosaic.Mosaic):
 
     def process_frames(self, timer):
         self.fv.gui_do(self._process_frames)
-        
+
     def _process_frames(self):
         self.logger.info("processing queued frames")
 

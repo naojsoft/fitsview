@@ -4,11 +4,12 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from ginga.misc import Widgets, Plot, Bunch
+from ginga.misc import Bunch
+from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
 
 # Local application imports
-from util import g2calc
+from Gen2.fitsview.util import g2calc
 
 class AgAreaSelection(GingaPlugin.LocalPlugin):
 
@@ -204,7 +205,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         self.agarea = p.ag_area.upper()
 
         # Draw exposure region, if any
-        if p.has_key('er_x1'):
+        if 'er_x1' in p:
             self.logger.info("Exposure region at %dx%d, %dx%d" % (
                 p.er_x1, p.er_y1, p.er_x2, p.er_y2))
             self.canvas.add(self.dc.CompoundObject(
@@ -308,7 +309,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         self.canvas.delete_all_objects(redraw=False)
 
         # Draw exposure region, if any
-        if p.has_key('er_x1'):
+        if 'er_x1' in p:
             self.logger.info("Exposure region at %dx%d, %dx%d" % (
                 p.er_x1, p.er_y1, p.er_x2, p.er_y2))
             self.canvas.add(self.dc.CompoundObject(

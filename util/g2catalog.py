@@ -9,6 +9,8 @@ from ginga.misc import Bunch, Task
 
 from Gen2.starlist import starlist
 from Gen2.starlist import starfilter
+from six.moves import map
+from six.moves import zip
 
 class CatalogServer(object):
 
@@ -210,7 +212,7 @@ class CatalogServer(object):
                 else:
                     results.append(star)
 
-            except Exception, e:
+            except Exception as e:
                 self.logger.error("Error parsing catalog query results: %s" % (
                     str(e)))
                 raise e

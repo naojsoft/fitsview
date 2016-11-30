@@ -3,12 +3,14 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import print_function
 
-from ginga.misc import Widgets, Bunch
+from ginga.misc import Bunch
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 
 # Local application imports
-from util import g2calc
+from Gen2.fitsview.util import g2calc
 
 
 class Sv_Drive(GingaPlugin.LocalPlugin):
@@ -145,9 +147,9 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         else:
             self.w.r_obj.set_state(True)
         btn1.add_callback("activated", lambda w, tf: self.toggle_dstsrc_cb('dst', tf))
-        
+
         box = Widgets.VBox()
-        
+
         box.set_border_width(30)
         box.add_widget(w, stretch=1)
         box.add_widget(btns, stretch=0)
@@ -169,7 +171,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                      'xlbl_edge', 'llabel'),
                     )
 
-        w, b = Widgets.build_info(captions) 
+        w, b = Widgets.build_info(captions)
         self.w.update(b)
 
         b.radius.set_tooltip("Radius for peak detection")
@@ -269,7 +271,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         btns.add_widget(btn, stretch=1)
 
         btn = Widgets.Button("Cancel")
-        btn.add_callback('activated', lambda w: self.cancel()) 
+        btn.add_callback('activated', lambda w: self.cancel())
         btns.add_widget(btn, stretch=1)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -279,7 +281,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         self.gui_up = True
 
     def set_message(self, msg):
-        self.tw.set_text(msg) 
+        self.tw.set_text(msg)
         self.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
@@ -310,7 +312,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
             self.fitsimage.add(self.canvas, tag=self.layertag)
 
         self.canvas.delete_all_objects(redraw=False)
-        if p.has_key('msg'):
+        if 'msg' in p:
             self.set_message(p.msg)
         else:
             self.instructions()
@@ -343,7 +345,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
             if p.x1 is not None:
                 error = False
-                if p.has_key('autoerr'):
+                if 'autoerr' in p:
                     error = p.autoerr
                 self.place_region(self.canvas, p.x1, p.y1, p.x2, p.y2,
                                   error=error)
@@ -722,13 +724,13 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         self.canvas.delete_all_objects(redraw=False)
 
-        print "placing dst"
+        print("placing dst")
         self.place_dst(self.canvas, p.dst_x, p.dst_y)
 
-        print "placing obj"
+        print("placing obj")
         self.place_obj(self.canvas, p.obj_x, p.obj_y)
 
-        print "placing region"
+        print("placing region")
         self.place_region(self.canvas, p.x1, p.y1, p.x2, p.y2)
 
         # Set pan position to object

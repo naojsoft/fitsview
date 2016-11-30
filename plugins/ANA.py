@@ -134,7 +134,7 @@ class ANA(GingaPlugin.GlobalPlugin):
                 raise AnaError("Command returned error code=%d" % (res))
             p.result = 'ok'
 
-        except Exception, e:
+        except Exception as e:
             p.setvals(result='error', errmsg=str(e))
             
         future.resolve(0)
@@ -174,7 +174,7 @@ class ANA(GingaPlugin.GlobalPlugin):
             self.logger.debug("Loading file '%s'" % (filename))
             image.load_file(fitspath)
 
-        except Exception, e:
+        except Exception as e:
             self.fv.error("Error loading %s: %s" % (
                 filename, str(e)))
             return

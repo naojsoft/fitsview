@@ -1,32 +1,31 @@
 #!/usr/bin/env python
 #
-# guideview.py -- Simple FITS viewer/display server.
+# guideview.py -- Gen2 guide image viewer/controller.
 #
 # Eric Jeschke (eric@naoj.org)
 #
 """
-guideview.py implements a simple FITS viewer/display server to display FITS
-images in widgets.
+guideview.py implements a guide image display and control interface.
 
 Usage:
-    guideview.py
+    guideview.py --monport=NNNNN --loglevel=20 --stderr
 """
+from __future__ import print_function
 
 # stdlib imports
 import sys, os
 import threading
 import logging
-import ssdlog
 import traceback
+from six.moves import map
+from six.moves import zip
 
-moduleHome = os.path.split(sys.modules[__name__].__file__)[0]
-sys.path.insert(0, moduleHome)
-pluginHome = os.path.join(moduleHome, 'plugins')
-sys.path.insert(0, pluginHome)
+# g2base imports
+from g2base import ssdlog
+from g2base.remoteObjects import remoteObjects as ro
+from g2base.remoteObjects import Monitor
 
-# Subaru python stdlib imports
-import remoteObjects as ro
-import remoteObjects.Monitor as Monitor
+# Gen2 imports
 import Gen2.soundsink as SoundSink
 
 # Ginga imports
@@ -35,10 +34,15 @@ from ginga.misc.Bunch import Bunch
 import ginga.toolkit as ginga_toolkit
 
 # Local application imports
-from util import Receive
+from Gen2.fitsview.util import Receive
+
+moduleHome = os.path.split(sys.modules[__name__].__file__)[0]
+sys.path.insert(0, moduleHome)
+pluginHome = os.path.join(moduleHome, 'plugins')
+sys.path.insert(0, pluginHome)
 
 serviceName = 'guideview'
-version = "20151210.0"
+version = "20161130.0"
 
 default_layout = ['seq', {},
                    ['vbox', dict(name='top', width=1600, height=1100),
@@ -136,61 +140,6 @@ extra_plugins = [
     ]
 
 
-def get_displayfits(viewKlass):
-    from ginga.Control import GingaControl
-
-    class DisplayFITS(GingaControl, viewKlass):
-        """This class manages the creation and handling of a FITS viewer GUI.
-        The class is constructed with a data source and it reads images from the
-        source and displays them.
-        """
-
-        def __init__(self, logger, threadPool, module_manager, preferences,
-                     soundsink, ev_quit=None):
-
-            self.controller = None
-            self.soundsink = soundsink
-
-            viewKlass.__init__(self, logger, ev_quit, threadPool)
-            GingaControl.__init__(self, logger, threadPool, module_manager,
-                                  preferences, ev_quit=ev_quit)
-
-
-        def load_file(self, filepath, chname=None, wait=True,
-                      image_loader=None):
-            """Loads a command file from _filepath_ into the commands window.
-            """
-            try:
-                info = self.get_fileinfo(filepath)
-                # <-- filepath should now be a real file in the filesystem
-                self.logger.debug("fileinfo=%s" % (str(info)))
-
-                image = self.controller.open_fits(info.filepath, channel=chname,
-                                                  wait=wait,
-                                                  image_loader=image_loader)
-                return image
-
-            except Exception as e:
-                errmsg = "Unable to open '%s': %s" % (
-                    filepath, str(e))
-                self.show_error(errmsg)
-                return ro.ERROR
-
-
-        def play_soundfile(self, filepath, format=None, priority=20):
-            self.soundsink.playFile(filepath, format=format,
-                                    priority=priority)
-
-        def gui_load_file(self):
-            """Runs dialog to read in a command file into the command window.
-            """
-            initialdir = os.environ['DATAHOME']
-
-            super(DisplayFITS, self).gui_load_file(initialdir=initialdir)
-
-    return DisplayFITS
-
-
 def main(options, args):
     """Implements the display server.  Creates a DisplayFITS object
     (the GUI), a ReceiveFITS object (ro server) and a datasrc that links
@@ -237,7 +186,7 @@ def main(options, args):
                                     channels=['sound'])
 
     # Get preferences folder
-    if os.environ.has_key('CONFHOME'):
+    if 'CONFHOME' in os.environ:
         basedir = os.path.join(os.environ['CONFHOME'], serviceName)
     else:
         basedir = os.path.join(os.environ['HOME'], '.' + serviceName)
@@ -268,14 +217,12 @@ def main(options, args):
     ginga_toolkit.use(toolkit)
     tkname = ginga_toolkit.get_family()
 
-    from ginga.gw.GingaGw import GingaView
-
     # TEMP: ginga needs to find its plugins
     gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]
     widgetDir = tkname + 'w'
     childDir = os.path.join(gingaHome, widgetDir, 'plugins')
     sys.path.insert(0, childDir)
-    childDir = os.path.join(gingaHome, 'misc', 'plugins')
+    childDir = os.path.join(gingaHome, 'rv', 'plugins')
     sys.path.insert(0, childDir)
 
     childDir = os.path.join(basedir, 'plugins')
@@ -284,10 +231,10 @@ def main(options, args):
     mm = ModuleManager.ModuleManager(logger)
 
     # Start up the display engine
-    # Start up the display engine
-    disp_klass = get_displayfits(GingaView)
-    ginga = disp_klass(logger, threadPool, mm, prefs,
-                        sndsink, ev_quit=ev_quit)
+    from Gen2.fitsview.g2viewer import Gen2FITSViewer
+
+    ginga = Gen2FITSViewer(logger, threadPool, mm, prefs,
+                           sndsink, ev_quit=ev_quit)
     ginga.set_layout(default_layout)
     ginga.followFocus(False)
 
@@ -322,7 +269,7 @@ def main(options, args):
         ginga.add_global_plugin(spec)
 
     # Add GUI log handler (for "Log" global plugin)
-    from ginga.Control import GuiLogHandler
+    from ginga.rv.Control import GuiLogHandler
     guiHdlr = GuiLogHandler(ginga)
     guiHdlr.setLevel(logging.WARN)
     guiHdlr.setFormatter(ssdlog.get_formatter())
@@ -505,7 +452,7 @@ if __name__ == "__main__":
     elif options.profile:
         import profile
 
-        print ("%s profile:" % sys.argv[0])
+        print(("%s profile:" % sys.argv[0]))
         profile.run('main(options, args)')
 
 

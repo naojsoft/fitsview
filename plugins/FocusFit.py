@@ -1,6 +1,6 @@
 #
 # FocusFit.py -- Focus fitting plugin for fits viewer
-# 
+#
 # Yasu Sakakibara
 # Eric Jeschke (eric@naoj.org)
 #
@@ -49,16 +49,16 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.ax.set_title('Focus Fitting')
 
         self.canvas = PlotWidget(self.plot, width=300, height=650)
-        #self.canvas.get_widget().resize(300, 650)       
+        #self.canvas.get_widget().resize(300, 650)
         splitter.add_widget(self.canvas)
 
-        # create a box to pack widgets into. 
+        # create a box to pack widgets into.
         vbox1 = Widgets.VBox()
         vbox1.set_spacing(0)
 
-        # label for seeing size 
+        # label for seeing size
         self.label_ss = Widgets.TextArea(wrap=True, editable=False)
-        self.label_ss.set_font(self.msgFont) 
+        self.label_ss.set_font(self.msgFont)
         self.label_ss.set_text("Seeing size: ")
         vbox1.add_widget(self.label_ss)
 
@@ -70,7 +70,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
         fr = Widgets.Frame(" QDAS Seeing ")
         fr.set_widget(vbox1)
-        
+
         splitter.add_widget(fr)
 
         btns = Widgets.HBox()
@@ -91,7 +91,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
-        
+
     def clear(self):
         self.logger.debug('clearing canvas...')
         self.ax.cla()
@@ -105,7 +105,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
                      horizontalalignment='center',
                      verticalalignment='center',
                      fontsize=20, color='red')
-  
+
     def display_error(self, msg):
         self.ax.annotate(msg, horizontalalignment='right', verticalalignment='bottom', fontsize=20)
         self._draw()
@@ -119,7 +119,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.clear()
         #self.set_title(title)
         self.ax.set_title('Focus Fitting')
-        
+
         if result == 'empty':
             # all fwhm calculations failed; no data points found
             msg='No data available: FWHM all failed'
@@ -152,13 +152,13 @@ class FocusFit(GingaPlugin.LocalPlugin):
         numdataX = len(dpX)
         self.logger.debug(" stX[%s] minX[%s] enX[%s]  dpYmin<%s> minY<%s>  dpYmax<%s>" \
                            %(str(stX), str(minX), str(enX),  str(min(dpY)), str(minY), str(max(dpY)) ) )
-                         
+
         # TODO: Hard coded constants!!
         t1 = numpy.arange(stX -0.035  , enX + 0.035, 0.005)
-        
+
         t2 = self.lsf.plotQuadratic(t1, a, b, c)
         self.ax.plot(dpX, dpY, 'go', t1, t2)
-                
+
         if dpX[0] <= minX <= dpX[-1]:
             self.ax.annotate('Z : %+.4f \nFWHM : %.4f(arcsec)' % (minX, minY) , xy=(minX, minY), xytext=(minX + 0.00001, max(dpY)-0.1),
                            bbox=dict(boxstyle="round",facecolor='green',ec="none",  alpha=0.1, ),
@@ -166,9 +166,9 @@ class FocusFit(GingaPlugin.LocalPlugin):
                            arrowprops=dict(arrowstyle="wedge,tail_width=2.0",facecolor='green', ec="none", alpha=0.1, patchA=None, relpos=(0.5, -0.09)),
                            horizontalalignment='center')
 
-               
+
             self.logger.debug("Z[%f] Fwhm[%f]" %(minX, minY) )
-            #self.fig.canvas.set_window_title("Z[%f] Fwhm[%f]" %(minX, minY) )           
+            #self.fig.canvas.set_window_title("Z[%f] Fwhm[%f]" %(minX, minY) )
 
         else:
             self.logger.error("X<%s>  or Y<%s>  is out of range X<%s> Y<%s> " %(str(minX),str(minY), str(dpX), str(dpY)) )
@@ -186,28 +186,32 @@ class FocusFit(GingaPlugin.LocalPlugin):
             s_fitsid, ext = os.path.splitext(s_fits)
             e_fitsid, ext = os.path.splitext(e_fits)
             title='%s ~ %s' % (s_fitsid, e_fitsid)
-            self.logger.debug('fits %s' %(title)) 
+            self.logger.debug('fits %s' %(title))
 
-        except OSError,e:
+        except OSError as e:
             self.logger.error('fail to set title %s' % str(e))
             title = ''
- 
+
         z = None
 
-        data_points = self.lsf.buildDataPoints(file_list, x1, y1, x2, y2)
+        try:
+            data_points = self.lsf.buildDataPoints(file_list, x1, y1, x2, y2)
 
-        result = 'unknown'
-        lsf_b = self.lsf.fitCurve(data_points)
-        result = lsf_b.code
+            result = 'unknown'
+            lsf_b = self.lsf.fitCurve(data_points)
+            result = lsf_b.code
 
-        z = lsf_b.minX; fwhm = lsf_b.minY
-        self.logger.debug("result=%s z=%s fwhm=%s" % (result, z, fwhm))
+            z = lsf_b.minX; fwhm = lsf_b.minY
+            self.logger.debug("result=%s z=%s fwhm=%s" % (result, z, fwhm))
 
-        # draw graph at next available opportunity
-        self.fv.gui_do(self._drawGraph, title, result,
-                       data_points, z, fwhm, lsf_b.a, lsf_b.b, lsf_b.c)
+            # draw graph at next available opportunity
+            self.fv.gui_do(self._drawGraph, title, result,
+                           data_points, z, fwhm, lsf_b.a, lsf_b.b, lsf_b.c)
 
-        return z           
+        except Exception as e:
+            self.logger.error("focus fitting error: %s" % (str(e)))
+
+        return z
 
     def seeing_size(self, avg, std, dp):
         if dp == 0:
@@ -218,7 +222,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
         ss = "Seeing size: %5.2f+/-%5.2f(arcsec)" % (avg, std)
         self.label_ss.set_text(ss)
-        
+
         dps = "Data points: %s" % str(dp)
         self.label_dp.set_text(dps)
         return 0
@@ -228,17 +232,17 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
     def pause(self):
         pass
-        
+
     def resume(self):
         pass
-        
+
     def stop(self):
         self.fv.showStatus("")
-        
+
     def redo(self):
         pass
-    
+
     def __str__(self):
         return 'focusfit'
-    
+
 # END

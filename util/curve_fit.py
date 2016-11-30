@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import print_function
 #!/usr/bin/env python
 #
 # Takeshi Inagaki (tinagaki@naoj.org)
@@ -6,7 +8,7 @@ import os
 import sys
 
 
-from polynomial import QuadraticFunction
+from .polynomial import QuadraticFunction
 
 
 #from matplotlib import pylab
@@ -287,7 +289,7 @@ def main(options,args):
         mw.show()
         sys.exit(qApp.exec_())
     except KeyboardInterrupt:
-        print 'keyboard interrupting...' 
+        print('keyboard interrupting...') 
         sys.exit(0)
         
 
@@ -326,7 +328,7 @@ if __name__ == "__main__":
     elif options.profile:
         import profile
 
-        print "%s profile:" % sys.argv[0]
+        print("%s profile:" % sys.argv[0])
         profile.run('main(options, args)')
 
     else:

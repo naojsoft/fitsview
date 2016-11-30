@@ -1,11 +1,14 @@
 #
 # AgAutoSelect.py -- A VGW plugin for fits viewer
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from ginga.misc import Bunch
-import Catalogs
+from ginga.rv.plugins import Catalogs
+
+# $PYHOME imports
 import astro.radec as radec
+
 from Gen2.fitsview.util import g2catalog
 
 
@@ -22,7 +25,7 @@ class AgAutoSelect(Catalogs.Catalogs):
 
     def build_gui(self, container, future=None):
         super(AgAutoSelect, self).build_gui(container, future=future)
-        
+
         # add blacklist feature
         self.table.add_operation("add to blacklist", self.add_blacklist)
         self.table.add_operation("rm from blacklist", self.rem_blacklist)
@@ -47,10 +50,10 @@ class AgAutoSelect(Catalogs.Catalogs):
 
         # Draw the graphics for this particular foci or instrument
         plotObj.draw(self)
-        
+
         # If there is a starlist waiting to be plotted, do it
         if p.starlist:
-            if (self.limit_stars_to_area and 
+            if (self.limit_stars_to_area and
                 hasattr(plotObj, 'filter_results')):
                 starlist = plotObj.filter_results(p.starlist)
             else:
@@ -58,7 +61,7 @@ class AgAutoSelect(Catalogs.Catalogs):
             p.starlist = starlist
         else:
             p.starlist = []
-            
+
         self.probe_vignette_radius = p.get('probe_vignette_radius', None)
 
         # Update GUI
@@ -67,7 +70,7 @@ class AgAutoSelect(Catalogs.Catalogs):
         # Select top star
         if len(p.starlist) > 0:
             self.table.show_selection(p.starlist[0])
-        
+
         #self.fv.update_pending(timeout=0.25)
 
     def highlight_object(self, obj, tag, color, redraw=True):
@@ -79,7 +82,7 @@ class AgAutoSelect(Catalogs.Catalogs):
         hilite = self.dc.CompoundObject()
         # TODO: we have to add this to the canvas first--fix this
         self.hilite.add_object(hilite)
-        
+
         hilite.add_object(self.dc.Circle(x, y, radius,
                                          linewidth=4, color=color))
         # TODO: consider calling back into the plotObj for a custom
@@ -90,18 +93,18 @@ class AgAutoSelect(Catalogs.Catalogs):
                                              linestyle='dash'))
         if redraw:
             self.canvas.update_canvas()
-        
+
 
     def release_caller(self):
         self.callerInfo.resolve(0)
-        
+
     def close(self):
         self.ok()
-        
+
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
-        
+
     def ok(self):
         self.logger.info("OK clicked.")
         p = self.callerInfo.get_data()
@@ -128,13 +131,13 @@ class AgAutoSelect(Catalogs.Catalogs):
         self.logger.info("selected=%s" % (str(selected)))
         star = selected[0]
         g2catalog.blacklist.add_blacklist(star)
-        
+
     def rem_blacklist(self, selected):
         self.logger.info("selected=%s" % (str(selected)))
         star = selected[0]
         g2catalog.blacklist.remove_blacklist(star)
-        
+
     def __str__(self):
         return 'agautoselect'
-    
+
 #END

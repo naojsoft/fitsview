@@ -4,12 +4,12 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from ginga.misc import Widgets, Plot, Bunch
+from ginga.misc import Bunch
+from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
 
-
 # Local application imports
-from util import g2calc
+from Gen2.fitsview.util import g2calc
 
 
 class Region_Selection(GingaPlugin.LocalPlugin):
@@ -58,7 +58,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.fwhm = 0.0
 
     def build_gui(self, container, future=None):
-     
+
 
         vtop = Widgets.VBox()
         vtop.set_border_width(2)

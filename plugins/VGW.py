@@ -15,10 +15,14 @@ from ginga.misc import Future, Bunch
 from ginga import AstroImage
 from ginga.util import wcs, dp
 from ginga.canvas.CanvasObject import get_canvas_types
+from six.moves import map
+from six.moves import zip
 cvtypes = get_canvas_types()
 
-# PYHOME imports
-import remoteObjects as ro
+# g2base imports
+from g2base.remoteObjects import remoteObjects as ro
+
+# $PYHOME imports
 import astro.radec as radec
 # For HSC AG drawing
 import astro.wcs as astro_wcs
@@ -26,8 +30,8 @@ import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
 
 # Local application imports
-from util import AGCCDPositions
-from util import g2calc
+from Gen2.fitsview.util import AGCCDPositions
+from Gen2.fitsview.util import g2calc
 
 class VGWError(Exception):
     pass
@@ -107,7 +111,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         p = future.get_data()
 
         canvas = chinfo.fitsimage
-        
+
         if not coord == 'PIX':
             self.logger.debug('coord is %s' %coord)
             image = canvas.get_image()
@@ -116,12 +120,12 @@ class VGW(GingaPlugin.GlobalPlugin):
             dec_deg = radec.funkyDMStoDeg(y)
             #self.logger.info('radec deg ra=%s dec=%s' %(ra_deg, dec_deg))
             self.logger.debug('DegTo x=%s y=%s' %(x, y))
-            x, y = image.radectopix(ra_deg, dec_deg)    
+            x, y = image.radectopix(ra_deg, dec_deg)
 
         self.logger.info('ToPix x=%s y=%s' %(x, y))
         # X and Y are in FITS data coordinates
         x, y = x-1, y-1
-        
+
         try:
             self._mark(chname, canvas, x, y, mode, mark, size, color)
             p.setvals(result='ok')
@@ -302,7 +306,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Get the exposure area from the AG header
         agh = Bunch.Bunch(image.get('agheader'))
         self.logger.info("AG header is %s" % (str(agh)))
-        if agh.has_key('expRangeX'):
+        if 'expRangeX' in agh:
             # Need to convert via ccd2pix here?
             er_x1 = agh.expRangeX
             er_y1 = agh.expRangeY
@@ -668,7 +672,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             #future.resolve(-1)
             future.resolve(e)
             raise VGWError(errmsg)
-            
+
         def query_catalogs(p):
             try:
                 # Get preferred guide star catalog for AG
@@ -763,7 +767,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         select_mode = p.select_mode.lower()
         manualSelect = False
         if select_mode != 'manual':
-            if (not p.info.has_key('num_preferred') or
+            if ('num_preferred' not in p.info or
                 (p.info['num_preferred'] == 0) or
                 (len(p.starlist) == 0)):
                 msg = msg_semiauto_failure
@@ -976,7 +980,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         select_mode = p.select_mode.lower()
         manualSelect = False
         if select_mode != 'manual':
-            if not p.info.has_key('num_preferred') or \
+            if 'num_preferred' not in p.info or \
                (p.info['num_preferred'] == 0):
                 msg = msg_semiauto_failure
                 manualSelect = True
@@ -1343,7 +1347,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         select_mode = p.select_mode.lower()
         manualSelect = False
         if select_mode != 'manual':
-            if not p.info.has_key('num_preferred') or \
+            if 'num_preferred' not in p.info or \
                (p.info['num_preferred'] == 0):
                 msg = msg_semiauto_failure
                 self.fv.play_soundfile(snd_auto_failure, priority=19)
@@ -1435,7 +1439,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # Check if we are guiding, and if so, show the calculation region
         # as an annotated rectangle
-        if metadata.has_key('guiding'):
+        if 'guiding' in metadata:
             if metadata['guiding']:
                 x1, y1, x2, y2 = metadata['region']
                 self.logger.debug("Guiding is on region is (%d,%d) (%d,%d)" % (
@@ -1663,7 +1667,7 @@ class TELESCOPEfov(object):
             y1 = int(ctr_y - radius_px * math.sin(rad))
             return (x1, y1)
 
-        return map(mm2pix, vlist)
+        return list(map(mm2pix, vlist))
 
     def draw(self, pluginObj):
         canvas = pluginObj.get_canvas()
@@ -1981,8 +1985,8 @@ class HSCfov(object):
 
     def filter_results(self, starlist):
         # return self.pluginObj.filter_results(starlist, self.dith_obj)
-        #all_stars = map(lambda stars: self.pluginObj.filter_results(stars,
-        #                   self.dith_obj), starlist)
+        #all_stars = list(map(lambda stars: self.pluginObj.filter_results(stars,
+        #                   self.dith_obj), starlist))
         starlist = self.pluginObj.filter_results(starlist, self.dith_obj)
 
         self.logger.debug('all STARLIST=%s' % (str(starlist)))
@@ -1995,7 +1999,7 @@ class HSCfov(object):
 
         for num, star in enumerate(updated_stars):
             num += 1
-            if not star.has_key('priority') or (star['priority'] is None):
+            if 'priority' not in star or (star['priority'] is None):
                 star['priority'] = num
 
 
