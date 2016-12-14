@@ -193,22 +193,19 @@ class FocusFit(GingaPlugin.LocalPlugin):
             title = ''
  
         z = None
-        try:
-            data_points = self.lsf.buildDataPoints(file_list, x1, y1, x2, y2)
 
-            result = 'unknown'
-            lsf_b = self.lsf.fitCurve(data_points)
-            result = lsf_b.code
+        data_points = self.lsf.buildDataPoints(file_list, x1, y1, x2, y2)
 
-            z = lsf_b.minX; fwhm = lsf_b.minY
-            self.logger.debug("result=%s z=%s fwhm=%s" % (result, z, fwhm))
-            
-            # draw graph at next available opportunity
-            self.fv.gui_do(self._drawGraph, title, result,
-                             data_points, z, fwhm, lsf_b.a, lsf_b.b, lsf_b.c)
+        result = 'unknown'
+        lsf_b = self.lsf.fitCurve(data_points)
+        result = lsf_b.code
 
-        except Exception, e:
-            self.logger.error("focus fitting error <%s>" % (str(e)))
+        z = lsf_b.minX; fwhm = lsf_b.minY
+        self.logger.debug("result=%s z=%s fwhm=%s" % (result, z, fwhm))
+
+        # draw graph at next available opportunity
+        self.fv.gui_do(self._drawGraph, title, result,
+                       data_points, z, fwhm, lsf_b.a, lsf_b.b, lsf_b.c)
 
         return z           
 
