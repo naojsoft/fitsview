@@ -49,17 +49,20 @@ default_layout = ['seq', {},
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
-                     ['ws', dict(name='left', width=340, group=2),
+                     ['ws', dict(name='left', wstype='tabs',
+                                 width=340, group=2),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
-                                 ['ws', dict(name='uleft', height=300,
-                                             show_tabs=False, group=3)],
-                                 ['ws', dict(name='lleft', height=530,
-                                             show_tabs=True, group=3)],
+                                 ['ws', dict(name='uleft', wstype='stack',
+                                             height=300, group=3)],
+                                 ['ws', dict(name='lleft', wstype='tabs',
+                                             height=530, group=3)],
                                  ]
                         )]],
                      ['vbox', dict(name='main', width=760),
-                      dict(row=['ws', dict(name='channels', group=1)], stretch=1),
+                      dict(row=['ws', dict(wstype='tabs', name='channels',
+                                           group=1, use_toolbar=True)],
+                           stretch=1),
                       dict(row=['ws', dict(wstype='stack', name='cbar',
                                            group=99)], stretch=0),
                       dict(row=['ws', dict(wstype='stack', name='readout',
@@ -69,13 +72,15 @@ default_layout = ['seq', {},
                       ],
                      ['ws', dict(name='right', width=500, group=2),
                       # (tabname, layout), ...
-                      [("Dialogs", ['ws', dict(name='dialogs', group=2)
+                      [("Dialogs", ['ws', dict(name='dialogs',
+                                                wstype='tabs', group=2)
                                     ]
                         )]
                       ],
                      ], stretch=1),
-                    dict(row=['ws', dict(name='toolbar', height=40,
-                                             show_tabs=False, group=2)],
+                    dict(row=['ws', dict(name='toolbar', wstype='stack',
+                                         height=40,
+                                         show_tabs=False, group=2)],
                          stretch=0),
                     dict(row=['hbox', dict(name='status')], stretch=0),
                     ]]
@@ -97,7 +102,8 @@ global_plugins = [
     ## Bunch(module='SAMP', tab='SAMP', ws='right', start=False),
     ## Bunch(module='IRAF', tab='IRAF', ws='right', start=False),
     Bunch(module='Log', tab='Log', ws='right', start=False),
-    Bunch(module='Command', tab='Command', ws='right', start=True),
+    Bunch(module='ColorMapPicker', tab='ColorMapPicker', ws='right', start=False),
+    Bunch(module='GView', tab='GView', ws='right', start=True),
     ]
 
 local_plugins = [
@@ -117,9 +123,9 @@ local_plugins = [
     Bunch(module='Drawing', ws='dialogs', shortkey='f11'),
     Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
     Bunch(module='Compose', ws='dialogs'),
-    Bunch(module='SPCAM', ws='dialogs'),
+    ## Bunch(module='SPCAM', ws='dialogs'),
     ## Bunch(module='HSC', ws='dialogs'),
-    #Bunch(module='FOCAS', ws='dialogs'),
+    Bunch(module='CHARIS', ws='dialogs'),
     ]
 
 def main(options, args):

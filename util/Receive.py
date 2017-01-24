@@ -102,7 +102,7 @@ class ReceiveFITS(object):
                 filepath, str(e))
             self.logger.error(errmsg)
             try:
-                (type, value, tb) = sys.exc_info()
+                (etyp, value, tb) = sys.exc_info()
                 tb_str = "\n".join(traceback.format_tb(tb))
             except Exception as e:
                 tb_str = "Traceback information unavailable."
@@ -130,6 +130,9 @@ class ReceiveFITS(object):
             channel = chname
 
         image.set(name=name, chname=channel)
+
+        # create channel, if it does not exist
+        chinfo = self.fv.get_channel_on_demand(channel)
 
         # Display image.  If the wait parameter is False then don't wait
         # for the image to load into the viewer

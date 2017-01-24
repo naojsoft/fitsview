@@ -73,7 +73,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                QDASError("Null image for %s" % chname)
 
         # remove all other QDAS layers
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
         self.withdraw_qdas_layers(chinfo.fitsimage)
 
         #self.fv.ds.raise_tab(chname)
@@ -94,7 +94,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
 
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         # Deactivate plugin if one is already running
         pluginName = 'Region_Selection'
@@ -202,7 +202,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
 
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         # Deactivate plugin if one is already running
         pluginName = 'Sv_Drive'
@@ -255,7 +255,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
 
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         # Load the image we are operating on into the channel
         image = self.load_frame(instrument_name, input_frame, chname)
@@ -422,7 +422,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         rsinfo = chinfo.opmon.getPluginInfo('FocusFit')
         rsobj = rsinfo.obj
@@ -452,7 +452,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         rsinfo = chinfo.opmon.getPluginInfo('MOIRCSFit')
         rsobj = rsinfo.obj
@@ -499,7 +499,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         rsinfo = chinfo.opmon.getPluginInfo('FocusFit')
         rsobj = rsinfo.obj
@@ -527,7 +527,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         rsinfo = chinfo.opmon.getPluginInfo('CurveFit')
         rsobj = rsinfo.obj
@@ -559,7 +559,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
 
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
         p = future.get_data()
 
@@ -586,7 +586,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                QDASError("Null image for '%s'" % (chname))
 
         # remove all other QDAS layers
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
         self.withdraw_qdas_layers(chinfo.fitsimage)
 
         self.fv.ds.raise_tab(chname)
@@ -665,10 +665,16 @@ class QDAS(GingaPlugin.GlobalPlugin):
         channel named (chname2).
         """
         try:
-            chinfo1 = self.fv.get_channelInfo(src_chname)
+            chinfo1 = self.fv.get_channel(src_chname)
             if imagename in chinfo1.datasrc:
                 # Image is still in the heap
                 image = chinfo1.datasrc[imagename]
+
+                # Add image to <INS>_Online channel
+                chinfo2 = self.fv.get_channel_on_demand(dst_chname)
+                chinfo2.add_image(image)
+
+                # Change to <INS>_Online channel
                 self.fv.change_channel(dst_chname, image=image)
                 return image
         except KeyError:
@@ -692,7 +698,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
 
     ## def add_image(self, viewer, chname, image):
-    ##     chinfo = self.fv.get_channelInfo(chname)
+    ##     chinfo = self.fv.get_channel(chname)
 
     ##     data = image.get_data()
     ##     # Get metadata for mouse-over tooltip
