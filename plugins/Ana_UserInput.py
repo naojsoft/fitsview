@@ -4,7 +4,7 @@
 # Eric Jeschke (eric@naoj.org)
 #
 from ginga import GingaPlugin
-from ginga.misc import Widgets
+from ginga.gw import Widgets
 
 class Ana_UserInput(GingaPlugin.LocalPlugin):
 
