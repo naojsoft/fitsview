@@ -1479,9 +1479,11 @@ class VGW(GingaPlugin.GlobalPlugin):
         """
 
         # Decode binary data
+        data = data.data
         data = ro.binary_decode(data)
-        self.logger.debug("Received data: len=%d width=%d height=%d" % (
-            len(data), width, height))
+        
+        self.logger.debug("Received data: len=%d width=%d height=%d type=%s" % (
+            len(data), width, height, str(type(data))))
         self.logger.debug("metadata=%s header=%s" % (metadata, header))
 
         # Temporarily coerce numpy type  TODO: fix
