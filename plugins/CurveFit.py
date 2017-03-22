@@ -11,7 +11,7 @@ import numpy
 import Gen2.fitsview.util.curve_fit as curvefit
 
 from ginga.misc import CanvasTypes, Widgets
-from ginga.gw.Plot import FigureCanvas
+from ginga.gw import Plot
 from ginga.util import plots
 from ginga import GingaPlugin
 
@@ -29,7 +29,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
         self.plot1 = plots.Plot(logger=self.logger,
                                 width=200, height=600)
 
-        class1 = curvefit.make_CurveFittingCanvas(FigureCanvas)
+        class1 = curvefit.make_CurveFittingCanvas(Plot.FigureCanvas)
         class2 = curvefit.make_CurveFitting(class1)
         self.cf = class2(self.plot1.fig, logger=self.logger)
         cf = Widgets.wrap(self.cf)

@@ -8,7 +8,6 @@ import os.path
 
 import numpy
 
-from ginga.gw.Plot import PlotWidget
 from ginga.util import plots
 
 import matplotlib
@@ -48,7 +47,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.ax = self.plot.add_axis()
         self.ax.set_title('Focus Fitting')
 
-        self.canvas = PlotWidget(self.plot, width=300, height=650)
+        self.canvas = Plot.PlotWidget(self.plot, width=300, height=650)
         #self.canvas.get_widget().resize(300, 650)
         splitter.add_widget(self.canvas)
 
