@@ -670,6 +670,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             errmsg = "Error with DSS image: %s" % (str(e))
             self.fv.show_error(errmsg)
             #future.resolve(-1)
+            p.image = None
             future.resolve(e)
             raise VGWError(errmsg)
 
