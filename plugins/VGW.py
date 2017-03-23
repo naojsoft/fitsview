@@ -790,6 +790,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         #pluginObj.set_message(msg)
 
         if not manualSelect:
+            p.setvals(info={})
             future2.resolve(0)
             return
 
@@ -839,7 +840,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # These won't pass back over remoteObjects
         p.setvals(starlist=None, selected=None, vignette_map=None,
-                  image=None)
+                  image=None, info={})
 
         self.logger.info("ag_auto_select cb terminating: res=%s" % (str(p)))
         future.resolve(0)
@@ -999,6 +1000,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         #pluginObj.set_message(msg)
 
         if not manualSelect:
+            p.setvals(info={})
             future2.resolve(0)
             return
 
@@ -1030,7 +1032,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # These won't pass back over remoteObjects
         p.setvals(starlist=None, selected=None, vignette_map=None,
-                  image=None)
+                  image=None, info={})
 
         self.logger.debug("sh_auto_select cb terminating: res=%s" % (str(p)))
         future.resolve(0)
@@ -1315,6 +1317,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         if p.starlist is None:
             self.fv.show_error("No catalog data returned!")
 
+            p.setvals(info={})
             future.resolve(-1)
             return
 
@@ -1368,6 +1371,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         #pluginObj.set_message(msg)
 
         if not manualSelect:
+            p.setvals(info={})
             future2.resolve(0)
             return
 
@@ -1400,7 +1404,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             p.setvals(result='error', errmsg=str(e))
 
         # These won't pass back over remoteObjects
-        p.setvals(starlist=None, selected=None, queries=None,
+        p.setvals(starlist=None, selected=None, queries=None, info={},
                   image=None, circles=None, polygons=None,
                   agarea_pixel_polygons=None, agarea_polygons=None)
 
@@ -1481,7 +1485,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Decode binary data
         data = data.data
         data = ro.binary_decode(data)
-        
+
         self.logger.debug("Received data: len=%d width=%d height=%d type=%s" % (
             len(data), width, height, str(type(data))))
         self.logger.debug("metadata=%s header=%s" % (metadata, header))
@@ -1492,7 +1496,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             data = np.fromstring(data, dtype=na_type)
             data.byteswap(True)
             data = data.reshape((height, width))
-            #print data
+            #print(data)
 
         except Exception as e:
             # Some kind of error decoding the value
