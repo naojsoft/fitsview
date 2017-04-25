@@ -91,35 +91,59 @@ default_layout = ['seq', {},
                     ]]
 
 global_plugins = [
-    Bunch(module='Toolbar', tab='Toolbar', ws='toolbar'),
-    Bunch(module='Pan', tab='_pan', ws='uleft', raisekey=None),
-    Bunch(module='Info', tab='Synopsis', ws='lleft', raisekey=None),
-    Bunch(module='Header', tab='Header', ws='left', raisekey='H'),
-    Bunch(module='Zoom', tab='Zoom', ws='left', raisekey='Z'),
-    Bunch(module='Colorbar', tab='_cbar', ws='cbar', start=True),
-    Bunch(module='Cursor', tab='_readout', ws='readout', start=True),
-    Bunch(module='Operations', tab='_opns', ws='operations', start=True),
-    ## Bunch(module='Thumbs', tab='Thumbs', ws='right', raisekey='T'),
-    ## Bunch(module='Contents', tab='Contents', ws='right', raisekey='C'),
-    Bunch(module='WBrowser', tab='Help', ws='right', raisekey='?'),
-    Bunch(module='Errors', tab='Errors', ws='right'),
-    Bunch(module='Log', tab='Log', ws='right', start=False),
-    Bunch(module='Command', tab='Command', ws='right', start=True),
+    Bunch(module='Operations', workspace='operations', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Toolbar', workspace='toolbar', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Pan', workspace='uleft', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Info', tab='Synopsis', workspace='lleft', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Header', tab='Header', workspace='left', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Zoom', tab='Zoom', workspace='left', start=True,
+          hidden=True, category='system'),
+    ## Bunch(module='Thumbs', tab='Thumbs', workspace='right', start=True,
+    ##       hidden=True, category='system'),
+    ## Bunch(module='Contents', tab='Contents', workspace='right', start=True,
+    ##       hidden=True, category='system'),
+    Bunch(module='Colorbar', workspace='cbar', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Cursor', workspace='readout', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Errors', tab='Errors', workspace='right', start=True,
+          hidden=True, category='system'),
+    Bunch(module='Command', tab='Command', workspace='right', start=False,
+          category='Global'),
+    Bunch(module='Log', tab='Log', workspace='right', start=False,
+          category='Global'),
+    Bunch(module='WBrowser', tab='Help', workspace='right', start=False,
+          category='Global'),
+    ## Bunch(module='FBrowser', tab='Open File', workspace='right', start=False,
+    ##       category='Global'),
+    ## Bunch(module='Blink', tab='Blink Channels', workspace='right', start=False,
+    ##       category='Global'),
+    Bunch(module='ColorMapPicker', tab='Color Map Picker', workspace='right',
+          start=False, category='Global'),
     ]
 
 local_plugins = [
-    Bunch(module='Pick', ws='dialogs', shortkey='f1'),
-    Bunch(module='Ruler', ws='dialogs', shortkey='f2'),
-    Bunch(module='MultiDim', ws='dialogs', shortkey='f4'),
-    Bunch(module='Cuts', ws='dialogs', shortkey='f5'),
-    Bunch(module='Histogram', ws='dialogs', shortkey='f6'),
-    Bunch(module='Crosshair', ws='dialogs'),
-    Bunch(module='Overlays', ws='dialogs'),
-    Bunch(module='PixTable', ws='dialogs', shortkey='f7'),
-    Bunch(module='Preferences', ws='dialogs', shortkey='f9'),
-    Bunch(module='Catalogs', ws='dialogs', shortkey='f10'),
-    Bunch(module='Drawing', ws='dialogs', shortkey='f11'),
-    Bunch(module='FBrowser', ws='dialogs', shortkey='f12'),
+    Bunch(module='Pick', workspace='dialogs', category=None),
+    Bunch(module='Ruler', workspace='dialogs', category=None),
+    ## Bunch(module='MultiDim', workspace='lleft', category=None),
+    Bunch(module='Cuts', workspace='dialogs', category=None),
+    Bunch(module='Histogram', workspace='dialogs', category=None),
+    Bunch(module='Crosshair', workspace='dialogs', category=None),
+    Bunch(module='Overlays', workspace='dialogs', category=None),
+    ## Bunch(module='Blink', workspace='dialogs', category=None),
+    Bunch(module='PixTable', workspace='dialogs', category=None),
+    Bunch(module='Preferences', workspace='dialogs', category=None),
+    Bunch(module='Catalogs', workspace='dialogs', category=None),
+    ## Bunch(module='Mosaic', workspace='dialogs', category=None),
+    Bunch(module='Drawing', workspace='dialogs', category=None),
+    Bunch(module='FBrowser', workspace='dialogs', category=None),
+    ## Bunch(module='Compose', workspace='dialogs', category=None),
+    Bunch(module='ScreenShot', workspace='dialogs', category=None),
     ]
 
 default_channels = [('AG', 'channels'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
@@ -129,7 +153,7 @@ default_channels = [('AG', 'channels'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
                     ('FMOS', 'channels'), ]
 
 extra_modules = [
-    Bunch(module='VGW'),
+    Bunch(module='VGW', hidden=True),
     ]
 
 extra_plugins = [
@@ -201,11 +225,11 @@ def main(options, args):
     sys.path.insert(0, basedir)
     prefs = Settings.Preferences(basefolder=basedir, logger=logger)
 
-    settings = prefs.createCategory('general')
-    settings.setDefaults(share_readout=False, useMatplotlibColormaps=False,
-                         widgetSet='choose',
-                         pixel_coords_offset=1.0,
-                         WCSpkg='kapteyn', FITSpkg='astropy')
+    settings = prefs.create_category('general')
+    settings.set_defaults(share_readout=False, useMatplotlibColormaps=False,
+                          widgetSet='choose',
+                          pixel_coords_offset=1.0,
+                          WCSpkg='kapteyn', FITSpkg='astropy')
     settings.load(onError='silent')
 
     # Choose a toolkit
@@ -236,7 +260,7 @@ def main(options, args):
     ginga = Gen2FITSViewer(logger, threadPool, mm, prefs,
                            sndsink, ev_quit=ev_quit)
     ginga.set_layout(default_layout)
-    ginga.followFocus(False)
+    ginga.follow_focus(False)
 
     # User configuration (custom star catalogs, etc.)
     try:

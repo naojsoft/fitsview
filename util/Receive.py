@@ -13,7 +13,7 @@ from astropy.io import fits as pyfits
 import numpy
 
 from ginga.misc import Bunch, Future
-from ginga import AstroImage, RGBImage
+from ginga import AstroImage, RGBImage, BaseImage
 from ginga.util import wcs
 
 from g2base.remoteObjects import remoteObjects as ro
@@ -86,8 +86,8 @@ class ReceiveFITS(object):
             future = Future.Future()
             future.freeze(image_loader, filepath, **kwdargs)
             image = future.thaw()
-            assert isinstance(image, AstroImage.AstroImage), \
-                   ValueError("Loader did not produce an AstroImage: %s" % (
+            assert isinstance(image, BaseImage.BaseImage), \
+                   ValueError("Loader did not produce a loadable image: %s" % (
                 str(type(image))))
 
             # Save a future for this image to reload it later if we

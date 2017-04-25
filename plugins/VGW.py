@@ -785,7 +785,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         self.fv.ds.raise_tab('Dialogs')
         self.fv.ds.raise_tab('DSS: AgAutoSelect')
-        pluginObj.set_message(msg)
+        #pluginObj.set_message(msg)
 
         if not manualSelect:
             future2.resolve(0)
@@ -994,7 +994,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             msg = msg_auto_manual
             manualSelect = True
 
-        pluginObj.set_message(msg)
+        #pluginObj.set_message(msg)
 
         if not manualSelect:
             future2.resolve(0)
@@ -1362,7 +1362,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             msg = msg_auto_manual
             manualSelect = True
 
-        pluginObj.set_message(msg)
+        #pluginObj.set_message(msg)
 
         if not manualSelect:
             future2.resolve(0)
