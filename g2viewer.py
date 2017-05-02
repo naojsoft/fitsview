@@ -1,3 +1,5 @@
+import os
+
 from ginga.rv.Control import GingaShell
 
 class Gen2FITSViewer(GingaShell):
@@ -45,4 +47,4 @@ class Gen2FITSViewer(GingaShell):
         """
         initialdir = os.environ['DATAHOME']
 
-        super(DisplayFITS, self).gui_load_file(initialdir=initialdir)
+        super(Gen2FITSViewer, self).gui_load_file(initialdir=initialdir)
