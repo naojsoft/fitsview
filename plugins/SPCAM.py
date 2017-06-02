@@ -29,14 +29,15 @@ import threading
 from six.moves import queue as Queue
 
 from ginga import AstroImage
-from ginga.misc.plugins import Mosaic
-from ginga.misc import Widgets, Bunch
+from ginga.rv.plugins import Mosaic
+from ginga.misc import Bunch, Future
 from ginga.util import dp
+from ginga.gw import Widgets
 
 # You should install module "naojutils" to run this plugin.
 #   Get it here--> https://github.com/naojsoft/naojutils
 from naoj.frame import Frame
-from naoj import spcam
+from naoj.spcam import spcam_dr
 
 
 class SPCAM(Mosaic.Mosaic):
@@ -47,20 +48,21 @@ class SPCAM(Mosaic.Mosaic):
 
         # Set preferences for destination channel
         prefs = self.fv.get_preferences()
-        self.settings = prefs.createCategory('plugin_SPCAM')
-        self.settings.setDefaults(annotate_images=False, fov_deg=0.72,
-                                  match_bg=False, trim_px=0,
-                                  merge=True, num_threads=4,
-                                  drop_creates_new_mosaic=True,
-                                  mosaic_hdus=False, skew_limit=0.1,
-                                  allow_expand=False, expand_pad_deg=0.01,
-                                  use_flats=False, flat_dir='',
-                                  mosaic_new=True, make_thumbs=False,
-                                  reuse_image=False)
+        self.settings = prefs.create_category('plugin_SPCAM')
+        self.settings.set_defaults(annotate_images=False, fov_deg=0.72,
+                                   match_bg=False, trim_px=0,
+                                   merge=True, num_threads=4,
+                                   drop_creates_new_mosaic=False,
+                                   mosaic_hdus=False, skew_limit=0.1,
+                                   allow_expand=False, expand_pad_deg=0.01,
+                                   use_flats=False, flat_dir='',
+                                   mosaic_new=True, make_thumbs=True,
+                                   reuse_image=False)
         self.settings.load(onError='silent')
 
         self.queue = Queue.Queue()
         self.current_exp_num = 0
+        self.sub_bias = False
 
         # map of exposures -> list of paths
         self.exp_pathmap = {}
@@ -75,7 +77,7 @@ class SPCAM(Mosaic.Mosaic):
         self.timer.add_callback('expired', self.process_frames)
         self.process_interval = 2.0
 
-        self.dr = spcam.SuprimeCamDR(logger=self.logger)
+        self.dr = spcam_dr.SuprimeCamDR(logger=self.logger)
         self.basedir = "/gen2/share/data/SPCAM"
 
         # mosaic results channel
@@ -83,6 +85,7 @@ class SPCAM(Mosaic.Mosaic):
 
         # For flat fielding
         self.flat = {}
+        self.use_flats = self.settings.get('use_flats', False)
 
 
     def build_gui(self, container):
@@ -92,6 +95,21 @@ class SPCAM(Mosaic.Mosaic):
             self.fv.add_channel(self.mosaic_chname)
 
         vbox = self.w.vbox
+
+        fr = Widgets.Frame("Bias")
+
+        captions = [
+            ("Sub Bias", 'checkbutton'),
+            ]
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+
+        b.sub_bias.set_tooltip("Subtract bias calculated from overscan regions")
+        b.sub_bias.set_state(self.sub_bias)
+        b.sub_bias.add_callback('activated', self.sub_bias_cb)
+
+        fr.set_widget(w)
+        vbox.add_widget(fr, stretch=0)
 
         fr = Widgets.Frame("Flats")
 
@@ -107,8 +125,8 @@ class SPCAM(Mosaic.Mosaic):
         b.flat_dir.set_text(self.settings.get('flat_dir', ''))
         b.load_flats.add_callback('activated', self.load_flats_cb)
         b.use_flats.set_tooltip("Flat field tiles as they arrive")
-        use_flats = self.settings.get('use_flats', False)
-        b.use_flats.set_state(use_flats)
+        b.use_flats.set_state(self.use_flats)
+        b.use_flats.add_callback('activated', self.use_flats_cb)
         b.flat_dir.set_tooltip("Directory containing flat field tiles")
         b.load_flats.set_tooltip("Load flat field tiles from directory")
 
@@ -126,6 +144,20 @@ class SPCAM(Mosaic.Mosaic):
 
         b.load_exp.add_callback('activated', self.load_exp_cb)
         b.exposure.add_callback('activated', self.load_exp_cb)
+
+        fr.set_widget(w)
+        vbox.add_widget(fr, stretch=0)
+
+        fr = Widgets.Frame("Quick Color Maps")
+
+        captions = [
+            ("Gray", 'button', "JT", 'button'),
+            ]
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+
+        b.gray.add_callback('activated', lambda w: self.set_cmap('gray'))
+        b.jt.add_callback('activated', lambda w: self.set_cmap('jt'))
 
         fr.set_widget(w)
         vbox.add_widget(fr, stretch=0)
@@ -187,17 +219,20 @@ class SPCAM(Mosaic.Mosaic):
         return (new_frlist, new_exposure, imname, exposures)
 
 
-    def mk_loader(self, bnch):
-        def load_mosaic(filepath):
+    def mk_future(self, bnch):
+        def load_mosaic(bnch):
+            self.fv.assert_nongui_thread()
             paths = list(bnch.paths)
-            image = self.mosaic(paths, new_mosaic=True, name=bnch.name)
-            return image
-        return load_mosaic
+            return self.mosaic(paths,
+                               new_mosaic=True, name=bnch.name)
+        future = Future.Future()
+        future.freeze(load_mosaic, bnch)
+        return future
 
-    def add_to_contents(self, exposures):
-        self.logger.info("adding to contents: exposures=%s" % (str(exposures)))
+    def add_to_channel(self, exposures):
+        self.logger.info("adding to channel: exposures=%s" % (str(exposures)))
         try:
-            channel = self.fv.get_channelInfo(self.mosaic_chname)
+            channel = self.fv.get_channel(self.mosaic_chname)
 
             for exp_frid in exposures:
                 # get the information about this exposure
@@ -205,37 +240,37 @@ class SPCAM(Mosaic.Mosaic):
                 if exp_bnch.added_to_contents:
                     continue
 
-                self.logger.debug("Exposure '%s' not yet added to contents" % (
+                self.logger.debug("Exposure '%s' not yet added to channel" % (
                     exp_frid))
+
                 # load the representative image
                 #image = AstroImage.AstroImage(logger=self.logger)
                 # TODO: is this load even necessary?  Would be good
                 # if we could just load the headers
                 path = exp_bnch.typical
-                #image.load_file(path)
-                # make a new loader that will load the mosaic and attach
-                # it to this image as the loader
-                image_loader = self.mk_loader(exp_bnch)
 
-                info = Bunch.Bunch(name=exp_frid, path=path,
-                                   image_loader=image_loader)
+                # make a future that will load the mosaic if we need
+                # to recreate it
+                image_future = self.mk_future(exp_bnch)
+
+                info = Bunch.Bunch(name=exp_frid, path=None,
+                                   image_future=image_future)
 
                 exp_bnch.added_to_contents = True
 
-                # add this to the contents pane
-                ## self.fv.gui_do(self.fv.advertise_image,
-                ##                self.mosaic_chname, image)
+                # add this to the channel contents
                 self.logger.info("adding to channel: info=%s" % (str(info)))
-                self.fv.gui_do(channel.add_image_info, info)
+                channel.add_image_info(info)
 
         except Exception as e:
-            self.logger.warn("'Contents' plugin not available: %s" % (str(e)))
+            self.logger.warn("Error adding to channel: %s" % (str(e)))
             return
 
     def process_frames(self, timer):
         self.fv.gui_do(self._process_frames)
 
     def _process_frames(self):
+        self.fv.assert_gui_thread()
         self.logger.info("processing queued frames")
 
         # Get all files stored in the queue
@@ -247,22 +282,27 @@ class SPCAM(Mosaic.Mosaic):
             except Queue.Empty:
                 break
 
-        self.logger.debug("paths=%s" % str(paths))
+        self.logger.debug("1. paths=%s" % str(paths))
         if len(paths) == 0:
             return
 
-        self.logger.info("adding to contents: %s" % (str(paths)))
+        self.logger.info("paths are: %s" % (str(paths)))
         try:
             paths, new_mosaic, imname, exposures = self.get_latest_frames(paths)
 
-            self.logger.info("adding to contents")
-            self.add_to_contents(exposures)
+            if len(exposures) > 0:
+                self.add_to_channel(exposures)
+
+            self.logger.debug("2. paths=%s" % str(paths))
+            if len(paths) == 0:
+                return
+
         except Exception as e:
-            self.logger.error("error adding to contents: %s" % (str(e)))
+            self.logger.error("error adding to channel: %s" % (str(e)))
 
         mosaic_new = self.settings.get('mosaic_new', False)
-        self.logger.info("mosaic_new=%s new_mosaic=%s" % (mosaic_new,
-                                                          new_mosaic))
+        self.logger.info("mosaic_new=%s new_mosaic=%s imname=%s" % (
+            mosaic_new, new_mosaic, imname))
         if self.gui_up and mosaic_new:
             self.logger.info("mosaicing %s" % (str(paths)))
             self.fv.nongui_do(self.mosaic, paths, name=imname,
@@ -285,8 +325,15 @@ class SPCAM(Mosaic.Mosaic):
         path = os.path.join(self.basedir, frid)
         paths = self.dr.get_file_list(path)
         self.logger.info("paths are: %s" % (paths))
+
         new_paths, new_mosaic, imname, exposures = self.get_latest_frames(paths)
+        if len(exposures) > 0:
+            self.add_to_channel(exposures)
+
         self.fv.nongui_do(self.mosaic, paths, name=imname, new_mosaic=True)
+
+    def set_cmap(self, cmname):
+        self.fitsimage.set_color_map(cmname)
 
     def mangle_image(self, image):
         d = self.dr.get_regions(image)
@@ -295,10 +342,11 @@ class SPCAM(Mosaic.Mosaic):
 
         # subtract overscan region
         result = self.dr.subtract_overscan_np(data_np, d,
-                                              header=header)
+                                              header=header,
+                                              sub_bias=self.sub_bias)
 
         # flat field this piece, if flat provided
-        do_flat = self.w.use_flats.get_state()
+        do_flat = self.use_flats
         if do_flat and (len(self.flat) > 0):
             try:
                 ccd_id = int(image.get_keyword('DET-ID'))
@@ -358,6 +406,12 @@ class SPCAM(Mosaic.Mosaic):
         self.settings.set(flat_dir=dirpath)
 
         self.fv.nongui_do(self._load_flats, dirpath)
+
+    def use_flats_cb(self, w, tf):
+        self.use_flats = tf
+
+    def sub_bias_cb(self, w, tf):
+        self.sub_bias = tf
 
     def __str__(self):
         return 'spcam'

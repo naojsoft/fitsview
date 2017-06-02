@@ -480,7 +480,8 @@ class ReceiveFITS(object):
                 return
 
             #self.fv.make_callback('file-notify', fitspath)
-            self.fv.nongui_do(self.fv.make_callback, 'file-notify', fitspath)
+            #self.fv.nongui_do(self.fv.make_callback, 'file-notify', fitspath)
+            self.fv.gui_do(self.fv.make_callback, 'file-notify', fitspath)
 
 
     def arr_taskinfo(self, payload, name, channels):

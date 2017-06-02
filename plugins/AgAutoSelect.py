@@ -45,7 +45,7 @@ class AgAutoSelect(Catalogs.Catalogs):
         # Gather parameters
         p = future.get_data()
 
-        self.clearAll()
+        self.clear_all()
         self.reset()
 
         # Draw the graphics for this particular foci or instrument
