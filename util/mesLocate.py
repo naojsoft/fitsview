@@ -460,9 +460,12 @@ class MESLocate(object):
                     shapes.append(self.dc.Circle(x+dx, y+dy, r, color='white'))
 
             # then, update the little pictures
-            x1, y1, x2, y2 = (x-sq_size+dx, y-sq_size+dy,
-                              x+sq_size+dx, y+sq_size+dy)
-            cropped_data = src_image.cutout_adjust(x1,y1,x2,y2)[0]
+            xylimits = (x-sq_size+dx, y-sq_size+dy,
+                        x+sq_size+dx, y+sq_size+dy)
+            # TODO: cutout_adjust requires integer values. Should we
+            # use int function or ceil function or something else to
+            # convert float values to integer values?
+            cropped_data = src_image.cutout_adjust(*[int(z) for z in xylimits])[0]
             viewer.set_data(cropped_data)
             self.fitsimage.copy_attributes(viewer,
                                            ['transforms','cutlevels','rgbmap'])
@@ -972,7 +975,11 @@ def locate_obj(bounds, masks, image, viewer=None,
         or a tuple of NaNs if no star could be found
     """
     # start by getting the raw data from the image matrix
-    raw, x0,y0,x1,y1 = image.cutout_adjust(*bounds[:4])
+
+    # TODO: cutout_adjust requires integer values. Should we use int
+    # function or ceil function or something else to convert float
+    # values to integer values?
+    raw, x0,y0,x1,y1 = image.cutout_adjust(*[int(z) for z in bounds[:4]])
     search_radius = bounds[4]
     x_cen, y_cen = raw.shape[0]/2.0, raw.shape[1]/2.0
     yx = np.indices(raw.shape)
