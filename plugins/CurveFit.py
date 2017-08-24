@@ -10,8 +10,7 @@ import numpy
 
 import Gen2.fitsview.util.curve_fit as curvefit
 
-from ginga.misc import CanvasTypes, Widgets
-from ginga.gw import Plot
+from ginga.gw import Plot, Widgets
 from ginga.util import plots
 from ginga import GingaPlugin
 

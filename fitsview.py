@@ -130,11 +130,13 @@ local_plugins = [
     Bunch(module='Ruler', workspace='dialogs', category=None),
     Bunch(module='MultiDim', workspace='lleft', category=None),
     Bunch(module='Cuts', workspace='dialogs', category=None),
+    Bunch(module='LineProfile', workspace='dialogs', category=None),
     Bunch(module='Histogram', workspace='dialogs', category=None),
+    Bunch(module='PixTable', workspace='dialogs', category=None),
     Bunch(module='Crosshair', workspace='dialogs', category=None),
+    Bunch(module='WCSAxes', workspace='dialogs', category=None),
     Bunch(module='Overlays', workspace='dialogs', category=None),
     Bunch(module='Blink', workspace='dialogs', category=None),
-    Bunch(module='PixTable', workspace='dialogs', category=None),
     Bunch(module='Preferences', workspace='dialogs', category=None),
     Bunch(module='Catalogs', workspace='dialogs', category=None),
     Bunch(module='Mosaic', workspace='dialogs', category=None),
@@ -205,7 +207,7 @@ def main(options, args):
     settings.load(onError='silent')
     settings.set_defaults(useMatplotlibColormaps=False,
                           widgetSet='choose',
-                          WCSpkg='kapteyn', FITSpkg='astropy')
+                          WCSpkg='astropy', FITSpkg='astropy')
 
     # Choose a toolkit
     if options.toolkit:
@@ -215,6 +217,53 @@ def main(options, args):
 
     ginga_toolkit.use(toolkit)
     tkname = ginga_toolkit.get_family()
+
+    logger.info("Chosen toolkit (%s) family is '%s'" % (
+        ginga_toolkit.toolkit, tkname))
+
+    if settings.get('useMatplotlibColormaps', False):
+        # Add matplotlib color maps if matplotlib is installed
+        try:
+            from ginga import cmap
+            cmap.add_matplotlib_cmaps()
+        except Exception as e:
+            logger.warning("failed to load matplotlib colormaps: %s" % (str(e)))
+
+    # User wants to customize the WCS package?
+    wcspkg = settings.get('WCSpkg', 'choose')
+    try:
+        from ginga.util import wcsmod
+        if wcspkg != 'choose':
+            assert wcsmod.use(wcspkg) is True
+    except Exception as e:
+        logger.warning("failed to set WCS package preference: %s" % (str(e)))
+
+    # User wants to customize the FITS package?
+    fitspkg = settings.get('FITSpkg', 'choose')
+    try:
+        from ginga.util import io_fits
+        if wcspkg != 'choose':
+            assert io_fits.use(fitspkg) is True
+    except Exception as e:
+        logger.warning("failed to set FITS package preference: %s" % (str(e)))
+
+    # Check whether user wants to use OpenCv
+    use_opencv = settings.get('use_opencv', False)
+    if use_opencv:
+        from ginga import trcalc
+        try:
+            trcalc.use('opencv')
+        except Exception as e:
+            logger.warning("failed to set OpenCv preference: %s" % (str(e)))
+
+    # Check whether user wants to use OpenCL
+    use_opencl = settings.get('use_opencl', False)
+    if use_opencl:
+        from ginga import trcalc
+        try:
+            trcalc.use('opencl')
+        except Exception as e:
+            logger.warning("failed to set OpenCL preference: %s" % (str(e)))
 
     # TEMP: ginga needs to find its plugins
     gingaHome = os.path.split(sys.modules['ginga'].__file__)[0]
