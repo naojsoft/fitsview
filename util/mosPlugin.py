@@ -38,7 +38,6 @@ class MESPlugin(GingaPlugin.LocalPlugin):
         """
         # superclass constructor defines self.fv, self.fitsimage, and self.logger:
         super(MESPlugin, self).__init__(fv, fitsimage)
-        fv.set_titlebar("MOIRCS Acquisition")
         
         # now sets up the ginga.canvas.types.layer.DrawingCanvas self.canvas,
         # which is necessary to draw on the image:
