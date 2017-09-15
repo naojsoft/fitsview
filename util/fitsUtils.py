@@ -4,7 +4,10 @@
 #
 # Justin Kunimune
 #
-
+#   2017/Sep/15  Dr. Chi-Hung Yan (chyan@naoj.org, chyan@asiaa.sinica.edu.tw) 
+#
+#      Adding functions to remove the denpendicies of IRAF.  
+#
 
 
 # standard imports
@@ -15,6 +18,8 @@ import os
 from astropy.io import fits
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
+import copy
+from scipy.ndimage.interpolation import shift 
 
 # constants
 #DIR_MCSRED = '../../MCSRED2/'
@@ -51,6 +56,78 @@ from pyraf.iraf import geotran
 from pyraf.iraf import imcombine
 from pyraf.iraf import rotate
 
+
+
+class DistortionCoeffCh1:
+    a=-8.635143
+    b=1.009153
+    c=2.394803E-4
+    d=-10.43176
+    e=2.192026E-4
+    f=1.00965
+
+    xc00=-16.37997
+    xc10=0.04216358
+    xc20=-3.961311E-5
+    xc30=1.453919E-8
+    xc01=0.02687643
+    xc11=-2.919222E-5
+    xc21=-6.896180E-11
+    xc02=-1.334916E-5
+    xc12=1.432681E-8
+    xc03=6.087694E-11
+
+    yc00=-16.98225
+    yc10=0.02702253
+    yc20=-1.542926E-5
+    yc30=2.064173E-10
+    yc01=0.04707864
+    yc11=-2.632263E-5
+    yc21=1.465591E-8
+    yc02=-4.374318E-5
+    yc12=-2.114975E-12
+    yc03=1.430626E-8
+
+
+class DistortionCoeffCh2:
+    a=-5.023962
+    b=1.004285
+    c=1.277659E-4
+    d=-5.48291
+    e=7.625483E-5
+    f=1.004831
+
+    xc00=-27.69665
+    xc10=0.06082649
+    xc20=-4.797236E-5
+    xc30=1.420412E-8
+    xc01=0.03267656
+    xc11=-2.884639E-5
+    xc21=-9.848598E-11
+    xc02=-1.614414E-5
+    xc12=1.410305E-8
+    xc03=9.066495E-11
+
+    yc00=-24.74531
+    yc10=0.03398627
+    yc20=-1.568090E-5
+    yc30=2.707538E-10
+    yc01=0.05459096
+    yc11=-3.218881E-5
+    yc21=1.433751E-8
+    yc02=-4.413517E-5
+    yc12=-4.351142E-11
+    yc03=1.435618E-8
+
+class MosaicParameterCh2:
+    a=-1602.189
+    b=0.9993759
+    c=0.009615554
+    d=40.30523
+    e=-0.009611026
+    f=0.9998468
+ 
+
 def nothing(*args, **kwargs):
     """A placeholder function for log"""
     pass
@@ -74,6 +151,7 @@ def auto_process_fits(mode, n1, n2, c, i, w, f, t, log=nothing, next_step=None):
     except Exception as e:
         log("{}: {}".format(type(e).__name__, e), level='e')
 
+    
 
 def process_star_fits(star_num, back_num, c_file, img_dir, work_dir, output_filename,
                       terminate, log=nothing, next_step=None
@@ -134,7 +212,8 @@ def process_star_fits(star_num, back_num, c_file, img_dir, work_dir, output_file
     
     # mosaic the chips together
     if terminate.is_set():  return
-    mosaic_data = make_mosaic('star', star_num, dif_data, c_file, work_dir, terminate, log=log)
+    mosaic_data = makeMosaic('star', star_num, dif_data, c_file, work_dir, terminate, log=log)
+    #mosaic_data = make_mosaic('star', star_num, dif_data, c_file, work_dir, terminate, log=log)
     if terminate.is_set():  return
     
     # apply gaussian blur
@@ -183,7 +262,7 @@ def process_mask_fits(mask_num, c_file, img_dir, work_dir, output_filename,
     
     # mosaic the reformatted results to a file
     if terminate.is_set():  return
-    mosaic_data = make_mosaic('mask', mask_num, [hdu.data for hdu in mask_chip], c_file,
+    mosaic_data = makeMosaic('mask', mask_num, [hdu.data for hdu in mask_chip], c_file,
                               work_dir, terminate, log=log)
     if terminate.is_set():  return
     
@@ -193,7 +272,177 @@ def process_mask_fits(mask_num, c_file, img_dir, work_dir, output_filename,
     if next_step != None:
         next_step()
 
+def transformLocation(uncorrectXY,dc):
+        
+    x,y=uncorrectXY
+    
+    xfit1=dc.a+dc.b*x+dc.c*y
+    yfit1=dc.d+dc.e*x+dc.f*y
 
+    xfit2=dc.xc00+(dc.xc10*x)+(dc.xc01*y)+(dc.xc20*x**2)+(dc.xc30*x**3)+(dc.xc11*x*y)+(dc.xc21*x**2*y)\
+            +(dc.xc02*y**2)+(dc.xc12*x*y**2)+(dc.xc03*y**3)
+        
+    yfit2=dc.yc00+(dc.yc10*x)+(dc.yc20*x**2)+(dc.yc30*x**3)+(dc.yc01*y)+(dc.yc11*x*y)+(dc.yc21*x**2*y)\
+            +(dc.yc02*y**2)+(dc.yc12*x*y**2)+(dc.yc03*y**3)
+
+    xfit=xfit1+xfit2
+    yfit=yfit1+yfit2
+
+    xfit[np.where(xfit < 0)]=0
+    yfit[np.where(yfit < 0)]=0
+    xfit[np.where(xfit > 2047)]=2047
+    yfit[np.where(yfit > 2047)]=2047
+
+    indx=np.uint(np.round(xfit))
+    indy=np.uint(np.round(yfit))
+
+    return indx,indy
+
+def transformImage(base_name, n, input_arr, dc):
+    """
+    Correct the input array for distortion using the given dbs and gmp
+    @param input_arr:
+        The input numpy array
+    @param dbs_filename:
+        The filename of the IRAF 'database file'. Not to be confused with an
+        SQLBase .dbs file, or a .db database file.
+    @param gmp_filename:
+        The filename inside the filename that tells IRAF which part of the dbs
+        file to look at. Because using integers was too easy, so why not just
+        use filenames with an extention that doesn't exist to index through a
+        file. Rather, the .gmp file extension does exist, and serves a log of
+        purposes, but none of them have anything to do with IRAF or image
+        transformations. WHYYYYYY?
+    @returns:
+        The corrected numpy array
+    """
+    input_filename = base_name+'_geotran_input%s.fits' % n
+    output_filename = base_name +'_geotran_output%s.fits' % n
+    
+    if os.path.exists(output_filename):
+        os.remove(output_filename)
+    fits.PrimaryHDU(data=input_arr).writeto(input_filename, clobber=True)
+
+    #remapImage=detrendImage 
+    img=np.copy(input_arr)
+    
+    y,x=np.mgrid[0:img.shape[0],0:img.shape[1]]
+    indx,indy=transformLocation([x,y],dc)
+    
+    remap=img[indy,indx]
+ 
+    fits.PrimaryHDU(data=remap).writeto(output_filename, clobber=True)
+    #output = fits.open(output_filename)[0].data
+    if not SAVE_INTERMEDIATE_FILES:
+        os.remove(input_filename)
+        os.remove(output_filename)
+    
+    return remap
+         
+ 
+
+
+def makeMosaic(im_type, frnum, input_data, c_file, work_dir, terminate, log=nothing):
+    """
+    Correct the images for distortion, and then combine the two FITS images by
+    rotating and stacking them vertically. Also do something to the header
+    @param input_data:
+        A sequence of two numpy 2D arrays to mosaic together
+    @param c_file:
+        The location of the configuration .cfg file that manages distortion-
+        correction
+    @param work_dir:
+        The string prefix to all intermediate processing filenames
+    @param terminate:
+        The threading.Event object that will tell us when/if to terminate
+    @param log:
+        A function that takes a single string argument and records it somehow
+    @returns:
+        A mosaiced numpy array comprising data from the two input_data arrays
+    """
+    # read MSCRED c_file
+    cfg = open(c_file, 'r')
+    config = []
+    line = cfg.readline()
+    while line != '':
+        if line[0] != '#':
+            config.append(line.split()[-1].replace('dir_mcsred$',DIR_MCSRED))
+        line = cfg.readline()
+    cfg.close()
+    
+    mosaic_data = [None,None]
+    if terminate.is_set():  return
+
+    basename1 = os.path.join(work_dir, im_type+'_MCSA{:08d}'.format(frnum))
+    basename2 = os.path.join(work_dir, im_type+'_MCSA{:08d}'.format(frnum+1))
+    
+    # correct for distortion and apply mask
+    log("Correcting for distortion using Python...")
+    dcc1=DistortionCoeffCh1()
+    mosaic_data[0] = transformImage(basename1, 1, input_data[0], dcc1)
+    if terminate.is_set():  return
+    
+    dcc2=DistortionCoeffCh2()
+    mosaic_data[1] = transformImage(basename2, 1, input_data[1], dcc2)
+    if terminate.is_set():  return
+
+    log("Correcting for more distortion using Python...")
+    ''' Shift the channel 1 image '''
+    temp1=np.zeros((2048,3636))
+    temp1[:,0:2048]=copy.copy(mosaic_data[0])
+    mosaic_data[0]=temp1
+    if terminate.is_set():  return
+
+    '''Operate on channel2'''
+    temp2=np.zeros((2048,3636))
+    temp2[:,0:2048]=copy.copy(mosaic_data[1])
+    
+    y,x=np.mgrid[0:temp2.shape[0],0:temp2.shape[1]]
+    
+    '''Loading mosaic parameter'''
+    mc2=MosaicParameterCh2()
+    xfit=mc2.a+mc2.b*x+mc2.c*y
+    yfit=mc2.d+mc2.e*x+mc2.f*y
+    
+    ''' Arranging indexes in correct range'''
+    xfit[np.where(xfit < 0)]=0
+    yfit[np.where(yfit < 0)]=0
+    xfit[np.where(xfit > 2047)]=2047
+    yfit[np.where(yfit > 2047)]=2047
+    
+    ''' Round the float numbers to integer'''
+    indx=np.uint(np.round(xfit))
+    indy=np.uint(np.round(yfit))
+    
+    remap=temp2[indy,indx]
+    mosaic_data[1]=remap
+    if terminate.is_set():  return
+    # combine and rotate the images
+    log("Combining the chips and applying bad pixel mask using Python...")
+    combined_image = combineMask(basename1, basename2, mosaic_data[0], mosaic_data[1],
+                                            config[12], config[13])
+    if terminate.is_set():  return
+
+
+    log("Rotating the image with Python...")
+    input_filename = basename1+'_rotate_input.fits'
+    output_filename = basename1+'_rotate_output.fits'
+    if os.path.exists(input_filename):
+        os.remove(input_filename)
+    fits.PrimaryHDU(data=combined_image).writeto(input_filename, clobber=True)
+    mosaic_arr=shift(np.rot90(combined_image, k=3),[33.5,0],order=0)[67:,:]
+    
+    fits.PrimaryHDU(data=mosaic_arr).writeto(output_filename, clobber=True)
+    #mosaic_arr = fits.open(output_filename)[0].data
+    if not SAVE_INTERMEDIATE_FILES:
+        os.remove(input_filename)
+        os.remove(output_filename)
+    if terminate.is_set():  return
+    # XXX: stuff I haven't figured out how to do wiothout IRAF yet :XXX #
+    
+    return mosaic_arr
+   
+    
 def make_mosaic(im_type, frnum, input_data, c_file, work_dir, terminate, log=nothing):
     """
     Correct the images for distortion, and then combine the two FITS images by
@@ -359,6 +608,9 @@ def combine_and_apply_mask(basename1, basename2, input1, input2, filename_mask1,
 
     imcombine(','.join([input_filename1,input_filename2]), output_filename,
               combine='average', reject='avsig', masktype='goodvalue', maskvalue=mask_val)
+    
+    
+    
     output = fits.open(output_filename)[0].data
 
     if not SAVE_INTERMEDIATE_FILES:
@@ -367,6 +619,53 @@ def combine_and_apply_mask(basename1, basename2, input1, input2, filename_mask1,
         os.remove(output_filename)
 
     return output
+
+def combineMask(basename1, basename2, input1, input2, filename_mask1, filename_mask2, mask_val=0):
+    """
+    Replace all masked pixels with zero in the input array
+    @param input1:
+        The input numpy array for chip 1
+    @param input2:
+        The input numpy array for chip 2
+    @param filename_mask1:
+        Filename of pixel mask for chip 1
+    @param filename_mask2:
+        Filename of pixel mask for chip 2
+    @param mask_val:
+        The value to put into all of the masked pixels
+    """
+    
+    input_filename1 = basename1+'_imcombine_input.fits'
+    input_filename2 = basename2+'_imcombine_input.fits'
+    output_filename = basename1+'_imcombine_output.fits'
+    if os.path.exists(output_filename):
+        os.remove(output_filename)
+
+    hdu = fits.PrimaryHDU(data=input1)
+    #hdu.header['BPM'] = filename_mask1
+    badpix1=fits.open(filename_mask1+'.fits')[0].data
+    hdu.writeto(input_filename1, clobber=True)
+
+    hdu = fits.PrimaryHDU(data=input2)
+    badpix2=fits.open(filename_mask2+'.fits')[0].data
+    #hdu.header['BPM'] = filename_mask2
+    hdu.writeto(input_filename2, clobber=True)
+
+    img=input1*np.subtract(1,badpix1)+input2*np.subtract(1,badpix2)
+        
+    avg=np.median(img)
+    img=np.add(0.5*avg,0.5*img)    
+    
+    outhdu = fits.PrimaryHDU(data=img)
+    outhdu.writeto(output_filename,overwrite=True)
+    #output = fits.open(output_filename)[0].data
+
+    if not SAVE_INTERMEDIATE_FILES:
+        os.remove(input_filename1)
+        os.remove(input_filename2)
+        os.remove(output_filename)
+
+    return img
 
 #END
 
