@@ -18,7 +18,6 @@ import os
 from astropy.io import fits
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
-import copy
 from scipy.ndimage.interpolation import shift 
 
 # constants
@@ -324,7 +323,7 @@ def transformImage(base_name, n, input_arr, dc):
     fits.PrimaryHDU(data=input_arr).writeto(input_filename, clobber=True)
 
     #remapImage=detrendImage 
-    img=np.copy(input_arr)
+    img=input_arr
     
     y,x=np.mgrid[0:img.shape[0],0:img.shape[1]]
     indx,indy=transformLocation([x,y],dc)
@@ -389,13 +388,13 @@ def makeMosaic(im_type, frnum, input_data, c_file, work_dir, terminate, log=noth
     log("Correcting for more distortion using Python...")
     ''' Shift the channel 1 image '''
     temp1=np.zeros((2048,3636))
-    temp1[:,0:2048]=copy.copy(mosaic_data[0])
+    temp1[:,0:2048]=mosaic_data[0]
     mosaic_data[0]=temp1
     if terminate.is_set():  return
 
     '''Operate on channel2'''
     temp2=np.zeros((2048,3636))
-    temp2[:,0:2048]=copy.copy(mosaic_data[1])
+    temp2[:,0:2048]=mosaic_data[1]
     
     y,x=np.mgrid[0:temp2.shape[0],0:temp2.shape[1]]
     
