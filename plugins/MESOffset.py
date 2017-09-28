@@ -50,7 +50,12 @@ class MESOffset(mosPlugin.MESPlugin):
         
         {'name':'exec_mode',
          'label':"Execution Mode", 'type':int, 'options':["Normal","Fine"],
-         'desc':"Choose 'Fine' to skip MES Offset 1"}
+         'desc':"Choose 'Fine' to skip MES Offset 1"},
+		
+        {'name':'debug_mode',
+         'label':"Debug", 'type':bool, 'default': False,
+         'desc':"Check this box for keeping all by-products"}
+
     ]
     
     # mesoffset1 parameters
@@ -230,6 +235,7 @@ class MESOffset(mosPlugin.MESPlugin):
         except ValueError:
             exec_option = 0
         self.PARAMS_0[4]['default'] = exec_option
+        #fitsUtils.SAVE_INTERMEDIATE_FILES = self.PARAMS_0[5]['default']
         self.mes_interface.set_params(mcsred_dir)
         self.training_dir = training_dir
         fitsUtils.DIR_MCSRED = mcsred_dir + '/'
@@ -303,6 +309,9 @@ class MESOffset(mosPlugin.MESPlugin):
             self.database['img_dir'] += '/'
         self.__dict__.update(self.database)
         self.logger.info('MESOffset1 database %s' % self.database)
+        self.logger.info('Setting MESOffset1 debug mode %s' % self.database['debug_mode'])
+        fitsUtils.SAVE_INTERMEDIATE_FILES = self.database['debug_mode']
+        self.logger.info('debug mode %s' % fitsUtils.SAVE_INTERMEDIATE_FILES)
         self.process_star_fits()
     
     def process_star_fits(self, *args):

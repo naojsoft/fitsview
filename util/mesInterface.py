@@ -66,6 +66,7 @@ class MESInterface(object):
         except NameError as e:
             self.log("NameError: "+str(e), level='e')
             return
+
         if proc_num == 0:
             self.manager.execute_mesoffset0()
         elif proc_num == 1:
@@ -74,7 +75,7 @@ class MESInterface(object):
             self.manager.begin_mesoffset2()
         elif proc_num == 3:
             self.manager.begin_mesoffset3()
-    
+
     def done_cb(self, *args):
         self.logger.info('Done button pressed')
         p = self.manager.callerInfo.get_data()
@@ -108,6 +109,7 @@ class MESInterface(object):
             if type(value) in (str, six.text_type):
                 value = process_filename(value, self.variables)
             new_params[key] = value
+            
         self.logger.info('MESInterface updating database with values %s' % new_params)
         self.manager.database.update(new_params)
     

@@ -2,11 +2,15 @@
 # fitsUtils.py -- A utility file with methods to manipulate FITS files
 # Works in conjunction with MESOffset ginga plugin for MOS Acquisition
 #
-# Justin Kunimune
+#   2016/Aug/01  Justin Kunimune   Initial version
 #
 #   2017/Sep/15  Dr. Chi-Hung Yan (chyan@naoj.org, chyan@asiaa.sinica.edu.tw) 
 #
 #      Adding functions to remove the denpendicies of IRAF.  
+#
+#   2017/Sep/12  Dr. Chi-Hung Yan (chyan@naoj.org, chyan@asiaa.sinica.edu.tw) 
+#
+#      Adding debug mode for stopping produce by-products.  
 #
 
 
@@ -224,7 +228,7 @@ def process_star_fits(star_num, back_num, c_file, img_dir, work_dir, output_file
                  clobber=True)
     if next_step != None:
         next_step()
-
+    
 
 def process_mask_fits(mask_num, c_file, img_dir, work_dir, output_filename,
                       terminate, log=nothing, next_step=None):
@@ -262,6 +266,8 @@ def process_mask_fits(mask_num, c_file, img_dir, work_dir, output_filename,
     # mosaic the reformatted results to a file
     if terminate.is_set():  return
     mosaic_data = makeMosaic('mask', mask_num, [hdu.data for hdu in mask_chip], c_file,
+                              work_dir, terminate, log=log)
+    #mosaic_data = make_mosaic('mask', mask_num, [hdu.data for hdu in mask_chip], c_file,
                               work_dir, terminate, log=log)
     if terminate.is_set():  return
     
@@ -317,27 +323,31 @@ def transformImage(base_name, n, input_arr, dc):
     """
     input_filename = base_name+'_geotran_input%s.fits' % n
     output_filename = base_name +'_geotran_output%s.fits' % n
-    
+
     if os.path.exists(output_filename):
         os.remove(output_filename)
-    fits.PrimaryHDU(data=input_arr).writeto(input_filename, clobber=True)
+    
+    if SAVE_INTERMEDIATE_FILES == True:
+        fits.PrimaryHDU(data=input_arr).writeto(input_filename, clobber=True)
 
     #remapImage=detrendImage 
     img=input_arr
-    
+
     y,x=np.mgrid[0:img.shape[0],0:img.shape[1]]
     indx,indy=transformLocation([x,y],dc)
-    
+
     remap=img[indy,indx]
- 
-    fits.PrimaryHDU(data=remap).writeto(output_filename, clobber=True)
+
+    if SAVE_INTERMEDIATE_FILES == True:
+        fits.PrimaryHDU(data=remap).writeto(output_filename, clobber=True)
+        
     #output = fits.open(output_filename)[0].data
-    if not SAVE_INTERMEDIATE_FILES:
-        os.remove(input_filename)
-        os.remove(output_filename)
-    
+    #if not SAVE_INTERMEDIATE_FILES:
+    #    os.remove(input_filename)
+    #    os.remove(output_filename)
+
     return remap
-         
+		
  
 
 
@@ -376,6 +386,8 @@ def makeMosaic(im_type, frnum, input_data, c_file, work_dir, terminate, log=noth
     basename2 = os.path.join(work_dir, im_type+'_MCSA{:08d}'.format(frnum+1))
     
     # correct for distortion and apply mask
+    log("fitsUtil debug mode = %s" % SAVE_INTERMEDIATE_FILES)
+
     log("Correcting for distortion using Python...")
     dcc1=DistortionCoeffCh1()
     mosaic_data[0] = transformImage(basename1, 1, input_data[0], dcc1)
@@ -428,14 +440,20 @@ def makeMosaic(im_type, frnum, input_data, c_file, work_dir, terminate, log=noth
     output_filename = basename1+'_rotate_output.fits'
     if os.path.exists(input_filename):
         os.remove(input_filename)
-    fits.PrimaryHDU(data=combined_image).writeto(input_filename, clobber=True)
+    
+    if SAVE_INTERMEDIATE_FILES == True:
+        fits.PrimaryHDU(data=combined_image).writeto(input_filename, clobber=True)
+    
     mosaic_arr=shift(np.rot90(combined_image, k=3),[33.5,0],order=0)[67:,:]
     
-    fits.PrimaryHDU(data=mosaic_arr).writeto(output_filename, clobber=True)
+    #log("SAVE_INTERMEDIATE_FILES =... %r " % SAVE_INTERMEDIATE_FILES)
+    if SAVE_INTERMEDIATE_FILES == True:
+        fits.PrimaryHDU(data=mosaic_arr).writeto(output_filename, clobber=True)
+    
     #mosaic_arr = fits.open(output_filename)[0].data
-    if not SAVE_INTERMEDIATE_FILES:
-        os.remove(input_filename)
-        os.remove(output_filename)
+    #if not SAVE_INTERMEDIATE_FILES:
+    #    os.remove(input_filename)
+    #    os.remove(output_filename)
     if terminate.is_set():  return
     # XXX: stuff I haven't figured out how to do wiothout IRAF yet :XXX #
     
@@ -506,6 +524,7 @@ def make_mosaic(im_type, frnum, input_data, c_file, work_dir, terminate, log=not
     fits.PrimaryHDU(data=combined_image).writeto(input_filename, clobber=True)
     rotate(input_filename, output_filename, 90.0, ncols=2048, nlines=3569)
     mosaic_arr = fits.open(output_filename)[0].data
+    
     if not SAVE_INTERMEDIATE_FILES:
         os.remove(input_filename)
         os.remove(output_filename)
@@ -530,7 +549,7 @@ def open_fits(filename, chipnum):
         if the DET-ID is not chipnum
     """
     try:
-        hdu = fits.open(filename)[0]
+        hdu = fits.open(filename,'readonly',memmap=False)[0]
     except IOError as e:
         if len(filename) >= 1 and filename[0] in ('/'):
             raise IOError(NO_SUCH_FILE_ERR.format(filename))
@@ -642,13 +661,18 @@ def combineMask(basename1, basename2, input1, input2, filename_mask1, filename_m
 
     hdu = fits.PrimaryHDU(data=input1)
     #hdu.header['BPM'] = filename_mask1
-    badpix1=fits.open(filename_mask1+'.fits')[0].data
-    hdu.writeto(input_filename1, clobber=True)
+    badpixfit1=fits.open(filename_mask1+'.fits')[0]
+    badpix1=badpixfit1.data
+    
+    if SAVE_INTERMEDIATE_FILES == True:
+		hdu.writeto(input_filename1, clobber=True)
 
     hdu = fits.PrimaryHDU(data=input2)
-    badpix2=fits.open(filename_mask2+'.fits')[0].data
+    badpixfit2=fits.open(filename_mask2+'.fits')[0]
+    badpix2=badpixfit2.data
     #hdu.header['BPM'] = filename_mask2
-    hdu.writeto(input_filename2, clobber=True)
+    if SAVE_INTERMEDIATE_FILES == True:
+        hdu.writeto(input_filename2, clobber=True)
 
     img=input1*np.subtract(1,badpix1)+input2*np.subtract(1,badpix2)
         
@@ -656,14 +680,20 @@ def combineMask(basename1, basename2, input1, input2, filename_mask1, filename_m
     img=np.add(0.5*avg,0.5*img)    
     
     outhdu = fits.PrimaryHDU(data=img)
-    outhdu.writeto(output_filename,overwrite=True)
+    if SAVE_INTERMEDIATE_FILES == True:
+        #log("Writing commbined image...")
+        outhdu.writeto(output_filename,overwrite=True)
     #output = fits.open(output_filename)[0].data
 
-    if not SAVE_INTERMEDIATE_FILES:
-        os.remove(input_filename1)
-        os.remove(input_filename2)
-        os.remove(output_filename)
-
+#    if not SAVE_INTERMEDIATE_FILES:
+#        os.remove(input_filename1)
+#        os.remove(input_filename2)
+#        os.remove(output_filename)
+    
+    #Close images after using them
+    badpixfit1._close()
+    badpixfit2._close()
+    
     return img
 
 #END
