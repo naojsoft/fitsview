@@ -470,7 +470,8 @@ class MESOffset(mosPlugin.MESPlugin):
     
     def mes_hole_again(self, *args):
         """ Get hole positions on the new mask frame """
-        self.sbr_data = self.mes_locate.read_sbr_file(self.rootname+".sbr", self.logger)
+        #self.sbr_data = self.mes_locate.read_sbr_file(self.rootname+".sbr", self.logger)
+        self.sbr_data = self.mes_locate.read_sbr_file(os.path.join(self.training_dir,self.rootname+".sbr"), self.logger)
         self.mes_locate.start(self.sbr_data, 'mask', self.interact4,
                               next_step=self.check_mes_hole_again)
     
@@ -508,7 +509,7 @@ class MESOffset(mosPlugin.MESPlugin):
     
     def check_mes_starhole_again(self, *args):
         """ Review the results from mes_starhole and offer a chance to retry """
-        self.star_locations = self.mes_locate.output_data[:,:2]
+        self.star_locations = self.mes_locate.output_data#[:,:2]
         self.logger.info('MESOffset check_mes_starhole_again calling MESInterface.check with star_locations %s' % self.star_locations)
         self.mes_interface.check(self.star_locations,
                                  last_step=self.mes_starhole_again,
