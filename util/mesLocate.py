@@ -99,6 +99,7 @@ class MESLocate(object):
         # creates the list of thumbnails that will go in the GUI
         self.fitsimage.get_settings().set(autocut_method=autocut_method)
         self.thumbnails = create_viewer_list(self.obj_num, self.logger)
+        print(self.viewer_grid)
         self.viewer_grid.remove_all()
         for row in range(int(math.ceil(self.obj_num/2.0))):
             for col in range(2):
@@ -211,6 +212,17 @@ class MESLocate(object):
             self.click_index += 1
             self.color_index += 1
             self.select_point(self.click_history[self.click_index])
+
+    def reset_cb(self, *args):
+        """
+        This function reset the whole canvas to the origingal situation.
+        """
+        # Deleting all objects 
+        self.canvas.delete_all_objects()
+        # Now, replot it back to the canvas
+        self.color_index = 0
+        self.click_index = 0
+        self.select_point(self.click_history[0])
             
             
     def choose_select_cb(self, _, mode_idx):
@@ -683,7 +695,7 @@ class MESLocate(object):
 
         # the clear button erases the canvas
         btn = Widgets.Button("Clear")
-        btn.add_callback('activated', lambda w: self.canvas.delete_all_objects())
+        btn.add_callback('activated', self.reset_cb)
         btn.set_tooltip("Erase all marks on the canvas")
         box.add_widget(btn)
         

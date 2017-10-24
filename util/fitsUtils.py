@@ -268,7 +268,7 @@ def process_mask_fits(mask_num, c_file, img_dir, work_dir, output_filename,
     mosaic_data = makeMosaic('mask', mask_num, [hdu.data for hdu in mask_chip], c_file,
                               work_dir, terminate, log=log)
     #mosaic_data = make_mosaic('mask', mask_num, [hdu.data for hdu in mask_chip], c_file,
-                              work_dir, terminate, log=log)
+    #                          work_dir, terminate, log=log)
     if terminate.is_set():  return
     
     # finish up by writing to file and moving on

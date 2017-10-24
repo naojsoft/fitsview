@@ -411,7 +411,7 @@ class MESOffset(mosPlugin.MESPlugin):
     
     def load_processed_starhole(self, *args):
         """ Load the finished starhole image into ginga """
-        self.display_fits_from_file(filename=self.rootname+"_starhole.fits",
+        self.open_fits(filename=self.rootname+"_starhole.fits",
                        next_step=self.mes_starhole)
     
     def mes_starhole(self, *args):
@@ -588,7 +588,7 @@ class MESOffset(mosPlugin.MESPlugin):
             self.terminate = e
     
     
-    def display_fits_from_file(self, filename, next_step=None):
+    def open_fits(self, filename, next_step=None):
         """
         Open a FITS image and display it in ginga, then call a function
         @param filename:
