@@ -493,6 +493,39 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         future.resolve(0)
 
+    def mesoffset(self, tag, future, instrument_name=None, star_chip1=None,
+                  rootname=None, c_file=None, img_dir=None, exec_mode=None,
+                  mcsred_dir=None, training_dir=None, work_dir=None, wait_gui = None):
+        self.logger.info('QDAS MESOffset called')
+
+        chname = '%s_Online' % (instrument_name)
+        if not self.fv.has_channel(chname):
+            self.fv.add_channel(chname)
+        chinfo = self.fv.get_channelInfo(chname)
+
+        mesinfo = chinfo.opmon.getPluginInfo('MESOffset')
+        mesobj = mesinfo.obj
+
+        mesobj.set_params(star_chip1, rootname, c_file, img_dir, exec_mode,
+                          mcsred_dir, training_dir, work_dir, wait_gui)
+
+        # Deactivate plugin if one is already running
+        pluginName = 'MESOffset'
+        if chinfo.opmon.is_active(pluginName):
+            self.logger.info('QDAS MESOffset calling deactivate')
+            chinfo.opmon.deactivate(pluginName)
+            self.fv.update_pending()
+
+        # Invoke the GUI.
+        chinfo.opmon.start_plugin_future(chname, pluginName, future)
+
+        if not wait_gui:
+            p = future.get_data()
+            p.result = 'ok'
+            future.resolve(0)
+
+        self.logger.info('QDAS MESOffset completed')
+
     def seeing(self, tag, future,
                instrument_name, avg, std, dp):
 
