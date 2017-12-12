@@ -1348,8 +1348,9 @@ class VGW(GingaPlugin.GlobalPlugin):
         select_mode = p.select_mode.lower()
         manualSelect = False
         if select_mode != 'manual':
-            if 'num_preferred' not in p.info or \
-               (p.info['num_preferred'] == 0):
+            if ('num_preferred' not in p.info or
+               (p.info['num_preferred'] == 0) or
+                len(p.starlist) == 0):
                 msg = msg_semiauto_failure
                 self.fv.play_soundfile(snd_auto_failure, priority=19)
                 manualSelect = True
