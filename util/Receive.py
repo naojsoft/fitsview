@@ -42,6 +42,7 @@ class ReceiveFITS(object):
         # for looking up things about instruments
         self.insconfig = INSconfig.INSdata()
 
+        # TODO: is this used at all?  If not, get rid of it
         self._rlock = threading.RLock()
 
         self.fv.set_callback('file-notify', self.file_notify_cb)
@@ -65,7 +66,7 @@ class ReceiveFITS(object):
         return image
 
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
-                  image_loader=None):
+                  image_loader=None, display_image=True):
 
         dirname, filename = os.path.split(filepath)
 
@@ -130,9 +131,6 @@ class ReceiveFITS(object):
             channel = chname
 
         image.set(name=name, chname=channel)
-
-        # create channel, if it does not exist
-        chinfo = self.fv.get_channel_on_demand(channel)
 
         # Display image.  If the wait parameter is False then don't wait
         # for the image to load into the viewer
@@ -213,8 +211,7 @@ class ReceiveFITS(object):
             return ro.ERROR
 
         # Enqueue image to display datasrc
-        self.fv.gui_do(self.fv.add_image, imname, image,
-                            chname=chname)
+        self.fv.gui_do(self.fv.add_image, imname, image, chname=chname)
 
         return ro.OK
 
@@ -246,8 +243,7 @@ class ReceiveFITS(object):
             self.logger.info("image name is '%s'" % image.get('name'))
 
         # Enqueue image to display datasrc
-        self.fv.gui_do(self.fv.add_image, imname, image,
-                            chname=chname)
+        self.fv.gui_do(self.fv.add_image, imname, image, chname=chname)
 
         return ro.OK
 
@@ -258,6 +254,7 @@ class ReceiveFITS(object):
         """
 
         try:
+            self.logger.debug("Attempting to display '%s'" % (fitspath))
             image = self.open_fits(fitspath, frameid=frameid)
 
         except IOError as e:
@@ -283,40 +280,18 @@ class ReceiveFITS(object):
         frameid = str(frame)
 
         try:
-            with self._rlock:
-                self.logger.debug("Attempting to display '%s'" % (
-                    filepath))
-                self.display_fitsfile(filepath, frameid=frameid)
+            #with self._rlock:
+            #self.fv.nongui_do(self.display_fitsfile, filepath, frameid=frameid)
+            self.display_fitsfile(filepath, frameid=frameid)
 
         except Exception as e:
             self.logger.error("Error displaying '%s': %s" % (
                 filepath, str(e)))
 
     def file_notify(self, filepath):
+        # TODO: is this used at all?  If not, get rid of it
         self.file_notify_cb(self.fv, filepath)
         return 0
-
-    ## def executeCmd(self, subsys, tag, cmdName, args, kwdargs):
-
-    ##     self.logger.debug("Command received: subsys=%s command=%s args=%s kwdargs=%s tag=%s" % (
-    ##             subsys, cmdName, str(args), str(kwdargs), tag))
-
-    ##     try:
-    ##         # Try to look up the start method
-    ##         method = getattr(self.fv, cmdName)
-
-    ##     except AttributeError, e:
-    ##         ack_msg = "ERROR: No such method: %s" % (cmdName)
-    ##         self.logger.error(ack_msg)
-    ##         raise Exception(ack_msg)
-
-    ##     future = Future.Future(data=Bunch.Bunch(cmd=cmdName, tag=tag))
-    ##     future.freeze(None, *args, **kwdargs)
-    ##     future.add_callback('resolved', self.result_cb)
-
-    ##     future = self.fv.gui_do(method, *args)
-    ##     return ro.OK
-
 
     def pluginCmd(self, tag, chname, cmdName, args, kwdargs):
 
@@ -479,9 +454,8 @@ class ReceiveFITS(object):
             except KeyError:
                 return
 
-            #self.fv.make_callback('file-notify', fitspath)
-            #self.fv.nongui_do(self.fv.make_callback, 'file-notify', fitspath)
-            self.fv.gui_do(self.fv.make_callback, 'file-notify', fitspath)
+            self.fv.nongui_do(self.fv.make_callback, 'file-notify', fitspath)
+            #self.fv.gui_do(self.fv.make_callback, 'file-notify', fitspath)
 
 
     def arr_taskinfo(self, payload, name, channels):

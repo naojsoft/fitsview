@@ -1507,18 +1507,18 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         return ro.OK
 
-    def copy_data(self, chname1, chname2):
+    def copy_data(self, src_chname, dst_chname):
         try:
-            chinfo1 = self.fv.get_channelInfo(chname1)
-            chinfo2 = self.fv.get_channelInfo(chname2)
+            src_channel = self.fv.get_channelInfo(src_chname)
+            dst_channel = self.fv.get_channelInfo(dst_chname)
 
-            image = chinfo1.fitsimage.get_image()
-            chinfo2.fitsimage.set_image(image)
+            image = src_channel.fitsimage.get_image()
+            dst_channel.fitsimage.set_image(image)
             return image
 
         except Exception as e:
             errmsg = "Failed to load %s image into %s: is there an image present?" % (
-                chname1, chname2)
+                src_chname, dst_chname)
             self.logger.error(str(e))
             self.logger.error(errmsg)
             raise VGWError(errmsg)
