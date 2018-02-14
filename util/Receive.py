@@ -438,7 +438,7 @@ class ReceiveFITS(object):
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
@@ -463,7 +463,7 @@ class ReceiveFITS(object):
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
