@@ -167,10 +167,18 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         self.ax[1].grid(True)
         self.fig.canvas.draw()
 
+    def set_err_msg(self, i, msg, x, y):
+        self.ax[i].text(x, y, msg, bbox=dict(facecolor='red',  alpha=0.1, ),
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        fontsize=14, color='red')
+
     def _drawGraph(self, mcs_focus_data):
         self.fig, self.ax = plt.subplots(2, 1)
         self.canvas = figurecanvas(self.fig)
         self.canvas.set_size_request(-1, 500)
+
+        xmin, xmax, ymin, ymax = [0, 2048, 0.2, 1.2]
 
         focz = mcs_focus_data['FOC-VAL']
         det_data = mcs_focus_data['det_data']
@@ -191,19 +199,32 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
             x_pix_bins = d['x_pix_bins']
             medians = d['medians']
-            fit = np.polyfit(x_pix_bins, medians, 1)
-            fit_fn = np.poly1d(fit)
+            # TODO: The curve fitting in this section should be
+            # computed prior to entering the _drawGraph method and the
+            # fitting result passed into the _drawGraph method. That
+            # way, any exceptions that occur in the fitting process
+            # can be used to inform the user of the problem.
+            try:
+                fit = np.polyfit(x_pix_bins, medians, 1)
+                fit_str = "%.3g" % fit[0]
+                fit_fn = np.poly1d(fit)
 
-            self.ax[i].plot(x_pix_bins, medians, 'k*', label='Median', markersize=15)
+                self.ax[i].plot(x_pix_bins, medians, 'k*', label='Median', markersize=15)
 
-            x_fit = np.linspace(self.xmin_pixel,self.xmax_pixel,5)
-            self.ax[i].plot(x_fit, fit_fn(x_fit), 'k', label='Best fit')
+                x_fit = np.linspace(self.xmin_pixel,self.xmax_pixel,5)
+                self.ax[i].plot(x_fit, fit_fn(x_fit), 'k', label='Best fit')
+            except TypeError as e:
+                msg = 'Insufficent number of Selected sources to curve fit'
+                self.logger.error('Error occured while fitting median data for detector %d: %s' % (i, str(e)))
+                self.logger.error(msg)
+                fit_str = 'N/A'
+                self.set_err_msg(i, msg, 0.5*(xmin+xmax), 0.5*(ymin+ymax))
 
             frameid = d['FRAMEID']
-            title = '%s: FOC-Z=%s, Slope=%.3g' % (frameid, focz, fit[0])
+            title = '%s: FOC-Z=%s, Slope=%s' % (frameid, focz, fit_str)
             self.ax[i].set_title(title)
             ## 27 December 2015 - Increase y-axis range
-            self.ax[i].axis([0, 2048, 0.2, 1.2])
+            self.ax[i].axis([xmin, xmax, ymin, ymax])
             self.ax[i].set_xlabel('x [pixel]')
             self.ax[i].set_ylabel('FWHM [arcsec]')
             ## For Ubuntu 12.04
@@ -394,6 +415,8 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             x_col = se_table['X_IMAGE']
             fwhm_col = se_table['FWHM_IMAGE']
             data_range = ((self.bins[0], self.bins[-1]),)
+
+            self.logger.debug('Number of selected sources in Source Extractor table for detector %d: %d' % (i, len(x_col)))
 
             # Bin the data and compute the mean values of the FWHM in
             # each bin.
