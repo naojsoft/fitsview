@@ -36,7 +36,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         vtop = Widgets.VBox()
         vtop.set_border_width(2)
 
-        vbox, sw, orientation = Widgets.get_oriented_box(container)
+        box, sw, orientation = Widgets.get_oriented_box(container)
         splitter = Widgets.Splitter(orientation=orientation)
 
         self.msgFont = self.fv.getFont("sansFont", 18)
@@ -59,18 +59,23 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.label_ss = Widgets.TextArea(wrap=True, editable=False)
         self.label_ss.set_font(self.msgFont)
         self.label_ss.set_text("Seeing size: ")
-        vbox1.add_widget(self.label_ss)
+        vbox1.add_widget(self.label_ss, stretch=1)
 
         # label for data points
         self.label_dp = Widgets.TextArea(wrap=True, editable=False)
         self.label_dp.set_font(self.msgFont)
         self.label_dp.set_text("Data points: ")
-        vbox1.add_widget(self.label_dp)
+        vbox1.add_widget(self.label_dp, stretch=1)
+
+        # spacer = Widgets.Label('')
+        # vbox1.add_widget(spacer, stretch=1)
 
         fr = Widgets.Frame(" QDAS Seeing ")
         fr.set_widget(vbox1)
 
+        #box.add_widget(fr, stretch=1)
         splitter.add_widget(fr)
+        splitter.set_sizes([500, 200])
 
         btns = Widgets.HBox()
         btns.set_spacing(3)
@@ -80,8 +85,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         btns.add_widget(btn, stretch=1)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
-        vbox.add_widget(splitter, stretch=1)
-        vtop.add_widget(sw, stretch=1)
+        vtop.add_widget(splitter, stretch=1)
         vtop.add_widget(btns, stretch=0)
         container.add_widget(vtop, stretch=1)
 
