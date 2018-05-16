@@ -65,7 +65,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         vbox, sw, orientation = Widgets.get_oriented_box(container)
 
-        self.msgFont = self.fv.getFont("sansFont", 14)
+        self.msgFont = self.fv.get_font("sansFont", 14)
 
         tw = Widgets.TextArea(wrap=True, editable=False)
         tw.set_font(self.msgFont)
@@ -214,18 +214,18 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
-        self.canvas.ui_setActive(True)
+        self.canvas.ui_set_active(True)
         self.fv.showStatus("Draw a rectangle with the right mouse button")
 
     def stop(self):
         self.logger.debug("disabling canvas")
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)

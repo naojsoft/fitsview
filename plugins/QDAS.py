@@ -7,14 +7,9 @@
 import math
 import os
 
-import numpy
-
 from ginga import GingaPlugin, AstroImage
 from ginga.misc import Future, Bunch
 from ginga.util import wcs
-
-# g2base imports
-from g2base.remoteObjects import remoteObjects as ro
 
 # $PYHOME imports
 import astro.radec as radec
@@ -66,17 +61,22 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def qdas_display(self, tag, future,
                      instrument_name=None, input_frame=None):
 
+        self.fv.assert_gui_thread()
+
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert isinstance(image, AstroImage.AstroImage), \
-               QDASError("Null image for %s" % chname)
+        if not isinstance(image, AstroImage.AstroImage):
+            raise QDASError("Null image for %s" % chname)
 
         # remove all other QDAS layers
-        chinfo = self.fv.get_channel(chname)
-        self.withdraw_qdas_layers(chinfo.fitsimage)
+        # NOTE: this can be in a race condition with other plugins
+        # DISABLE FOR NOW
+        # chinfo = self.fv.get_channel_on_demand(chname)
+        # self.withdraw_qdas_layers(chinfo.fitsimage)
 
-        #self.fv.ds.raise_tab(chname)
+        # NOTE: this is now set via a channel preference in ginga
+        # self.fv.ds.raise_tab(chname)
 
         p = future.get_data()
         p.result = 'ok'
@@ -89,12 +89,11 @@ class QDAS(GingaPlugin.GlobalPlugin):
                      input_frame=None, select_mode=None,
                      x_region=None, y_region=None):
 
+        self.fv.assert_gui_thread()
+
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-
-        chinfo = self.fv.get_channel(chname)
+        chinfo = self.fv.get_channel_on_demand(chname)
 
         # Deactivate plugin if one is already running
         pluginName = 'Region_Selection'
@@ -103,8 +102,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.fv.update_pending()
 
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert isinstance(image, AstroImage.AstroImage), \
-               QDASError("Null image for %s" % chname)
+        if not isinstance(image, AstroImage.AstroImage):
+            raise QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
         # TODO: calculate automatic exptime?
@@ -126,7 +125,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         p.x2 = min(image.width-1,  p.x + p.dx)
         p.y2 = min(image.height-1, p.y + p.dy)
 
-        rsinfo = chinfo.opmon.getPluginInfo(pluginName)
+        rsinfo = chinfo.opmon.get_plugin_info(pluginName)
         rsobj = rsinfo.obj
 
         thr = rsobj.threshold
@@ -197,12 +196,11 @@ class QDAS(GingaPlugin.GlobalPlugin):
                        input_frame=None, slit_x=None, slit_y=None,
                        object_x=None, object_y=None, framelist=[]):
 
+        self.fv.assert_gui_thread()
+
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-
-        chinfo = self.fv.get_channel(chname)
+        chinfo = self.fv.get_channel_on_demand(chname)
 
         # Deactivate plugin if one is already running
         pluginName = 'Sv_Drive'
@@ -212,8 +210,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         input_frame = framelist[0]
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert isinstance(image, AstroImage.AstroImage), \
-               QDASError("Null image for %s" % chname)
+        if not isinstance(image, AstroImage.AstroImage):
+            raise QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
         # Set defaults and adjust for difference between data coords and
@@ -250,17 +248,16 @@ class QDAS(GingaPlugin.GlobalPlugin):
                          select_mode='OVERRIDE', recenter='NO',
                          width=None, height=None, badwcs='OK'):
 
+        self.fv.assert_gui_thread()
+
         # Create the QDAS channel if it is not already created
         chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-
-        chinfo = self.fv.get_channel(chname)
+        chinfo = self.fv.get_channel_on_demand(chname)
 
         # Load the image we are operating on into the channel
         image = self.load_frame(instrument_name, input_frame, chname)
-        assert isinstance(image, AstroImage.AstroImage), \
-               QDASError("Null image for %s" % chname)
+        if not isinstance(image, AstroImage.AstroImage):
+            raise QDASError("Null image for %s" % chname)
         self.fv.ds.raise_tab(chname)
 
         p = future.get_data()
@@ -312,7 +309,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                   badwcs=badwcs, alg='v1')
 
         pluginName = 'Sv_Drive'
-        pluginInfo = chinfo.opmon.getPluginInfo(pluginName)
+        pluginInfo = chinfo.opmon.get_plugin_info(pluginName)
         pluginObj = pluginInfo.obj
 
         thr = pluginObj.threshold
@@ -419,12 +416,12 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def focus_fitting(self, tag, future,
                       instrument_name, file_list, x1, y1, x2, y2):
 
-        chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-        chinfo = self.fv.get_channel(chname)
+        self.fv.assert_gui_thread()
 
-        rsinfo = chinfo.opmon.getPluginInfo('FocusFit')
+        chname = '%s_Online' % (instrument_name)
+        chinfo = self.fv.get_channel_on_demand(chname)
+
+        rsinfo = chinfo.opmon.get_plugin_info('FocusFit')
         rsobj = rsinfo.obj
 
         p = future.get_data()
@@ -450,11 +447,9 @@ class QDAS(GingaPlugin.GlobalPlugin):
                        instrument_name, param, file_list, best_fit_type):
 
         chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-        chinfo = self.fv.get_channel(chname)
+        chinfo = self.fv.get_channel_on_demand(chname)
 
-        rsinfo = chinfo.opmon.getPluginInfo('MOIRCSFit')
+        rsinfo = chinfo.opmon.get_plugin_info('MOIRCSFit')
         rsobj = rsinfo.obj
 
         p = future.get_data()
@@ -472,6 +467,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 errmsg = "Focus fitting failed: %s" % str(e)
                 self.logger.error(errmsg)
                 p.setvals(result='error', errmsg=str(e))
+
         elif param == 'BEST':
             try:
                 z = rsobj.focus_best(best_fit_type)
@@ -481,6 +477,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 errmsg = "Best fitting failed: %s" % str(e)
                 self.logger.error(errmsg)
                 p.setvals(result='error', errmsg=str(e))
+
         elif param == 'INIT':
             try:
                 z = rsobj.close()
@@ -496,14 +493,14 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def mesoffset(self, tag, future, instrument_name=None, star_chip1=None,
                   rootname=None, c_file=None, img_dir=None, exec_mode=None,
                   mcsred_dir=None, training_dir=None, work_dir=None, wait_gui = None):
+        self.fv.assert_gui_thread()
+
         self.logger.info('QDAS MESOffset called')
 
         chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel_on_demand(chname)
 
-        mesinfo = chinfo.opmon.getPluginInfo('MESOffset')
+        mesinfo = chinfo.opmon.get_plugin_info('MESOffset')
         mesobj = mesinfo.obj
 
         mesobj.set_params(star_chip1, rootname, c_file, img_dir, exec_mode,
@@ -529,12 +526,12 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def seeing(self, tag, future,
                instrument_name, avg, std, dp):
 
-        chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-        chinfo = self.fv.get_channel(chname)
+        self.fv.assert_gui_thread()
 
-        rsinfo = chinfo.opmon.getPluginInfo('FocusFit')
+        chname = '%s_Online' % (instrument_name)
+        chinfo = self.fv.get_channel_on_demand(chname)
+
+        rsinfo = chinfo.opmon.get_plugin_info('FocusFit')
         rsobj = rsinfo.obj
 
         p = future.get_data()
@@ -557,12 +554,12 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def curve_fitting(self, tag, future,
                instrument_name, x_points, y_points, parabola):
 
-        chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-        chinfo = self.fv.get_channel(chname)
+        self.fv.assert_gui_thread()
 
-        rsinfo = chinfo.opmon.getPluginInfo('CurveFit')
+        chname = '%s_Online' % (instrument_name)
+        chinfo = self.fv.get_channel_on_demand(chname)
+
+        rsinfo = chinfo.opmon.get_plugin_info('CurveFit')
         rsobj = rsinfo.obj
 
         p = future.get_data()
@@ -585,14 +582,13 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def mark_position(self, tag, future,
                       instrument_name=None, x=None, y=None, mode=None,
                       mark=None, size=None, color=None):
+        self.fv.assert_gui_thread()
+
         # X and Y are in FITS data coordinates
         x, y = x-1, y-1
 
         chname = '%s_Online' % (instrument_name)
-        if not self.fv.has_channel(chname):
-            self.fv.add_channel(chname)
-
-        chinfo = self.fv.get_channel(chname)
+        chinfo = self.fv.get_channel_on_demand(chname)
 
         p = future.get_data()
 
@@ -615,17 +611,23 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # Copy the image specified by (input_frame) into the QDAS channel
         chname = '%s_Online' % (instrument_name)
         image = self.load_file(path, chname)
-        assert isinstance(image, AstroImage.AstroImage), \
-               QDASError("Null image for '%s'" % (chname))
+        if not isinstance(image, AstroImage.AstroImage):
+            raise QDASError("Null image for '%s'" % (chname))
 
         # remove all other QDAS layers
-        chinfo = self.fv.get_channel(chname)
-        self.withdraw_qdas_layers(chinfo.fitsimage)
+        # NOTE: this can be in a race condition with other plugins
+        # DISABLE FOR NOW
+        # chinfo = self.fv.get_channel(chname)
+        # self.withdraw_qdas_layers(chinfo.fitsimage)
 
-        self.fv.ds.raise_tab(chname)
+        # NOTE: this is now set via a channel preference in ginga
+        # self.fv.ds.raise_tab(chname)
+
         return 0
 
     def viewer(self, tag, future, motor, instrument_name):
+
+        self.fv.assert_gui_thread()
 
         instrument_name = instrument_name.upper()
 
@@ -671,10 +673,10 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
 
     def withdraw_qdas_layers(self, fitsimage):
-        tags = fitsimage.getTagsByTagpfx('qdas-')
+        tags = fitsimage.get_tags_by_tag_pfx('qdas-')
         for tag in tags:
             try:
-                fitsimage.deleteObjectByTag(tag)
+                fitsimage.delete_object_by_tag(tag)
             except:
                 pass
 
@@ -697,30 +699,33 @@ class QDAS(GingaPlugin.GlobalPlugin):
         """Load image named (imagename) from channel named (chname1) into
         channel named (chname2).
         """
-        try:
+        image = None
+        if self.fv.has_channel(src_chname):
             chinfo1 = self.fv.get_channel(src_chname)
-            if imagename in chinfo1.datasrc:
-                # Image is still in the heap
-                image = chinfo1.datasrc[imagename]
-
-                # Add image to <INS>_Online channel
-                chinfo2 = self.fv.get_channel_on_demand(dst_chname)
-                chinfo2.add_image(image)
-
-                # Change to <INS>_Online channel
-                self.fv.change_channel(dst_chname, image=image)
-                return image
-        except KeyError:
-            # Channel does not exist yet
-            pass
+            try:
+                image = chinfo1.get_loaded_image(imagename)
+            except KeyError:
+                # image must have gotten bumped out, or never was loaded
+                pass
 
         try:
-            path = self._get_framepath(imagename, src_chname)
-            self.logger.debug("Image '%s' is no longer in memory; attempting to load from '%s'" % (
-                imagename, path))
-            image = self.fv.load_file(path, chname=dst_chname, wait=True)
-            assert isinstance(image, AstroImage.AstroImage), \
-                   QDASError("Null image for '%s'" % (src_chname))
+            if image is None:
+                path = self._get_framepath(imagename, src_chname)
+                self.logger.info("Image '%s' is no longer in memory; attempting to load from '%s'" % (
+                    imagename, path))
+
+                # image = self.fv.load_file(path, chname=dst_chname, wait=True)
+                # if not isinstance(image, AstroImage.AstroImage):
+                #     raise QDASError("Null image for '%s'" % (src_chname))
+                image = AstroImage.AstroImage(logger=self.logger)
+                image.load_file(path)
+
+            # Add image to <INS>_Online channel
+            chinfo2 = self.fv.get_channel_on_demand(dst_chname)
+            chinfo2.add_image(image, silent=True, bulk_add=True)
+
+            # Change to <INS>_Online channel
+            self.fv.change_channel(dst_chname, image=image)
             return image
 
         except Exception as e:

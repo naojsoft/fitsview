@@ -83,7 +83,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         vbox, sw, orientation = Widgets.get_oriented_box(container)
 
-        self.msgFont = self.fv.getFont("sansFont", 14)
+        self.msgFont = self.fv.get_font("sansFont", 14)
         tw = Widgets.TextArea(wrap=True, editable=False)
         tw.set_font(self.msgFont)
         self.tw = tw
@@ -358,21 +358,21 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         self.resume()
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
-        self.canvas.ui_setActive(True)
+        self.canvas.ui_set_active(True)
 
 
     def stop(self):
         # remove the canvas from the image
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
+        chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         self.gui_up = False
         return True

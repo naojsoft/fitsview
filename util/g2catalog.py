@@ -1,6 +1,6 @@
 #
 # g2catalog.py -- Fits viewer interface to the Gen2 star catalog
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from ginga.util import wcs
@@ -47,8 +47,10 @@ class CatalogServer(object):
                                            label=label, order=count)
             count += 1
 
-    def getParams(self):
+    def get_params(self):
         return self.params
+
+    getParams = get_params
 
     def set_index(self, **kwdargs):
         self.index.update(kwdargs)
@@ -67,7 +69,7 @@ class CatalogServer(object):
         # fields
         params = dict(map(lambda item: (item[0], str(item[1])),
                           params.items()))
-        
+
         ra, dec = params['ra'], params['dec']
         if not (':' in ra):
             # Assume RA and DEC are in degrees
@@ -113,9 +115,9 @@ class CatalogServer(object):
             uppermag = 21.0
         else:
             uppermag = float(s)
-        
+
         kwdargs = dict(ra=ra_deg, dec=dec_deg, equinox=equinox,
-                       fov=fov_deg, 
+                       fov=fov_deg,
                        lowermag=lowermag, uppermag=uppermag,
                        catalog=catalog, pa=pa, focus=focus)
         self.logger.debug("search params are %s" % (str(kwdargs)))
@@ -124,18 +126,18 @@ class CatalogServer(object):
     def search(self, **params):
         kwdargs = self.get_search_params(params)
 
-        # starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], kwdargs['lowermag'], kwdargs['uppermag'], 
+        # starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], kwdargs['lowermag'], kwdargs['uppermag'],
         #                                            catalog=kwdargs['catalog'])
 
         # TO DO:
         # temporary assign hard-coded value 0 as lower mag
-        starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], 0.0, kwdargs['uppermag'], 
+        starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], 0.0, kwdargs['uppermag'],
                                                    catalog=kwdargs['catalog'])
 
 
 
         #print "QUERY RESULT=", query_result
-        
+
         starlist = self.process_starlist(starlist)
         #print "STARLIST=", starlist
 
@@ -173,7 +175,7 @@ class CatalogServer(object):
                     args[key] = elts.get(idx, None)
 
                 # Standardize on the convention for RA/DEC.  ra/dec are in
-                # traditional notation as strings and ra_deg/dec_deg are 
+                # traditional notation as strings and ra_deg/dec_deg are
                 # floats
                 if (self.format == 'deg') or not (':' in args['ra']):
                     # Assume RA and DEC are in degrees
@@ -189,7 +191,7 @@ class CatalogServer(object):
                 if cmp(self.equinox, 2000.0) != 0:
                     ra_deg, dec_deg = wcs.eqToEq2000(ra_deg, dec_deg,
                                                      self.equinox)
-                
+
                 ra_txt = wcs.raDegToString(ra_deg, format='%02d:%02d:%06.3f')
                 dec_txt = wcs.decDegToString(dec_deg,
                                                format='%s%02d:%02d:%05.2f')
@@ -202,7 +204,7 @@ class CatalogServer(object):
                 args['pick'] = (flags in desirable_flags)
 
                 star = StarCatalog.Star(**args)
-                
+
                 # adjust priority if star is blacklisted
                 if blacklist.check_blacklist(star):
                     star['priority'] = 9999999
@@ -273,7 +275,7 @@ class AgCatalogServer(CatalogServer):
                                                    catalog=k['catalog'])
 
         self.logger.debug("catalog search returned %d stars" % (len(starlist)))
-        
+
         # Filter stars for AG:
         # focus in { CS, NS_IR, NS_OPT, P_OPT, P_IR }
         # inst in { MOIRCS, etc. }
@@ -282,7 +284,7 @@ class AgCatalogServer(CatalogServer):
                              equinox=params['equinox'], fov=k['fov'],
                              pa=k['pa'],
                              probe_ra=params['probe_ra_deg'],
-                             probe_dec=params['probe_dec_deg'], 
+                             probe_dec=params['probe_dec_deg'],
                              focus=k['focus'], ins=params['inst_name'],
                              probe_r=params['probe_r'],
                              probe_theta=params['probe_theta'],
@@ -294,7 +296,7 @@ class AgCatalogServer(CatalogServer):
 
         star_select = starfilter.StarSelection(logger=self.logger)
         starlist = star_select.select_ag_stars(filter_params, starlist)
-        
+
         query_result = { 'selected_stars': starlist,
                          'query_params': k,
                          'prefered_num': len(starlist) }
@@ -313,13 +315,13 @@ class ShCatalogServer(CatalogServer):
                                                    k['uppermag'],
                                                    catalog=k['catalog'])
         self.logger.debug("catalog search returned %d stars" % (len(starlist)))
-        
+
         # Filter stars for SH:
         # note: limitmag=13.0 is fixed value for sh
         filter_params = dict(ra=k['ra'], dec=k['dec'],
                              equinox=params['equinox'], fov=k['fov'],
                              pa=k['pa'],
-                             #focus=k['focus'], 
+                             #focus=k['focus'],
                              limitmag=k['uppermag'],
                              #goodmag=k['lowermag']
                              )
@@ -358,14 +360,14 @@ class GuideStarBlacklist(object):
                 cat, cat_id = line.split(',')
                 cat_id = int(cat_id)
                 self.blacklist[(cat, cat_id)] = value
-                
+
         except IOError as e:
             pass
 
     def mk_key(self, star):
         key = (star['catalog'].lower(), star['cat_id'])
         return key
-    
+
     def check_blacklist(self, star):
         return self.mk_key(star) in self.blacklist
 
@@ -375,7 +377,7 @@ class GuideStarBlacklist(object):
             for key, value in self.blacklist.items():
                 catalog, cat_id = key
                 out_f.write("%s,%d   # %s\n" % (catalog, cat_id, str(value)))
-    
+
     def add_blacklist(self, star):
         info = (star['ra'], star['dec'], star['name'])
         self.blacklist[self.mk_key(star)] = info
@@ -393,7 +395,7 @@ if 'CONFHOME' in os.environ:
                                   "blacklist.txt")
 else:
     blacklist_path = os.path.join("/tmp", "blacklist.txt")
-    
+
 blacklist = GuideStarBlacklist(blacklist_path)
 
 #END

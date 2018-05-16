@@ -188,7 +188,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
-        self.msgFont = self.fv.getFont("sansFont", 12)
+        self.msgFont = self.fv.get_font("sansFont", 12)
         tw = Widgets.TextArea(wrap=True, editable=False)
         tw.set_font(self.msgFont)
         self.tw = tw
@@ -523,10 +523,10 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.resume()
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
-        self.canvas.ui_setActive(True)
+        self.canvas.ui_set_active(True)
         self.fv.showStatus("")
 
     def stop(self):
@@ -535,7 +535,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
             self.fitsimage.deleteObjectByTag(self.layertag)
         except:
             pass
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
         self.fv.showStatus("")
 
     def redo(self):

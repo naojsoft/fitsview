@@ -39,7 +39,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         box, sw, orientation = Widgets.get_oriented_box(container)
         splitter = Widgets.Splitter(orientation=orientation)
 
-        self.msgFont = self.fv.getFont("sansFont", 18)
+        self.msgFont = self.fv.get_font("sansFont", 18)
 
         self.plot = plots.Plot(logger=self.logger, width=300, height=700)
 
