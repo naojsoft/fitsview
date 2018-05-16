@@ -47,8 +47,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.ax = self.plot.add_axis()
         self.ax.set_title('Focus Fitting')
 
-        self.canvas = Plot.PlotWidget(self.plot, width=300, height=650)
-        #self.canvas.get_widget().resize(300, 650)
+        self.canvas = Plot.PlotWidget(self.plot, width=300, height=550)
         splitter.add_widget(self.canvas)
 
         # create a box to pack widgets into.
@@ -72,10 +71,13 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
         fr = Widgets.Frame(" QDAS Seeing ")
         fr.set_widget(vbox1)
+        box.add_widget(fr, stretch=1)
+        box.resize(-1, 200)
 
-        #box.add_widget(fr, stretch=1)
-        splitter.add_widget(fr)
-        splitter.set_sizes([500, 200])
+        splitter.add_widget(sw)
+        splitter.set_sizes([550, 200])
+
+        vtop.add_widget(splitter, stretch=1)
 
         btns = Widgets.HBox()
         btns.set_spacing(3)
@@ -85,7 +87,6 @@ class FocusFit(GingaPlugin.LocalPlugin):
         btns.add_widget(btn, stretch=1)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
-        vtop.add_widget(splitter, stretch=1)
         vtop.add_widget(btns, stretch=0)
         container.add_widget(vtop, stretch=1)
 
