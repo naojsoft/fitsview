@@ -6,18 +6,13 @@
 import math
 import time
 import os
-import numpy
-from operator import itemgetter
+import numpy as np
 
 # Ginga imports
 from ginga import GingaPlugin
 from ginga.misc import Future, Bunch
 from ginga import AstroImage
 from ginga.util import wcs, dp
-from ginga.canvas.CanvasObject import get_canvas_types
-from six.moves import map
-from six.moves import zip
-cvtypes = get_canvas_types()
 
 # g2base imports
 from g2base.remoteObjects import remoteObjects as ro
@@ -30,8 +25,7 @@ import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
 
 # Local application imports
-from Gen2.fitsview.util import AGCCDPositions
-from Gen2.fitsview.util import g2calc
+from Gen2.fitsview.util import AGCCDPositions, g2calc, fov_plot
 
 class VGWError(Exception):
     pass
@@ -744,19 +738,23 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # Plot all the data
         insname = p.instrument_name.lower()
+        limit_stars_to_area = False
         if insname == 'moircs':
-            plotObj = MOIRCSfov(self.logger, p.image, p)
+            plotObj = fov_plot.MOIRCSfov(self.logger, p.image, p)
+        elif insname == 'mimizuku':
+            limit_stars_to_area = True
+            plotObj = fov_plot.MIMIZUKUfov(self.logger, p.image, p)
         elif insname == 'spcam':
-            plotObj = SPCAMfov(self.logger, p.image, p)
+            plotObj = fov_plot.SPCAMfov(self.logger, p.image, p)
         else:
-            plotObj = GENERICfov(self.logger, p.image, p)
+            plotObj = fov_plot.GENERICfov(self.logger, p.image, p)
 
         chinfo = self.fv.get_channel(p.chname)
         pluginInfo = chinfo.opmon.get_plugin_info('AgAutoSelect')
         pluginObj = pluginInfo.obj
         # TEMP: fix
         #pluginObj.limit_stars_to_area = True
-        pluginObj.limit_stars_to_area = False
+        pluginObj.limit_stars_to_area = limit_stars_to_area
         pluginObj.pan_to_selected = False
         self.logger.debug("plotting stars")
         pluginObj.plot(future2, plotObj)
@@ -965,7 +963,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             len(p.starlist)))
 
         # Plot all the data
-        plotObj = SHfov(self.logger, p.image, p)
+        plotObj = fov_plot.SHfov(self.logger, p.image, p)
         chinfo = self.fv.get_channel(p.chname)
         pluginInfo = chinfo.opmon.get_plugin_info('AgAutoSelect')
         pluginObj = pluginInfo.obj
@@ -1316,7 +1314,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             len(p.starlist)))
 
         # Plot all the data
-        plotObj = HSCfov(self.logger, p.image, p)
+        plotObj = fov_plot.HSCfov(self.logger, p.image, p)
 
         chinfo = self.fv.get_channel(p.chname)
         pluginInfo = chinfo.opmon.get_plugin_info('AgAutoSelect')
@@ -1477,8 +1475,8 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         # Temporarily coerce numpy type  TODO: fix
         try:
-            na_type = numpy.float32
-            data = numpy.fromstring(data, dtype=na_type)
+            na_type = np.float32
+            data = np.fromstring(data, dtype=na_type)
             data.byteswap(True)
             data = data.reshape((height, width))
             #print data
@@ -1596,536 +1594,6 @@ class VGW(GingaPlugin.GlobalPlugin):
 
     def __str__(self):
         return 'vgw'
-
-
-class TELESCOPEfov(object):
-    """A Generic telescope foci FOV object.
-    """
-
-    def __init__(self, logger, image, p):
-        self.logger = logger
-        self.p = p
-        ## inner_fov = 0.004167
-
-        # thickness of the marked rings for FOV
-        self.ring_thickness = 2
-        self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
-                                  vignette='green', probe='cyan')
-
-        # calculate radius of probe outer movable area fov
-        outer_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.outer_fov)
-        self.logger.debug("Probe outer movable area radius is %d pixels." % (
-            outer_radius))
-
-        ## # calculate radius of probe inner movable area fov
-        ## inner_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, inner_fov)
-        ## self.logger.debug("Probe inner movable area radius is %d pixels." % (
-        ##     inner_radius))
-
-        # calculate probe circle
-        probe_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.probe_head_fov)
-        self.logger.debug("Actual probe head radius is %d pixels." % (
-            probe_radius))
-
-        # calculate vignetting mapping fov
-        vignette_map = self.calculate_vignette_fov(image, p.ctr_x, p.ctr_y,
-                                                   p.f_select, p.ag_pa,
-                                                   p.probe_theta, p.probe_r,
-                                                   p.fov_pattern)
-        self.logger.debug("Vignette map: %s" % (
-            str(vignette_map)))
-
-        ## self.inner_radius = inner_radius
-        self.outer_radius = outer_radius
-        self.probe_radius = probe_radius
-        self.vignette_map = vignette_map
-
-
-    def calculate_vignette_fov(self, image, ctr_x, ctr_y, focus, pa_deg, theta, r, pattern):
-        vlist = ag_config.calc_vignette_list(focus, pattern, theta, r)
-        scale = ag_config.calc_scale(focus)
-
-        def mm2pix(tup):
-            angle, mm = tup
-            radius_px = image.calc_radius_xy(ctr_x, ctr_y, mm * scale)
-            if focus in ('CS', 'CS_IR', 'CS_OPT'):
-                angle += pa_deg
-            elif focus in ('NS_IR', 'NS_OPT',):
-                angle += pa_deg * 2.0
-
-            rad = math.pi * angle / 180.0
-            if focus in ('CS', 'CS_IR', 'CS_OPT', 'NS_OPT'):
-                x1 = int(ctr_x + radius_px * math.cos(rad))
-            elif focus in ('NS_IR', ):
-                x1 = int(ctr_x - radius_px * math.cos(rad))
-            else:
-                raise VGWError("Focus '%s' not yet implemented!" % (
-                    focus))
-
-            y1 = int(ctr_y - radius_px * math.sin(rad))
-            return (x1, y1)
-
-        return list(map(mm2pix, vlist))
-
-    def draw(self, pluginObj):
-        canvas = pluginObj.get_canvas()
-        p = self.p
-        thickness = self.ring_thickness
-        color = self.colors
-
-        # Draw AG probe outer movable area fov
-        canvas.add(
-            cvtypes.Circle(p.ctr_x, p.ctr_y, self.outer_radius,
-                           color=color.outer,
-                           linestyle='dash', linewidth=thickness),
-            redraw=False)
-
-        ## # Draw AG probe inner movable area fov
-        ## canvas.add(
-        ##     cvtypes.Circle(p.ctr_x, p.ctr_y, self.inner_radius,
-        ##                        color=color.inner,
-        ##                        linestyle='dash', linewidth=thickness),
-        ##     redraw=False)
-
-        # Draw AG probe position as a circle
-        canvas.add(
-            cvtypes.Circle(p.probe_x, p.probe_y, self.probe_radius,
-                           color=color.probe,
-                           linestyle='dash', linewidth=thickness),
-            redraw=False)
-
-        # Draw vignette map
-        self.vig_obj = cvtypes.Polygon(self.vignette_map,
-                                       color=color.vignette,
-                                       linestyle='dash',
-                                       linewidth=thickness)
-        canvas.add(self.vig_obj, redraw=False)
-
-
-class GENERICfov(TELESCOPEfov):
-    """A Generic instrument FOV object.
-    """
-
-    def __init__(self, logger, image, p):
-        super(GENERICfov, self).__init__(logger, image, p)
-
-        # calculate radius of instrument fov
-        inst_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.inst_fov)
-        self.logger.debug("Instrument radius is %d pixels." % (
-            inst_radius))
-
-        self.inst_radius = inst_radius
-
-
-    def draw(self, pluginObj):
-        super(GENERICfov, self).draw(pluginObj)
-        canvas = pluginObj.get_canvas()
-
-        p = self.p
-        thickness = self.ring_thickness
-        color = self.colors
-
-        # Draw instrument fov
-        canvas.add(
-            cvtypes.Circle(p.ctr_x, p.ctr_y, self.inst_radius,
-                           color=color.inst,
-                           linestyle='dash', linewidth=thickness),
-            redraw=False)
-
-
-class MOIRCSfov(TELESCOPEfov):
-    """A MOIRCS (instrument) FOV object.
-    """
-
-    def __init__(self, logger, image, p):
-        super(MOIRCSfov, self).__init__(logger, image, p)
-
-        # TODO: read these from a config file
-        fov = 0.033000
-        # moircs fov 7arcmin x 4 arcmin(0.1166 x 0.0666 in degree) half values
-        fov_hh = 0.0583333
-        fov_hw = 0.0333333
-        # moircs fov with vignette  9.2 arcmin x 6.2 arcmin  half values
-        vig_hh = 0.0766666
-        vig_hw = 0.05166667
-
-        # Figure out rotation of MOIRCS rectangular FOV and chip markings
-        # NOTE: ginga plots by WCS, so we don't need to account for
-        # rotation of the DSS image for now
-        ## header = image.get_header()
-        ## #dssrot_deg = image.get_wcs_rotation_deg()
-        ## ((xrot_ref, yrot_ref),
-        ##  (cdelt1_ref, cdelt2_ref)) = wcs.get_xy_rotation_and_scale(header)
-        ## dssrot_deg = yrot_ref
-        ## self.logger.info("Image rotation=%f, pa=%f cdelt1=%f" % (
-        ##         dssrot_deg, p.ag_pa, cdelt1_ref))
-
-        # Angle we should draw the object at is therefore
-        theta = p.ag_pa
-        #self.theta = -theta
-        self.theta = theta
-        self.logger.debug("rotation is %f deg" % (self.theta))
-
-        # coords of the MOIRCS FOV
-        self.fov_pts = []
-        for (xoff, yoff) in ((-fov_hw, -fov_hh), (-fov_hw, +fov_hh),
-                             (+fov_hw, +fov_hh), (+fov_hw, -fov_hh)):
-            self.fov_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
-        # coords of FOV w/vignette
-        self.vig_pts = []
-        for (xoff, yoff) in ((-vig_hw, -vig_hh), (-vig_hw, +vig_hh),
-                             (+vig_hw, +vig_hh), (+vig_hw, -vig_hh)):
-            self.vig_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
-
-        # calculate the position of the MOIRCS CCD chip and indicate
-        # the position by text
-        self.c1x, self.c1y = image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                 0, -fov_hh/2.0)
-        self.c2x, self.c2y = image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                 0, +fov_hh/2.0)
-
-
-    def draw(self, pluginObj):
-        super(MOIRCSfov, self).draw(pluginObj)
-        canvas = pluginObj.get_canvas()
-
-        thickness = self.ring_thickness
-        color = self.colors
-
-        obj = cvtypes.CompoundObject()
-        canvas.add(obj, redraw=False)
-
-        obj.add_object(cvtypes.Polygon(self.fov_pts,
-                                       color=color.inst,
-                                       linestyle='dash',
-                                       linewidth=thickness))
-        obj.add_object(cvtypes.Polygon(self.vig_pts,
-                                       color='blue',
-                                       linestyle='solid',
-                                       linewidth=thickness))
-        obj.add_object(cvtypes.Text(self.c1x, self.c1y, "Chip1",
-                                    color='white'))
-        obj.add_object(cvtypes.Text(self.c2x, self.c2y, "Chip2",
-                                    color='white'))
-        obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
-
-        # MOIRCS is offset by 45 deg wrt cassegrain flange.  Standard
-        # vignette map needs to be rotated to be properly aligned
-        vig_rot = 2.0 * self.theta - 45.0
-        self.vig_obj.rotate(vig_rot, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
-
-
-
-class SPCAMfov(object):
-    """A SPCAM (instrument) FOV object.
-    """
-
-    def __init__(self, logger, image, p):
-        self.logger = logger
-        self.p = p
-        outer_fov = 0.2879
-        ## inner_fov = 0.004167
-        #P_OPT   FOV 0.46    -0.018702048    0.47    -0.072          0.072
-        fov = 0.46
-        pb_minus = 0.018702048
-        pb_plus  = 0.47
-        pb_height = 0.072
-
-        # thickness of the marked rings for FOV
-        self.ring_thickness = 2
-        self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
-                                  vignette='green', probe='cyan')
-
-        ## # calculate radius of probe inner movable area fov
-        ## inner_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, inner_fov)
-        ## self.logger.debug("Probe inner movable area radius is %d pixels." % (
-        ##     inner_radius))
-
-        # calculate probe circle
-        probe_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.probe_head_fov)
-        self.logger.debug("Actual probe head radius is %d pixels." % (
-            probe_radius))
-
-        # calculate radius of probe outer movable area fov
-        outer_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, outer_fov)
-        self.logger.debug("Probe outer movable area radius is %d pixels." % (
-            outer_radius))
-
-        # calculate radius of instrument fov
-        inst_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.inst_fov)
-        self.logger.debug("Instrument radius is %d pixels." % (
-            inst_radius))
-
-        self.inst_radius = inst_radius
-        ## self.inner_radius = inner_radius
-        self.outer_radius = outer_radius
-        self.probe_radius = probe_radius
-
-        # Figure out rotation of SPCAM drawings
-        # NOTE: ginga plots by WCS, so we don't need to account for
-        # rotation of the DSS image for now
-        ## header = image.get_header()
-        ## ((xrot_ref, yrot_ref),
-        ##  (cdelt1_ref, cdelt2_ref)) = wcs.get_xy_rotation_and_scale(header)
-        ## dssrot_deg = yrot_ref
-
-        theta = p.ag_pa
-        # change direction of rotation for P_OPT
-        self.theta = -theta
-        self.logger.debug("rotation is %f deg" % (self.theta))
-
-        # coords of the MOVEABLE PROBE FOV
-        self.fov_pts = []
-        for (xoff, yoff) in ((-pb_minus, -pb_height), (-pb_minus, +pb_height),
-                             (+pb_plus, +pb_height), (+pb_plus, -pb_height)):
-            self.fov_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
-
-    def draw(self, pluginObj):
-        self.pluginObj = pluginObj
-        canvas = pluginObj.get_canvas()
-        thickness = self.ring_thickness
-        color = self.colors
-        p = self.p
-
-        obj = cvtypes.CompoundObject()
-        canvas.add(obj, redraw=False)
-
-        # Draw instrument fov
-        obj.add_object(
-            cvtypes.Circle(p.ctr_x, p.ctr_y, self.inst_radius,
-                           color=color.inst,
-                           linestyle='dash', linewidth=thickness))
-
-        # Draw outer telescope foci fov
-        obj.add_object(
-            cvtypes.Circle(p.ctr_x, p.ctr_y, self.outer_radius,
-                           color=color.outer,
-                           linestyle='dash', linewidth=thickness))
-
-        # Draw probe position
-        obj.add_object(
-            cvtypes.Circle(p.probe_x, p.probe_y, self.probe_radius,
-                           color=color.probe,
-                           linestyle='dash', linewidth=thickness))
-        ## # Draw AG probe inner movable area fov
-        ## obj.addObject(
-        ##     cvtypes.Circle(p.ctr_x, p.ctr_y, self.inner_radius,
-        ##                        color=color.inner,
-        ##                        linestyle='dash', linewidth=thickness))
-
-        # Draw probe movable area
-        self.prb_area = cvtypes.Polygon(self.fov_pts,
-                                        color=color.probe,
-                                        linestyle='dash',
-                                        linewidth=thickness)
-        obj.add_object(self.prb_area)
-
-        # Rotate according to PA
-        obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
-
-    def filter_results(self, starlist):
-        return self.pluginObj.filter_results(starlist, self.prb_area)
-
-class HSCfov(object):
-    """A Hyper Suprime-Cam (instrument) FOV object.
-    """
-
-    def __init__(self, logger, image, p):
-        self.logger = logger
-        self.p = p
-        self.ccds_obj = None
-        self.dith_obj = None
-
-        # thickness of the marked rings for FOV
-        self.ring_thickness = 2
-        self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
-                                  vignette='green', probe='cyan')
-
-
-    def draw(self, pluginObj):
-        canvas = pluginObj.get_canvas()
-        self.pluginObj = pluginObj
-        p = self.p
-        thickness = self.ring_thickness
-        color = self.colors
-
-        gons = []
-        for points in p.polygons:
-            # Add CCD image polygon
-            self.logger.info("Plotting polygon %s" % str(points))
-            gons.append(cvtypes.Polygon(points,
-                                        color=color.inst,
-                                        linestyle='dash',
-                                        linewidth=thickness))
-        self.ccds_obj = cvtypes.CompoundObject(*gons)
-        canvas.add(self.ccds_obj, redraw=False)
-
-        pixgons = []
-        for points in p.agarea_pixel_polygons:
-            # Add internal dither image polygon
-            self.logger.info("Plotting dithering polygon %s" % str(points))
-            pixgons.append(cvtypes.Polygon(points,
-                                           color=color.vignette,
-                                           linestyle='dash',
-                                           linewidth=1))
-        self.dith_obj = cvtypes.CompoundObject(*pixgons)
-        canvas.add(self.dith_obj, redraw=False)
-
-        # for (x, y, r) in p.circles:
-        #     canvas.add(
-        #         cvtypes.Circle(x, y, r,
-        #                            color=color.probe,
-        #                            linestyle='solid', linewidth=1),
-        #         redraw=False)
-
-    def filter_results(self, starlist):
-        # return self.pluginObj.filter_results(starlist, self.dith_obj)
-        #all_stars = list(map(lambda stars: self.pluginObj.filter_results(stars,
-        #                   self.dith_obj), starlist))
-        starlist = self.pluginObj.filter_results(starlist, self.dith_obj)
-
-        self.logger.debug('all STARLIST=%s' % (str(starlist)))
-
-        p = self.p
-        #return self.hsc_filter_candidates(p, p.queries, all_stars)
-        return self.hsc_filter_candidates2(p, p.queries, starlist)
-
-    def _set_priority(self, updated_stars):
-
-        for num, star in enumerate(updated_stars):
-            num += 1
-            if 'priority' not in star or (star['priority'] is None):
-                star['priority'] = num
-
-
-    def hsc_filter_candidates2(self, p, queries, all_stars):
-        # interesting items:
-        # p.ag_pa, p.limitmag, p.goodmag
-        # p.polygons, p.circles
-        # queries: ((ra, dec, radius), ... ) 1 for each ccd
-        # all_stars: query result for each circle
-
-        fabs = math.fabs
-
-        goodmag = p['goodmag']
-        limitmag = p['limitmag']
-        bright_end = 1.0
-        too_bright = 10.0
-        best_flag = 2.0
-
-        # TEMP: until we fix the query
-        #all_stars = filter(lambda star: star['mag'] <= limitmag, all_stars)
-
-        for star in all_stars:
-
-            pref = 0
-
-            diff_mag = goodmag - star['mag']
-
-            if diff_mag > bright_end:
-                pref +=  too_bright
-            else:
-                pref += fabs(diff_mag)
-
-            pref += fabs(best_flag-star['flag'])
-
-            star['preference'] = pref
-            if not (star['description'] is None) and ('BLACKLISTED' in star['description']):
-                star['preference'] = 9999999
-
-        all_stars = sorted(all_stars, key=itemgetter('preference'))
-        self. _set_priority(all_stars)
-
-        # for n, s in zip(xrange(20), all_stars):
-        #     self.logger.debug('name=%s, mag=%s flag=%s pref=%s' %(s['name'], str(s['mag']), str(s['flag']), str(s['preference'])))
-        return all_stars
-
-    def hsc_filter_candidates(self, p, queries, all_stars):
-        # interesting items:
-        # p.ag_pa, p.limitmag, p.goodmag
-        # p.polygons, p.circles
-        # queries: ((ra, dec, radius), ... ) 1 for each ccd
-        # all_stars: query result for each circle
-
-        fabs = math.fabs
-
-        goodmag = p['goodmag']
-        bad_star = 10
-        mag_weight = 0.6 # mag's weight. 60% of flag weight
-
-        for star in all_stars:
-            flag = star['flag']
-            if flag < 0: # negative flag
-                flag = fabs(flag-bad_star)
-            calc_mag = (fabs(star['mag']-goodmag)) * mag_weight
-            star['preference'] = flag + calc_mag
-            #print '%s flag=%s mag=%s calcmag=%s pref=%s' %(star['name'], flag, star['mag'], calc_mag, pref)
-            #star['preference'] = pref
-
-        all_stars = sorted(all_stars, key=itemgetter('preference'))
-        self. _set_priority(all_stars)
-
-        return all_stars
-
-        # updated_stars = []
-
-        # self.logger.info('Ps=%s' %str(p))
-
-        # for query, stars in zip(queries, all_stars):
-        #     self.logger.info('query=%s' %str(query))
-        #     center_rarad = math.radians(query[0])
-        #     center_decrad = math.radians(query[1])
-
-        #     for star in stars:
-        #         star_rarad = math.radians(star['ra_deg'])
-        #         star_decrad = math.radians(star['dec_deg'])
-        #         delta = radec.delta_stars(center_rarad, center_decrad,
-        #                                     star_rarad, star_decrad)
-        #         star['preference'] = delta
-        #     updated_stars.extend(stars)
-        # updated_stars = sorted(updated_stars, key=itemgetter('preference'))
-        # self._set_priority(updated_stars)
-
-        # p.num_preferred = min(15, len(updated_stars))
-        # return updated_stars
-
-class SHfov(object):
-    """A Generic Shack-Hartmann FOV object.
-    """
-
-    def __init__(self, logger, image, p):
-        self.logger = logger
-        self.p = p
-
-        # thickness of the marked rings for FOV
-        self.ring_thickness = 2
-        self.colors = Bunch.Bunch(inst='magenta', outer='red', inner='red',
-                                  vignette='green', probe='cyan')
-
-
-    def draw(self, pluginObj):
-        canvas = pluginObj.get_canvas()
-        p = self.p
-        thickness = self.ring_thickness
-        color = self.colors
-
-        # Draw prove movable area fov
-        canvas.add(
-            cvtypes.Circle(p.ctr_x, p.ctr_y, p.outer_radius,
-                               color=color.outer,
-                               linestyle='dash', linewidth=thickness),
-            redraw=False)
-
-        # Draw coincentric catalog radii every 0.5 deg
-        for cat_radius in p.cat_radii:
-            canvas.add(
-                cvtypes.Circle(p.ctr_x, p.ctr_y, cat_radius,
-                                   color='white',
-                                   linestyle='dash', linewidth=thickness),
-                redraw=False)
 
 
 #END
