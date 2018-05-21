@@ -514,9 +514,10 @@ class MIMIZUKUfov(TELESCOPEfov):
         vig_hw = 0.0766666
 
         # Angle we should draw the object at is therefore
-        #theta = p.ag_pa
+        # TODO: need to account for MIMIZUKU field stacker rotation
+        #   plus offset
+        theta = p.ag_pa
         self.theta = -theta
-        self.theta = theta
         self.logger.debug("rotation is %f deg" % (self.theta))
 
         # coords of detector vignette
