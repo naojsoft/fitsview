@@ -1,6 +1,6 @@
 #
 # MOIRCSFit.py -- MOIRCS focus fitting plugin for fits viewer
-# 
+#
 # Hannah Twigg-Smith
 # Writen using FocusFit.py as a guideline
 #
@@ -10,24 +10,18 @@ import shutil
 import logging
 import pickle
 
-import gtk
-import pango
-
 import numpy as np
 from scipy.stats import binned_statistic
 import scipy.optimize as optimize
 
-import gtk, gobject
-import matplotlib
-matplotlib.use('GTKAgg')
-import matplotlib.pyplot as plt
-from  matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as figurecanvas
 
 import sewpy
 from astropy.io import fits as pyfits
 
-from ginga.gtkw import ImageViewCanvasTypesGtk as CanvasTypes
-from ginga.gtkw import Plot
+from ginga.gw import Plot, Widgets
+from ginga.misc import Bunch
+from ginga.util import plots
+from ginga.gw.Plot import PlotWidget
 from ginga import GingaPlugin
 
 import cfg.g2soss as g2soss
@@ -63,6 +57,9 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         self.xmin_pixel = 0
         self.xmax_pixel = 2048
 
+        # holds the dynamic plots
+        self.plots = {}
+
         # Parameters for binning the FWHM data to compute mean and
         # median values.
         self.bin_start = 200
@@ -90,9 +87,12 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         self.filter_filepath = os.path.join(fitsview_confpath, 'tophat_1.5_3x3.conv')
 
         # Parameters for filtering Source Extractor results
-        self.se_flag_threshold = 2 # Reject sources with SE flag value >= than 2
-        self.source_ellipticity_threshold = 0.3  # Reject sources with SE flag value >= than 0.3
-        self.source_fwhm_threshold = 0.0 # Reject sources with FWHM <= 0.0
+        # Reject sources with SE flag value >= than 2
+        self.se_flag_threshold = 2
+        # Reject sources with SE flag value >= than 0.3
+        self.source_ellipticity_threshold = 0.3
+        # Reject sources with FWHM <= 0.0
+        self.source_fwhm_threshold = 0.0
 
         # Set up a logger for the sewpy (Source Extractor wrapper)
         # module.
@@ -107,95 +107,96 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             pass
 
     def build_gui(self, container):
-        # Paned container is just to provide a way to size the graph
+        vtop = Widgets.VBox()
+        # splitter is just to provide a way to size the graph
         # to a reasonable size
-        box = gtk.VPaned()
-        cw = container.get_widget()
-        cw.pack_start(box, expand=True, fill=True)
+        box = Widgets.Splitter(orientation='vertical')
 
-        self.notebook = gtk.Notebook()
-        self.notebook.set_tab_pos(gtk.POS_TOP)
-        self.show_tabs = True
-        self.show_border = True
-        self.notebook.set_scrollable(True)
-        box.pack1(self.notebook, resize=True, shrink=True)
-        
-        self.fontdesc = pango.FontDescription("Helvetica Bold 18")
+        self.notebook = Widgets.TabWidget(tabpos='top')
+        box.add_widget(self.notebook)
 
-        # create a box to pack widgets into. 
-        vbox1 = gtk.VBox()
+        # create a box to pack widgets into.
+        vbox1 = Widgets.VBox()
 
-        # label for seeing size 
-        self.label_ss = gtk.Label(" Best: ")
-        self.label_ss.set_alignment(0, 0)
-        vbox1.pack_start(self.label_ss, padding=5, fill=True, expand=False)
+        msgFont = self.fv.get_font("sansFont", 18)
+        # widget for seeing size
+        self.label_ss = Widgets.TextArea(wrap=True, editable=False)
+        self.label_ss.set_font(msgFont)
+        self.label_ss.set_text("Best: ")
+        vbox1.add_widget(self.label_ss, stretch=1)
 
-        fr = gtk.Frame(" Best Z Value ")
-        fr.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        fr.set_label_align(0.1, 0.5)
-        fr.add(vbox1)
-        fr.show_all()
-        
-        box.pack2(fr, resize=True, shrink=True)
+        fr = Widgets.Frame(" Best Z Value ")
+        fr.set_widget(vbox1)
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        box.add_widget(fr)
+        box.set_sizes([650, 100])
+        vtop.add_widget(box, stretch=1)
+
+        btns = Widgets.HBox()
         btns.set_spacing(3)
-        btns.set_child_size(15, -1)
 
-        btn = gtk.Button("Close")
-        btn.connect('clicked', lambda w: self.close())
-        btns.add(btn)
-        cw.pack_start(btns, padding=4, fill=True, expand=False)
+        btn = Widgets.Button("Close")
+        btn.add_callback('activated', lambda w: self.close())
+        btns.add_widget(btn, stretch=0)
+        btns.add_widget(Widgets.Label(''), stretch=1)
+        vtop.add_widget(btns, stretch=0)
+
+        container.add_widget(vtop, stretch=1)
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
+        self.plots = {}
         try:
             os.remove(self.mcs_focus_data_filepath)
         except OSError:
             pass
         return True
-        
+
     def clear(self):
         self.logger.debug('clearing canvas...')
-        self.ax[0].cla()
-        self.ax[1].cla()
+        for plot in self.plots.values():
+            fig = plot.get_figure()
+            fig.clf()
+        # or should this just do
+        self.notebook.remove_all()
+        self.plots = {}
 
-    def _draw(self):
-        self.ax[0].grid(True)
-        self.ax[1].grid(True)
-        self.fig.canvas.draw()
-
-    def set_err_msg(self, i, msg, x, y):
-        self.ax[i].text(x, y, msg, bbox=dict(facecolor='red',  alpha=0.1, ),
-                        horizontalalignment='center',
-                        verticalalignment='center',
-                        fontsize=14, color='red')
+    def set_err_msg(self, ax, msg, x, y):
+        ax.text(x, y, msg, bbox=dict(facecolor='red', alpha=0.1),
+                horizontalalignment='center',
+                verticalalignment='center',
+                fontsize=14, color='red')
 
     def _drawGraph(self, mcs_focus_data):
-        self.fig, self.ax = plt.subplots(2, 1)
-        self.canvas = figurecanvas(self.fig)
-        self.canvas.set_size_request(-1, 500)
-
         xmin, xmax, ymin, ymax = [0, 2048, 0.2, 1.2]
 
         focz = mcs_focus_data['FOC-VAL']
         det_data = mcs_focus_data['det_data']
 
+        vbox = Widgets.VBox()
+        vbox.set_spacing(2)
+
         # For each detector in the det_data structure, plot the Raw
         # Data, the Selected data, the binned median values and the
         # linear fit of the median values.
         for i, d in enumerate(det_data):
+
+            plot = plots.Plot(logger=self.logger, width=300, height=300)
+            self.plots['%f-%d' % (focz, i)] = plot
+            canvas_w = PlotWidget(plot, width=300, height=300)
+            vbox.add_widget(canvas_w)
+            ax = plot.add_axis()
+
             raw_data = d['Raw Data']
             x_raw = raw_data['X_IMAGE']
             fwhm_raw = raw_data['FWHM_IMAGE']
 
-            self.ax[i].plot(x_raw, fwhm_raw, 'ro', label='Raw data')
+            ax.plot(x_raw, fwhm_raw, 'ro', label='Raw data')
             sel = d['Selected']
             x_sel = sel['X_IMAGE']
             fwhm_sel = sel['FWHM_IMAGE']
-            self.ax[i].plot(x_sel, fwhm_sel, 'go', label='Selected')
+            ax.plot(x_sel, fwhm_sel, 'go', label='Selected')
 
             x_pix_bins = d['x_pix_bins']
             medians = d['medians']
@@ -209,35 +210,40 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
                 fit_str = "%.3g" % fit[0]
                 fit_fn = np.poly1d(fit)
 
-                self.ax[i].plot(x_pix_bins, medians, 'k*', label='Median', markersize=15)
+                ax.plot(x_pix_bins, medians, 'k*', label='Median', markersize=15)
 
                 x_fit = np.linspace(self.xmin_pixel,self.xmax_pixel,5)
-                self.ax[i].plot(x_fit, fit_fn(x_fit), 'k', label='Best fit')
+                ax.plot(x_fit, fit_fn(x_fit), 'k', label='Best fit')
             except TypeError as e:
                 msg = 'Insufficent number of Selected sources to curve fit'
                 self.logger.error('Error occured while fitting median data for detector %d: %s' % (i, str(e)))
                 self.logger.error(msg)
                 fit_str = 'N/A'
-                self.set_err_msg(i, msg, 0.5*(xmin+xmax), 0.5*(ymin+ymax))
+                self.set_err_msg(ax, msg, 0.5*(xmin+xmax), 0.5*(ymin+ymax))
 
             frameid = d['FRAMEID']
             title = '%s: FOC-Z=%s, Slope=%s' % (frameid, focz, fit_str)
-            self.ax[i].set_title(title)
+            ax.set_title(title)
             ## 27 December 2015 - Increase y-axis range
-            self.ax[i].axis([xmin, xmax, ymin, ymax])
-            self.ax[i].set_xlabel('x [pixel]')
-            self.ax[i].set_ylabel('FWHM [arcsec]')
+            ax.axis([xmin, xmax, ymin, ymax])
+            ax.set_xlabel('x [pixel]')
+            ax.set_ylabel('FWHM [arcsec]')
             ## For Ubuntu 12.04
-            ## self.ax[i].legend(fontsize='small')
-            self.ax[i].legend(prop={'size': 8})
-            self.ax[i].set_xticks(np.arange(0, 2049, 512))
+            ## ax.legend(fontsize='small')
+            ax.legend(prop={'size': 8})
+            ax.set_xticks(np.arange(0, 2049, 512))
             self.logger.info(title)
+            ax.grid(True)
 
-        label = gtk.Label('Z=%s' % focz)
-        self.notebook.append_page(self.canvas,label)
-        self._draw()
-        self.canvas.show_all()
-        self.notebook.next_page()
+            plot.draw()
+
+        sw = Widgets.ScrollArea()
+        sw.set_widget(vbox)
+        self.notebook.add_widget(sw, title="Z={}".format(focz))
+        # display the new page
+        index = self.notebook.index_of(sw)
+        self.notebook.set_index(index)
+
         return False
 
     def curve_fit(self, det_id, x, y, sdev, best_fit_type):
@@ -253,7 +259,8 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
                 popt, pcov = optimize.curve_fit(lambda x,a,b,c: a*(x-b)*(x-b)+c,
                                                 x, y, sigma=sdev)
                 best = popt[1]
-                z = np.array([popt[0], -2.*popt[0]*popt[1], popt[0]*popt[1]*popt[1]+popt[2]])
+                z = np.array([popt[0], -2.*popt[0]*popt[1],
+                              popt[0]*popt[1]*popt[1]+popt[2]])
                 fit_fn = np.poly1d(z)
                 x_fit = np.linspace(x[0],x[-1],200)
                 y_fit = fit_fn(x_fit)
@@ -272,51 +279,60 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
         return best, x_fit, y_fit
 
-    def errorplot(self, det_id, x, y, sdev, best, x_fit, y_fit):
+    def errorplot(self, det_id, ax, x, y, sdev, best, x_fit, y_fit):
 
         # Plot the supplied FWHM vs focus position and the curve fit
         # results.
-        self.ax[det_id-1].errorbar(x, y, sdev, linestyle='None', marker='^')
+        ax.errorbar(x, y, sdev, linestyle='None', marker='^')
 
-        self.ax[det_id-1].plot(x_fit, y_fit)
+        ax.plot(x_fit, y_fit)
 
         title = 'MCS Focus Fitting [CH%s]' % det_id
         if np.isfinite(best):
             title = '%s: Best-Z=%.3g' % (title, best)
         else:
             title = '%s: Curve fit fail' % title
-        self.ax[det_id-1].set_title(title)
+        ax.set_title(title)
         self.logger.info(title)
-        self.ax[det_id-1].set_xlabel('FOC-Z')
-        self.ax[det_id-1].set_ylabel('FWHM [arcsec]')
+        ax.set_xlabel('FOC-Z')
+        ax.set_ylabel('FWHM [arcsec]')
         return best
 
     def _drawBest(self, best_data, best, x_fit, y_fit, avg_best):
-        
-        self.fig, self.ax = plt.subplots(2, 1)
-        self.canvas = figurecanvas(self.fig)
-        self.canvas.set_size_request(-1, 500)
 
-        self.clear()
+        vbox = Widgets.VBox()
+        vbox.set_spacing(2)
 
-        # For each detector in best_data, plot the binned median FWHM vs focus position.
-        for d in best_data:
+        #self.clear()
+
+        # For each detector in best_data, plot the binned median
+        # FWHM vs focus position.
+        for i, d in enumerate(best_data):
+            plot = plots.Plot(logger=self.logger, width=300, height=300)
+            self.plots['best-%d' % (i)] = plot
+            canvas_w = PlotWidget(plot, width=300, height=300)
+            vbox.add_widget(canvas_w)
+            ax = plot.add_axis()
+
             det_id = d['DET-ID']
             x = d['focz']
             y = d['med_fwhm']
             sdev = d['sdev']
-            self.errorplot(det_id, x, y, sdev, best[det_id-1], x_fit[det_id-1], y_fit[det_id-1])
+            self.errorplot(det_id, ax, x, y, sdev,
+                           best[det_id-1], x_fit[det_id-1], y_fit[det_id-1])
+            plot.draw()
 
         if np.isfinite(avg_best):
             msg = " Best:  %.3g" % (avg_best)
         else:
             msg = "Curve fit fail"
         self.label_ss.set_text(msg)
-        self._draw()
-        self.canvas.show_all()
-        label = gtk.Label("Best")
-        self.notebook.append_page(self.canvas,label)
-        self.notebook.next_page()
+
+        sw = Widgets.ScrollArea()
+        sw.set_widget(vbox)
+        self.notebook.add_widget(sw, title='Best')
+        index = self.notebook.index_of(sw)
+        self.notebook.set_index(index)
 
         return False
 
@@ -463,7 +479,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             raise e
 
         # draw graph at next available opportunity
-        gobject.idle_add(self._drawGraph, mcs_focus_data[-1])
+        self.fv.gui_do(self._drawGraph, mcs_focus_data[-1])
 
         return 0
 
@@ -521,7 +537,6 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         self.logger.debug('best %s avg_best %s' % (best, avg_best))
 
         # draw graph at next available opportunity
-        # gobject.idle_add(self._drawBest, best_data, best, x_fit, y_fit, avg_best)
         self.fv.gui_do(self._drawBest, best_data, best, x_fit, y_fit, avg_best)
 
         # Check to see if we were able to compute a "best" value. If
@@ -539,17 +554,17 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
     def pause(self):
         pass
-        
+
     def resume(self):
         pass
-        
+
     def stop(self):
-        self.fv.showStatus("")
-        
+        self.fv.show_status("")
+
     def redo(self):
         pass
-    
+
     def __str__(self):
         return 'moircsfit'
-    
+
 # END
