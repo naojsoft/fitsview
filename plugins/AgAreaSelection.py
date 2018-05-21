@@ -50,6 +50,8 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
         self.threshold = None
         self.use_new_algorithm = False
 
+        self.gui_up = False
+
     def build_gui(self, container, future=None):
 
         vtop = Widgets.VBox()
@@ -160,6 +162,7 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
         vtop.add_widget(btns, stretch=0)
         container.add_widget(vtop, stretch=1)
 
+        self.gui_up = True
 
     def set_message(self, msg):
         self.tw.set_text(msg)
@@ -238,6 +241,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
+        self.gui_up = False
         return True
 
     def release_caller(self):
@@ -333,6 +337,10 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         self.stop()
         return 0
 
+    def set_algorithm(self, alg):
+        self.use_new_algorithm = alg in ('v2', 'V2')
+        if self.gui_up:
+            self.w.new_algorithm.set_state(self.use_new_algorithm)
 
     def redo(self):
         obj = self.canvas.get_object_by_tag(self.picktag)

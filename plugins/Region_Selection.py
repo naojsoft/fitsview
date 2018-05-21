@@ -57,6 +57,8 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.brightness = 5500.0
         self.fwhm = 0.0
 
+        self.gui_up = False
+
     def build_gui(self, container, future=None):
 
 
@@ -165,6 +167,8 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         vtop.add_widget(btns, stretch=0)
         container.add_widget(vtop, stretch=1)
 
+        self.gui_up = True
+
     def set_message(self, msg):
         self.tw.set_text(msg)
         self.tw.set_font(self.msgFont)
@@ -230,6 +234,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
+        self.gui_up = False
         return True
 
     def release_caller(self):
@@ -334,6 +339,10 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.stop()
         return 0
 
+    def set_algorithm(self, alg):
+        self.use_new_algorithm = alg in ('v2', 'V2')
+        if self.gui_up:
+            self.w.new_algorithm.set_state(self.use_new_algorithm)
 
     def redo(self):
         obj = self.canvas.get_object_by_tag(self.objtag)

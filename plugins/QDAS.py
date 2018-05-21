@@ -87,7 +87,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def frame_region(self, tag, future,
                      motor=None, instrument_name=None, mode=None,
                      input_frame=None, select_mode=None,
-                     x_region=None, y_region=None):
+                     x_region=None, y_region=None, algorithm=None):
 
         self.fv.assert_gui_thread()
 
@@ -112,7 +112,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                   obj_x=0.0, obj_y=0.0, fwhm=0.0,
                   skylevel=0.0, brightness=0.0,
                   dx=x_region // 2, dy=y_region // 2,
-                  alg='v1')
+                  alg=algorithm)
 
         # TODO: get old values
         #x, y, exptime, fwhm, brightness, skylevel, objx, objy
@@ -127,6 +127,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         rsinfo = chinfo.opmon.get_plugin_info(pluginName)
         rsobj = rsinfo.obj
+        rsobj.set_algorithm(algorithm)
 
         thr = rsobj.threshold
         if (thr == ''):
@@ -164,7 +165,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
     def _auto_region_selection(self, image, p):
 
-        if p.alg == 'v2':
+        if p.alg in ('v2', 'V2'):
             qualsize = self.iqcalc.qualsize
         else:
             # NOTE: qualsize_old is Kosugi-san's old algorithm
@@ -194,7 +195,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
     def telescope_move(self, tag, future,
                        motor=None, instrument_name=None,
                        input_frame=None, slit_x=None, slit_y=None,
-                       object_x=None, object_y=None, framelist=[]):
+                       object_x=None, object_y=None, framelist=[],
+                       algorithm=None):
 
         self.fv.assert_gui_thread()
 
@@ -231,7 +233,12 @@ class QDAS(GingaPlugin.GlobalPlugin):
                   x1=0, y1=0, x2=image.width-1, y2=image.height-1,
                   framelist=framelist, dst_channel=chname,
                   src_channel=instrument_name,
-                  load_frame=self.load_frame)
+                  load_frame=self.load_frame,
+                  alg=algorithm)
+
+        svinfo = chinfo.opmon.get_plugin_info(pluginName)
+        svobj = svinfo.obj
+        svobj.set_algorithm(algorithm)
 
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._telescope_move_cb, future,
@@ -246,7 +253,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
                          obj_x=None, obj_y=None,
                          x1=None, y1=None, x2=None, y2=None,
                          select_mode='OVERRIDE', recenter='NO',
-                         width=None, height=None, badwcs='OK'):
+                         width=None, height=None, badwcs='OK',
+                         algorithm=None):
 
         self.fv.assert_gui_thread()
 
@@ -306,11 +314,12 @@ class QDAS(GingaPlugin.GlobalPlugin):
                   dx=width // 2, dy=height // 2,
                   width=width, height=height,
                   x1=x1, y1=y1, x2=x2, y2=y2,
-                  badwcs=badwcs, alg='v1')
+                  badwcs=badwcs, alg=algorithm)
 
         pluginName = 'Sv_Drive'
         pluginInfo = chinfo.opmon.get_plugin_info(pluginName)
         pluginObj = pluginInfo.obj
+        pluginObj.set_algorithm(algorithm)
 
         thr = pluginObj.threshold
         if (thr == ''):

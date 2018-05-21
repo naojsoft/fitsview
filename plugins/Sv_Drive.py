@@ -441,6 +441,11 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def toggle_recenter(self, w, tf):
         self.recenter = tf
 
+    def set_algorithm(self, alg):
+        self.use_new_algorithm = alg in ('v2', 'V2')
+        if self.gui_up:
+            self.w.new_algorithm.set_state(self.use_new_algorithm)
+
     def redo(self):
         pass
 

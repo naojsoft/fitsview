@@ -133,7 +133,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
     def region_selection(self, tag, future, motor=None, v_lan_data=None,
                          select_mode=None, x_region=None, y_region=None,
-                         exptime=3000):
+                         exptime=3000, algorithm=None):
 
         self.fv.assert_gui_thread()
 
@@ -164,7 +164,8 @@ class VGW(GingaPlugin.GlobalPlugin):
         p.setvals(exptime=exptime, auto=False, recenter=True,
                   obj_x=0.0, obj_y=0.0, fwhm=0.0,
                   skylevel=0.0, brightness=0.0,
-                  dx=x_region // 2, dy=y_region // 2)
+                  dx=x_region // 2, dy=y_region // 2,
+                  alg=algorithm)
 
         # TODO: get old values
         #x, y, exptime, fwhm, brightness, skylevel, objx, objy
@@ -180,11 +181,12 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         rsinfo = chinfo.opmon.get_plugin_info(pluginName)
         rsobj = rsinfo.obj
+        rsobj.set_algorithm(algorithm)
 
         thr = rsobj.threshold
         if (thr == ''):
             thr = None
-        p.setvals(alg='v1', radius=rsobj.radius, threshold=thr)
+        p.setvals(radius=rsobj.radius, threshold=thr)
 
         select_mode = select_mode.lower()
         if select_mode in ('auto', 'semiauto'):
@@ -240,7 +242,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         x1, y1 = 0, 0
         x2, y2 = image.width-1, image.height-1
 
-        if p.alg == 'v2':
+        if p.alg in ('v2', 'V2'):
             qualsize = self.iqcalc.qualsize
         else:
             # NOTE: qualsize_old is Kosugi-san's old algorithm
@@ -269,7 +271,7 @@ class VGW(GingaPlugin.GlobalPlugin):
     def ag_guide_area_selection(self, tag, future,
                                 motor=None, v_lan_data=None,
                                 select_mode=None, x_region=None, y_region=None,
-                                ag_area=None):
+                                ag_area=None, algorithm=None):
 
         self.fv.assert_gui_thread()
 
@@ -312,7 +314,8 @@ class VGW(GingaPlugin.GlobalPlugin):
                   ag_area=ag_area, agkey=v_lan_data,
                   er_x1=er_x1, er_y1=er_y1,
                   er_x2=er_x2, er_y2=er_y2,
-                  dx=x_region // 2, dy = y_region // 2)
+                  dx=x_region // 2, dy = y_region // 2,
+                  alg=algorithm)
 
         # TODO: get old values
         #x, y, exptime, fwhm, brightness, skylevel, objx, objy
@@ -327,11 +330,12 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         rsinfo = chinfo.opmon.get_plugin_info(pluginName)
         rsobj = rsinfo.obj
+        rsobj.set_algorithm(algorithm)
 
         thr = rsobj.threshold
         if (thr == ''):
             thr = None
-        p.setvals(alg='v1', radius=rsobj.radius, threshold=thr)
+        p.setvals(radius=rsobj.radius, threshold=thr)
 
         select_mode = select_mode.lower()
         if select_mode in ('auto', 'semiauto'):
@@ -384,7 +388,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
     def sv_drive(self, tag, future,
                  motor=None, slit_x=None, slit_y=None,
-                 object_x=None, object_y=None):
+                 object_x=None, object_y=None, algorithm=None):
 
         self.fv.assert_gui_thread()
 
@@ -438,6 +442,10 @@ class VGW(GingaPlugin.GlobalPlugin):
         p.setvals(dst_x=slit_x, dst_y=slit_y,
                   obj_x=object_x, obj_y=object_y,
                   x1=0, y1=0, x2=image.width-1, y2=image.height-1)
+
+        svinfo = chinfo.opmon.get_plugin_info(pluginName)
+        svobj = svinfo.obj
+        svobj.set_algorithm(algorithm)
 
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._sv_drive_cb, future,
