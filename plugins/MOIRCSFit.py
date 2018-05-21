@@ -521,7 +521,8 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         self.logger.debug('best %s avg_best %s' % (best, avg_best))
 
         # draw graph at next available opportunity
-        gobject.idle_add(self._drawBest, best_data, best, x_fit, y_fit, avg_best)
+        # gobject.idle_add(self._drawBest, best_data, best, x_fit, y_fit, avg_best)
+        self.fv.gui_do(self._drawBest, best_data, best, x_fit, y_fit, avg_best)
 
         # Check to see if we were able to compute a "best" value. If
         # not, raise an exception.
