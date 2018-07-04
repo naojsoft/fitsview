@@ -9,10 +9,11 @@ class Gen2FITSViewer(GingaShell):
     """
 
     def __init__(self, logger, threadPool, module_manager, preferences,
-                 soundsink, ev_quit=None):
+                 soundsink, status_srv, ev_quit=None):
 
         self.controller = None
         self.soundsink = soundsink
+        self.status_srv = status_srv
 
         GingaShell.__init__(self, logger, threadPool, module_manager,
                             preferences, ev_quit=ev_quit)
@@ -41,6 +42,9 @@ class Gen2FITSViewer(GingaShell):
     def play_soundfile(self, filepath, format=None, priority=20):
         self.soundsink.playFile(filepath, format=format,
                                 priority=priority)
+
+    def get_gen2_status(self, stat_dict):
+        return self.status_srv.fetch(stat_dict)
 
     def gui_load_file(self):
         """Runs dialog to read in a command file into the command window.

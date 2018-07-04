@@ -751,7 +751,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             plotObj = fov_plot.MOIRCSfov(self.logger, p.image, p)
         elif insname == 'mimizuku':
             limit_stars_to_area = True
-            plotObj = fov_plot.MIMIZUKUfov(self.logger, p.image, p)
+            plotObj = fov_plot.MIMIZUKUfov(self.logger, p.image, p, self.fv)
         elif insname == 'spcam':
             plotObj = fov_plot.SPCAMfov(self.logger, p.image, p)
         else:

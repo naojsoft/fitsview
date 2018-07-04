@@ -240,6 +240,8 @@ def main(options, args):
     sndsink = SoundSink.SoundSource(monitor=mymon, logger=logger,
                                     channels=['sound'])
 
+    status_srv = ro.remoteObjectProxy('status')
+
     # Get preferences folder
     if 'CONFHOME' in os.environ:
         basedir = os.path.join(os.environ['CONFHOME'], serviceName)
@@ -293,7 +295,7 @@ def main(options, args):
     from Gen2.fitsview.g2viewer import Gen2FITSViewer
 
     ginga_shell = Gen2FITSViewer(logger, threadPool, mm, prefs,
-                           sndsink, ev_quit=ev_quit)
+                           sndsink, status_srv, ev_quit=ev_quit)
     ginga_shell.set_layout(default_layout)
     ginga_shell.follow_focus(False)
 

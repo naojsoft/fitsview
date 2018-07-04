@@ -499,13 +499,27 @@ class MIMIZUKUfov(TELESCOPEfov):
     In addition to those, an offset will be added, but this offset has an
     uncertainty.  It depends on the InR angle in the instrument exchange.
     Okita-san says that it may be -90 deg.
+
+    NOTE: MMZ.FS_PA_OFFSET + p.ag_pa - MMZ.FS_ROT_ANGLE
     """
 
-    def __init__(self, logger, image, p):
+    def __init__(self, logger, image, p, fv):
         super(MIMIZUKUfov, self).__init__(logger, image, p)
 
-        # offset in attachment to the Cassegrain flange
-        self.mmz_offset = -90.0
+        self.fv = fv
+        d = self.fv.get_gen2_status({'MMZ.FS_PA_OFFSET': 0.0,
+                                     'MMZ.FS_ROT_ANGLE': 0.0})
+        print(d, p.ag_pa)
+        # MIMIZUKU mounting offset in attachment to the Cassegrain flange
+        try:
+            self.mmz_fs_pa_offset = float(d['MMZ.FS_PA_OFFSET'])
+        except Exception:
+            self.mmz_fs_pa_offset = 0.0
+        # MIMIZUKU rotation angle of the field stacker
+        try:
+            self.mmz_fs_rot_angle = float(d['MMZ.FS_ROT_ANGLE'])
+        except Exception:
+            self.mmz_fs_rot_angle = 0.0
         # TODO: read these from a config file
         fov = 0.033000
         # mimizuku fov with detector vignette  9.2 arcmin x 2.4 arcmin
@@ -514,11 +528,9 @@ class MIMIZUKUfov(TELESCOPEfov):
         vig_hw = 0.0766666
 
         # Angle we should draw the object at is therefore
-        # TODO: need to account for MIMIZUKU field stacker rotation
-        #   plus offset
-        theta = p.ag_pa
-        self.theta = -theta
-        self.logger.debug("rotation is %f deg" % (self.theta))
+        theta = self.mmz_fs_pa_offset - p.ag_pa - self.mmz_fs_rot_angle
+        self.theta = theta
+        self.logger.info("rotation is %f deg" % (self.theta))
 
         # coords of detector vignette
         self.vig_pts = []
@@ -560,7 +572,8 @@ class MIMIZUKUfov(TELESCOPEfov):
 
         # MIMIZUKU is offset wrt cassegrain flange.  Standard
         # vignette map needs to be rotated to be properly aligned
-        vig_rot = 2.0 * self.theta - self.mmz_offset
+        #vig_rot = 2.0 * self.theta - self.mmz_offset
+        vig_rot = self.p.ag_pa
         self.vig_obj.rotate(vig_rot, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
 
     def filter_results(self, starlist):
