@@ -1458,10 +1458,13 @@ class VGW(GingaPlugin.GlobalPlugin):
                 else:
                     bbox = obj.objects[0]
                     bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
+                    text = obj.objects[1]
+                    text.x, text.y = x1, y2+4
             else:
                 # Not guiding, clear the region, if any
                 if obj is not None:
                     fitsimage.delete_object(obj)
+            fitsimage.redraw(whence=3)
 
 
     def display_fitsbuf(self, fitsname, chname, data, width, height, na_type,
