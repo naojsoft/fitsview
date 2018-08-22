@@ -188,7 +188,7 @@ class CatalogServer(object):
 
                 # convert ra/dec via EQUINOX change if catalog EQUINOX is
                 # not the same as our default one (2000)
-                if cmp(self.equinox, 2000.0) != 0:
+                if int(self.equinox) != 2000:
                     ra_deg, dec_deg = wcs.eqToEq2000(ra_deg, dec_deg,
                                                      self.equinox)
 

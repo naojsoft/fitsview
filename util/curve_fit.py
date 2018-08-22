@@ -15,7 +15,7 @@ from .polynomial import QuadraticFunction
 
 import numpy as np
 
-import ssdlog
+from g2base import ssdlog
 
 
 class CurveFitError(Exception):

@@ -1,14 +1,14 @@
-from __future__ import print_function
 #
 # Takeshi Inagaki (tinagaki@naoj.org)
 #
+from __future__ import print_function
 import os
 import sys
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 
-import ssdlog
+from g2base import ssdlog
 
 class QuadraticError(Exception):
     pass
