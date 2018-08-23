@@ -1483,7 +1483,6 @@ class VGW(GingaPlugin.GlobalPlugin):
         """
 
         # Decode binary data
-        data = data.data
         data = ro.binary_decode(data)
 
         self.logger.debug("Received data: len=%d width=%d height=%d type=%s" % (
