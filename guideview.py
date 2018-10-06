@@ -194,7 +194,8 @@ default_channels = [('AG', 'channels'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
                     ('QDAS_VGW', 'sub2'), ('DSS', 'sub2'),
                     ('SH', 'channels'),
                     ('HSCSHAG', 'channels'), ('HSCSH', 'channels'),
-                    ('FMOS', 'channels'), ]
+                    ('PFS', 'channels'),
+                    ]
 
 
 def main(options, args):
