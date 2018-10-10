@@ -122,6 +122,7 @@ class MESInterface(object):
         self.last_wait_gui = 0
         self.set_defaults(idx)
         self.parameter_tabs.set_index(idx)
+        self.logger.info('in go_to_mesoffset before call go_to_gui star_chip1 %s sky_chip1 %s mask_chip1 %s' % (self.manager.database['star_chip1'], self.manager.database['sky_chip1'], self.manager.database['mask_chip1']))
         self.go_to_gui('epar')
 
     def wait(self, idx, next_step=None):

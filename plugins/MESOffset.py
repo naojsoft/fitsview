@@ -301,6 +301,7 @@ class MESOffset(mosPlugin.MESPlugin):
         if self.exec_mode == 0:
             self.mes_interface.go_to_mesoffset(1)
         else:
+            self.logger.info('before call go_to_mesoffset 3 star_chip1 %s sky_chip1 %s mask_chip1 %s' % (self.database['star_chip1'], self.database['sky_chip1'], self.database['mask_chip1']))
             self.mes_interface.go_to_mesoffset(3)
 
     #
@@ -469,8 +470,8 @@ class MESOffset(mosPlugin.MESPlugin):
         self.logger.info(
             'MESOffset2 offsets are dx %s pix dy %s pix rotate %s deg' %
             self.mes_analyze.offset)
-        self.database['mask_chip1'] = self.starhole_chip1 + 4
-        self.mes_interface.go_to_mesoffset(3)
+        self.database['starhole_chip1'] = self.starhole_chip1 + 2
+        self.mes_interface.go_to_mesoffset(2)
 
     #
     # ----- MESOFFSET3 FUNCTIONS ----- ##
@@ -519,9 +520,12 @@ class MESOffset(mosPlugin.MESPlugin):
     def wait_for_starhole(self, *args):
         """ Save mes locate data and wait for user input """
         if hasattr(self, 'starhole_chip1'):
+            self.logger.info('MESOffset.wait_for_starhole setting self.database starhole_chip1 value from current self.starhole_chip1 value of %s and incremented by 2' % self.starhole_chip1)
             self.database['starhole_chip1'] = self.starhole_chip1 + 2
         else:
+            self.logger.info('MESOffset.wait_for_starhole setting self.database starhole_chip1 value from current self.mask_chip1 value of %s and incremented by 2' % self.mask_chip1)
             self.database['starhole_chip1'] = self.mask_chip1 + 2
+        self.logger.info('MESOffset.wait_for_starhole now has self.database starhole_chip1 value as %s' % self.database['starhole_chip1'])
         self.mes_interface.wait(3, next_step=self.process_new_starhole_fits)
 
     def process_new_starhole_fits(self, *args):
