@@ -6,6 +6,7 @@
 #
 import math
 import os
+import time
 
 from ginga import GingaPlugin, AstroImage
 from ginga.misc import Future, Bunch
@@ -667,6 +668,17 @@ class QDAS(GingaPlugin.GlobalPlugin):
         future.resolve(0)
         return 0
 
+
+    def check_image(self, tag, future,
+                    chname=None, imname=None, timeout=None):
+
+        self.fv.assert_gui_thread()
+
+        channel = self.fv.get_channel_on_demand(chname)
+
+        self.fv.nongui_do(self._wait_for_image, future,
+                          channel, imname, timeout)
+
     #############################################################
     #    Helper methods
     #############################################################
@@ -787,6 +799,33 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
             # Only raise for a draw
             self.fv.ds.raise_tab(chname)
+
+    def _wait_for_image(self, future, channel, imname, timeout):
+        p = future.get_data()
+
+        start_time = time.time()
+        deadline = start_time + timeout
+        #self.logger.debug(str(list(channel.datasrc.keys())))
+
+        while time.time() < deadline:
+            #self.logger.debug(str(list(channel.datasrc.keys())))
+            self.logger.debug("Checking channel '%s' for image '%s'..." % (
+                channel.name, imname))
+
+            try:
+                image = channel.get_loaded_image(imname)
+
+                p.setvals(result='ok', time_note=time.time())
+                future.resolve(0)
+
+            except KeyError:
+                pass
+
+            time.sleep(0.1)
+
+        p.setvals(result='error', errmsg="No such image: '%s' in channel %s" % (
+            imname, channel.name))
+        future.resolve(0)
 
     def __str__(self):
         return 'qdas'
