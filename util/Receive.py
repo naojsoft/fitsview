@@ -13,8 +13,7 @@ from astropy.io import fits as pyfits
 import numpy
 
 from ginga.misc import Bunch, Future
-from ginga import AstroImage, RGBImage, BaseImage
-from ginga.util import wcs
+from ginga import AstroImage, BaseImage
 
 from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
@@ -83,20 +82,11 @@ class ReceiveFITS(object):
                 idx = max(0, info.numhdu)
                 kwdargs['idx'] = idx
 
-            ## image = image_loader(filepath, **kwdargs)
-            future = Future.Future()
-            future.freeze(image_loader, filepath, **kwdargs)
-            image = future.thaw()
+            image = image_loader(filepath, **kwdargs)
+
             assert isinstance(image, BaseImage.BaseImage), \
                    ValueError("Loader did not produce a loadable image: %s" % (
                 str(type(image))))
-
-            # Save a future for this image to reload it later if we
-            # have to remove it from memory
-            image.set(loader=image_loader, image_future=future)
-
-            if image.get('path', None) is None:
-                image.set(path=filepath)
 
         except Exception as e:
             errmsg = "Failed to load file '%s': %s" % (
@@ -110,6 +100,16 @@ class ReceiveFITS(object):
 
             self.fv.gui_do(self.fv.show_error, errmsg + '\n' + tb_str)
             return None
+
+        future = Future.Future()
+        future.freeze(image_loader, filepath, **kwdargs)
+
+        # Save a future for this image to reload it later if we
+        # have to remove it from memory
+        image.set(loader=image_loader, image_future=future)
+
+        if image.get('path', None) is None:
+            image.set(path=filepath)
 
         header = image.get_header()
 
