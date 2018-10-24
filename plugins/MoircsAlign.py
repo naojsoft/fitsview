@@ -2,6 +2,7 @@
 # MoircsAlignPlugin.py -- Ruler plugin for Ginga reference viewer
 #
 from __future__ import absolute_import
+from __future__ import print_function
 import os
 import threading
 import six
@@ -1264,11 +1265,11 @@ class MoircsAlign(MoircsAlignWindow):
 
         # Open configuration file to get the file name of bad pixel mask 
         # TO-DO read the distortion configuration for the parameters
-        print self.database
+        print(self.database)
         filename=self.PARAMS_1[4]['default']
         filename=filename.replace("$DATABASE",self.variables['DATABASE'])
         
-        print filename
+        print(filename)
         cfg = open(filename, 'r')
         config = []
         line = cfg.readline()
@@ -2276,8 +2277,8 @@ class MoircsAlign(MoircsAlignWindow):
         # First, check if the number of detected holes is consistent with input
         #  data.
         hole, hole0, dx, dy = self.parse_data(self.sbr_data)
-        #print 'Input hole number = %d'%len(hole[:,0])
-        #print 'Detected holes = %d'%self.moircsAlignImage.mask.gHoleMosaic.shape[1]
+        #print('Input hole number = %d'%len(hole[:,0]))
+        #print('Detected holes = %d'%self.moircsAlignImage.mask.gHoleMosaic.shape[1])
         
         # If the number is consistent, plot the hole location    
         if len(hole[:,0]) == self.moircsAlignImage.mask.gHoleMosaic.shape[1]:
@@ -3682,8 +3683,8 @@ class MoircsAlignImage(object):
             else:
                 nearest_ind=np.vstack((nearest_ind,darray[i,0:].argsort()[0:nlimit]))
         
-        print nearest_dis
-        print nearest_ind
+        print(nearest_dis)
+        print(nearest_ind)
             
         # It will be better if we select this value from a data set that  
         #  stars are close to the hole
@@ -3699,7 +3700,7 @@ class MoircsAlignImage(object):
             # Using this distance for friend-looking
             dmin_template=nearest_dis[si,i]
             
-            #print 'templat from ',nearest_dis[si,i]
+            #print('templat from ',nearest_dis[si,i])
             
             # subtract this distance 
             matrix_dis=np.abs(np.subtract(nearest_dis,dmin_template))
@@ -3718,8 +3719,8 @@ class MoircsAlignImage(object):
                 index=np.logical_and(temp_dis < 20, \
                     temp_dis == np.min(temp_dis))
                 
-                #print temp_dis
-                #print temp_ind[np.where(index == True)]
+                #print(temp_dis)
+                #print(temp_ind[np.where(index == True)])
                 if len(temp_ind[np.where(index == True)]) == 0:
                     sub_match_set=np.append(sub_match_set,np.nan)
                     sub_distance=np.append(sub_distance,np.nan)
@@ -3729,8 +3730,8 @@ class MoircsAlignImage(object):
                     sub_distance=np.append(sub_distance,\
                         temp_dis[np.where(index == True)])
                 
-                #print sub_match_set
-                #print '-------'
+                #print(sub_match_set)
+                #print('-------')
             
             # When storing the match set, remove all NaN elements.  The NaN are 
             #  used to calculate the weighting, so that we do not want to change
@@ -3760,9 +3761,9 @@ class MoircsAlignImage(object):
                 stars=match_set[i[0]]
         
                 
-        print match_set
-        print weight_set
-        print stars
+        print(match_set)
+        print(weight_set)
+        print(stars)
         #stars=match_set[min(weight_set,key=weight_set.get)]
         
         #print(self.starCat['x'][stars], self.starCat['y'][stars])
