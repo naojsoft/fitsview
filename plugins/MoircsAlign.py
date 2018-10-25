@@ -46,7 +46,7 @@ from ginga.misc.Callback import CallbackError
 
 
 
-DIR_MCSRED = '/home/chyan/MOIRCS/MCSRED2/'
+DIR_MCSRED = '/home/gen2/Procedure/MOIRCS/MCSRED2/'
 DIR_PAR_VAR = os.environ['HOME']
 PAR_FILENAME = 'mesoffset_parameters.txt'
 VAR_FILENAME = 'mesoffset_directories.txt'
@@ -360,6 +360,7 @@ class MoircsAlign(MoircsAlignWindow):
         super(MoircsAlign, self).__init__(fv, fitsimage)
         
         print(self.NORMAL_FONT)
+        self.DIR_MCSRED = DIR_MCSRED
 
         self.variables = self.read_variables()
 
@@ -402,8 +403,9 @@ class MoircsAlign(MoircsAlignWindow):
         self.set_params_db(mcsred_dir)
         self.training_dir = training_dir
         
-        #fitsUtils.DIR_MCSRED = mcsred_dir + '/'
-        
+        self.DIR_MCSRED = mcsred_dir + '/'
+        self.logger.info('MESOffset self.DIR_MCSRED is %s' % self.DIR_MCSRED)
+
         self.work_dir = os.path.join(work_dir, 'MESOffset')
         self.logger.info('MESOffset work_dir is %s' % self.work_dir)
 
@@ -1275,7 +1277,7 @@ class MoircsAlign(MoircsAlignWindow):
         line = cfg.readline()
         while line != '':
             if line[0] != '#':
-                config.append(line.split()[-1].replace('dir_mcsred$',DIR_MCSRED))
+                config.append(line.split()[-1].replace('dir_mcsred$',self.DIR_MCSRED))
             line = cfg.readline()
         cfg.close()
         self.moircsAlignImage.badpix_fits_name = [config[12],config[13]]
@@ -2058,7 +2060,7 @@ class MoircsAlign(MoircsAlignWindow):
             var_file.close()
         except IOError:
             #output["DATABASE"] = "../../MCSRED2/DATABASE"
-            output["DATABASE"] = os.path.join(DIR_MCSRED, "DATABASE")
+            output["DATABASE"] = os.path.join(self.DIR_MCSRED, "DATABASE")
         return output
 
     def process_filename(self,filename, variables=None):
