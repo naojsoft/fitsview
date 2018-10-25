@@ -1439,10 +1439,9 @@ class MoircsAlign(MoircsAlignWindow):
                                             "MES Offset 2",
                                             self.offset)
         self.logger.info('MESOffset2 offsets are dx %s pix dy %s pix rotate %s deg' % self.offset)
-        self.database['newmask_chip1'] = self.starhole_chip1+6
         self.database['sky_chip1']=self.sky_chip1
-        self.database['starhole_chip1'] = self.starhole_chip1+4
-        self.go_to_mesoffset(2)
+        self.database['starhole_chip1'] = self.starhole_chip1+2
+        self.go_to_mesoffset(1)
 
 
     def begin_mesoffset3(self):
