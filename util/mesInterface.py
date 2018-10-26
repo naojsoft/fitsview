@@ -390,10 +390,10 @@ class MESInterface(object):
             btn.add_callback('activated', self.done_cb)
             btn.set_tooltip("Done with MESOffset")
             box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_wait(self, idx, orientation='vertical'):
@@ -462,10 +462,10 @@ class MESInterface(object):
             btn.add_callback('activated', self.done_cb)
             btn.set_tooltip("Done with MESOffset")
             box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_look(self, orientation='vertical'):
@@ -501,7 +501,7 @@ class MESInterface(object):
         # now add in the textbox for the results
         txt = Widgets.TextArea(wrap=False, editable=False)
         txt.set_font(self.manager.MONO_FONT)
-        gui.add_widget(txt, stretch=True)
+        gui.add_widget(txt, stretch=1)
         self.results_textarea = txt
 
         # now make an HBox for the controls
@@ -528,10 +528,10 @@ class MESInterface(object):
         box.add_widget(btn)
 
         # space the buttons
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_log(self, orientation='vertical'):
@@ -548,7 +548,7 @@ class MESInterface(object):
 
         # the 'log' is a gigantic text box
         scr = Widgets.ScrollArea()
-        gui.add_widget(scr, stretch=True)
+        gui.add_widget(scr, stretch=1)
         txt = Widgets.TextArea(wrap=False, editable=False)
         txt.set_font(self.manager.BODY_FONT)
         self.log_textarea = txt
@@ -561,7 +561,7 @@ class MESInterface(object):
         btn.set_tooltip("Terminate the current process")
         btn.add_callback('activated', self.terminate_process_cb)
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         return gui
 
@@ -585,7 +585,7 @@ class MESInterface(object):
         # now for the error box itself
         txt = Widgets.TextArea(wrap=True, editable=False)
         txt.set_font(self.manager.BODY_FONT)
-        gui.add_widget(txt, stretch=True)
+        gui.add_widget(txt, stretch=1)
         self.err_textarea = txt
 
         # finish off with a box of important controls at the end
@@ -597,10 +597,10 @@ class MESInterface(object):
         btn.add_callback('activated', self.return_to_menu_cb)
         btn.set_tooltip("Correct the error and try again")
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     @staticmethod
@@ -729,7 +729,7 @@ def build_dict_labels(dictionary):
         lbl2 = Widgets.Label(dictionary[key], halign='left')
         grd.add_widget(lbl1, i, 0)
         grd.add_widget(lbl2, i, 1)
-        grd.add_widget(Widgets.Label(''), i, 2, stretch=True)
+        grd.add_widget(Widgets.Label(''), i, 2, stretch=1)
     return grd
 
 

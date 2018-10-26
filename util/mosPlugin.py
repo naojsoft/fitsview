@@ -83,19 +83,19 @@ class MESPlugin(GingaPlugin.LocalPlugin):
         # create the outer Box that will hold the GUI and the close button
         out = Widgets.VBox()
         out.set_border_width(4)
-        container.add_widget(out, stretch=True)
+        container.add_widget(out, stretch=1)
 
         # create the inner box that will contain the stack of GUIs
         box, box_wrapper, orientation = Widgets.get_oriented_box(container,
                                                                  fill=True)
         box.set_border_width(4)
         box.set_spacing(3)
-        out.add_widget(box_wrapper, stretch=True)
+        out.add_widget(box_wrapper, stretch=1)
 
         # the rest is a stack of GUIs for each step, as decided by the subclass
         stk = Widgets.StackWidget()
         self.stack_guis(stk, orientation)
-        box.add_widget(stk, stretch=True)
+        box.add_widget(stk, stretch=1)
         self.stack = stk
 
         # end is an HBox that comes at the very end, after the rest of the GUIs
@@ -107,7 +107,7 @@ class MESPlugin(GingaPlugin.LocalPlugin):
         btn = Widgets.Button("Close")
         btn.add_callback('activated', lambda w: self.close())
         end.add_widget(btn)
-        end.add_widget(Widgets.Label(''), stretch=True)
+        end.add_widget(Widgets.Label(''), stretch=1)
 
 
     def start(self, future=None):

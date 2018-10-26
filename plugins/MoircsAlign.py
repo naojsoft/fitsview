@@ -149,19 +149,19 @@ class MoircsAlignWindow(GingaPlugin.LocalPlugin):
         # create the outer Box that will hold the GUI and the close button
         out = Widgets.VBox()
         out.set_border_width(4)
-        container.add_widget(out, stretch=True)
+        container.add_widget(out, stretch=1)
         
         # create the inner box that will contain the stack of GUIs
         box, box_wrapper, orientation = Widgets.get_oriented_box(container,
                                                                  fill=True)
         box.set_border_width(4)
         box.set_spacing(3)
-        out.add_widget(box_wrapper, stretch=True)
+        out.add_widget(box_wrapper, stretch=1)
         
         # the rest is a stack of GUIs for each step, as decided by the subclass
         stk = Widgets.StackWidget()
         self.stack_guis(stk, orientation)
-        box.add_widget(stk, stretch=True)
+        box.add_widget(stk, stretch=1)
         self.stack = stk
         
         # end is an HBox that comes at the very end, after the rest of the GUIs
@@ -173,7 +173,7 @@ class MoircsAlignWindow(GingaPlugin.LocalPlugin):
         btn = Widgets.Button("Close")
         btn.add_callback('activated', lambda w: self.close())
         end.add_widget(btn)
-        end.add_widget(Widgets.Label(''), stretch=True)
+        end.add_widget(Widgets.Label(''), stretch=1)
     
     
     def start(self, future=None):
@@ -545,11 +545,11 @@ class MoircsAlign(MoircsAlignWindow):
             btn.add_callback('activated', self.done_cb)
             btn.set_tooltip("Done with MESOffset")
             box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
         self.logger.info('GO! Button established!')
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_log(self, orientation='vertical'):
@@ -566,7 +566,7 @@ class MoircsAlign(MoircsAlignWindow):
         
         # the 'log' is a gigantic text box
         scr = Widgets.ScrollArea()
-        gui.add_widget(scr, stretch=True)
+        gui.add_widget(scr, stretch=1)
         txt = Widgets.TextArea(wrap=False, editable=False)
         txt.set_font(self.BODY_FONT)
         self.log_textarea = txt
@@ -579,7 +579,7 @@ class MoircsAlign(MoircsAlignWindow):
         btn.set_tooltip("Terminate the current process")
         btn.add_callback('activated', self.terminate_process_cb)
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
         
         return gui
     
@@ -653,7 +653,7 @@ class MoircsAlign(MoircsAlignWindow):
         box.add_widget(btn)
         
         # put in a spacer
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
         
         # now add a section for more precise control
         frm = Widgets.Frame()
@@ -674,12 +674,12 @@ class MoircsAlign(MoircsAlignWindow):
             num.set_limits(0, 9999, 5)
             num.add_callback('value-changed', self.set_position_cb)
             num.set_tooltip("Use this to fine-tune the "+var+" value")
-            row.add_widget(num, stretch=True)
+            row.add_widget(num, stretch=1)
             self.spinboxes[var] = num
-            row.add_widget(Widgets.Label(''), stretch=True)
+            row.add_widget(Widgets.Label(''), stretch=1)
         
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
         
         
@@ -759,7 +759,7 @@ class MoircsAlign(MoircsAlignWindow):
         box.add_widget(btn)
         
         # put in a spacer
-        box.add_widget(Widgets.Label(""), stretch=True)
+        box.add_widget(Widgets.Label(""), stretch=1)
         
         # another HBox holds the skip button, because it doesn't fit on the first line
         box = Widgets.HBox()
@@ -778,7 +778,7 @@ class MoircsAlign(MoircsAlignWindow):
         self.skip_btn = btn
         
         # put in a spacer
-        box.add_widget(Widgets.Label(""), stretch=True)
+        box.add_widget(Widgets.Label(""), stretch=1)
         
         # make a new box for a combobox+label combo
         frm = Widgets.Frame()
@@ -799,7 +799,7 @@ class MoircsAlign(MoircsAlignWindow):
         box.add_widget(com)
         
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_plot(self, orientation='vertical'):
@@ -870,7 +870,7 @@ class MoircsAlign(MoircsAlignWindow):
             
             txt = Widgets.TextArea(editable=False)
             txt.set_font(self.HEADER_FONT)
-            grd.add_widget(txt, i, 1, stretch=True)
+            grd.add_widget(txt, i, 1, stretch=1)
             self.final_displays[val] = txt
             
             lbl = Widgets.Label(unit+"\t", halign='left')
@@ -890,17 +890,17 @@ class MoircsAlign(MoircsAlignWindow):
         btn.add_callback('activated', self.relocate_cb)
         btn.set_tooltip("Relocation stars!")
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         btn = Widgets.Button("Finish")
         btn.add_callback('activated', self.finish_cb)
         btn.set_tooltip("Finsh the procedure!")
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
         
-        box.add_widget(Widgets.Label(""), stretch=True)
+        box.add_widget(Widgets.Label(""), stretch=1)
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
     
     
@@ -1025,7 +1025,7 @@ class MoircsAlign(MoircsAlignWindow):
             lbl2 = Widgets.Label(dictionary[key], halign='left')
             grd.add_widget(lbl1, i, 0)
             grd.add_widget(lbl2, i, 1)
-            grd.add_widget(Widgets.Label(''), i, 2, stretch=True)
+            grd.add_widget(Widgets.Label(''), i, 2, stretch=1)
         return grd
 
     # def make_gui_wait(self, idx, orientation='vertical'):
@@ -1089,10 +1089,10 @@ class MoircsAlign(MoircsAlignWindow):
     #         btn.add_callback('activated', self.done_cb)
     #         btn.set_tooltip("Done with MESOffset")
     #         box.add_widget(btn)
-    #     box.add_widget(Widgets.Label(''), stretch=True)
+    #     box.add_widget(Widgets.Label(''), stretch=1)
         
     #     # space appropriately and return
-    #     gui.add_widget(Widgets.Label(''), stretch=True)
+    #     gui.add_widget(Widgets.Label(''), stretch=1)
     #     return gui
 
     def make_gui_look(self, orientation='vertical'):
@@ -1127,7 +1127,7 @@ class MoircsAlign(MoircsAlignWindow):
         # now add in the textbox for the results
         txt = Widgets.TextArea(wrap=False, editable=False)
         txt.set_font(self.MONO_FONT)
-        gui.add_widget(txt, stretch=True)
+        gui.add_widget(txt, stretch=1)
         self.results_textarea = txt
         
         # now make an HBox for the controls
@@ -1154,10 +1154,10 @@ class MoircsAlign(MoircsAlignWindow):
         box.add_widget(btn)
         
         # space the buttons
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
         
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
 
@@ -1181,7 +1181,7 @@ class MoircsAlign(MoircsAlignWindow):
         # now for the error box itself
         txt = Widgets.TextArea(wrap=True, editable=False)
         txt.set_font(self.BODY_FONT)
-        gui.add_widget(txt, stretch=True)
+        gui.add_widget(txt, stretch=1)
         self.err_textarea = txt
         
         # finish off with a box of important controls at the end
@@ -1193,10 +1193,10 @@ class MoircsAlign(MoircsAlignWindow):
         btn.add_callback('activated', self.return_to_menu_cb)
         btn.set_tooltip("Correct the error and try again")
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
         
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def start_process_cb(self, *args):

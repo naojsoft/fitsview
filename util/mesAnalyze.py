@@ -379,10 +379,10 @@ class MESAnalyze(object):
         btn.add_callback('activated', self.step4_cb)
         btn.set_tooltip("Get the MES Offset values!")
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_vals(self, orientation='vertical'):
@@ -427,7 +427,7 @@ class MESAnalyze(object):
 
             txt = Widgets.TextArea(editable=False)
             txt.set_font(self.manager.HEADER_FONT)
-            grd.add_widget(txt, i, 1, stretch=True)
+            grd.add_widget(txt, i, 1, stretch=1)
             self.final_displays[val] = txt
 
             lbl = Widgets.Label(unit + "\t", halign='left')
@@ -444,10 +444,10 @@ class MESAnalyze(object):
         btn.add_callback('activated', self.finish_cb)
         btn.set_tooltip("Close Ginga")
         box.add_widget(btn)
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
 

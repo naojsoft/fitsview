@@ -736,7 +736,7 @@ class MESLocate(object):
         box.add_widget(btn)
 
         # put in a spacer
-        box.add_widget(Widgets.Label(''), stretch=True)
+        box.add_widget(Widgets.Label(''), stretch=1)
 
         # now add a section for more precise control
         frm = Widgets.Frame()
@@ -757,12 +757,12 @@ class MESLocate(object):
             num.set_limits(0, 9999, 5)
             num.add_callback('value-changed', self.set_position_cb)
             num.set_tooltip("Use this to fine-tune the " + var + " value")
-            row.add_widget(num, stretch=True)
+            row.add_widget(num, stretch=1)
             self.spinboxes[var] = num
-            row.add_widget(Widgets.Label(''), stretch=True)
+            row.add_widget(Widgets.Label(''), stretch=1)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     def make_gui_cent(self, orientation='vertical'):
@@ -842,7 +842,7 @@ class MESLocate(object):
         box.add_widget(btn)
 
         # put in a spacer
-        box.add_widget(Widgets.Label(""), stretch=True)
+        box.add_widget(Widgets.Label(""), stretch=1)
 
         # another HBox holds the skip button, because it doesn't fit on the
         # first line
@@ -862,7 +862,7 @@ class MESLocate(object):
         self.skip_btn = btn
 
         # put in a spacer
-        box.add_widget(Widgets.Label(""), stretch=True)
+        box.add_widget(Widgets.Label(""), stretch=1)
 
         # make a new box for a combobox+label combo
         frm = Widgets.Frame()
@@ -883,7 +883,7 @@ class MESLocate(object):
         box.add_widget(com)
 
         # space appropriately and return
-        gui.add_widget(Widgets.Label(''), stretch=True)
+        gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
     @staticmethod
