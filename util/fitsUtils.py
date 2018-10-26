@@ -20,9 +20,18 @@ import os
 
 # third-party imports
 from astropy.io import fits
+import astropy.utils.introspection
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import shift
+
+# The astropy.io.fits.writeto API changed from a "clobber" argument to
+# an "overwrite" argument in version 1.3. Determine which version we
+# are running and set the keyword argument appropriately.
+if astropy.utils.introspection.minversion(astropy, '1.3'):
+    write_to_kwargs = {'overwrite': True}
+else:
+    write_to_kwargs = {'clobber': True}
 
 # constants
 # DIR_MCSRED = '../../MCSRED2/'
@@ -238,7 +247,7 @@ def process_star_fits(star_num, back_num, c_file, img_dir, work_dir,
 
     # write to file and go to next_step
     fits.writeto(output_filename, mosaic_data, header=star_chip[0].header,
-                 clobber=True)
+                 **write_to_kwargs)
     if next_step is not None:
         next_step()
 
@@ -290,7 +299,7 @@ def process_mask_fits(mask_num, c_file, img_dir, work_dir, output_filename,
 
     # finish up by writing to file and moving on
     fits.writeto(output_filename, mosaic_data, header=mask_chip[0].header,
-                 clobber=True)
+                 **write_to_kwargs)
     if next_step is not None:
         next_step()
 
@@ -363,7 +372,7 @@ def transformImage(base_name, n, input_arr, dc):
         os.remove(output_filename)
 
     if SAVE_INTERMEDIATE_FILES is True:
-        fits.PrimaryHDU(data=input_arr).writeto(input_filename, clobber=True)
+        fits.PrimaryHDU(data=input_arr).writeto(input_filename, **write_to_kwargs)
 
     # remapImage=detrendImage
     img = input_arr
@@ -374,7 +383,7 @@ def transformImage(base_name, n, input_arr, dc):
     remap = img[indy, indx]
 
     if SAVE_INTERMEDIATE_FILES is True:
-        fits.PrimaryHDU(data=remap).writeto(output_filename, clobber=True)
+        fits.PrimaryHDU(data=remap).writeto(output_filename, **write_to_kwargs)
 
     # output = fits.open(output_filename)[0].data
     #  if not SAVE_INTERMEDIATE_FILES:
@@ -489,7 +498,7 @@ def makeMosaic(im_type, frnum, input_data, c_file,
         fits.PrimaryHDU(
             data=combined_image).writeto(
             input_filename,
-            clobber=True)
+            **write_to_kwargs)
 
     mosaic_arr = shift(
         np.rot90(
@@ -500,7 +509,7 @@ def makeMosaic(im_type, frnum, input_data, c_file,
     # log("SAVE_INTERMEDIATE_FILES =... %r " % SAVE_INTERMEDIATE_FILES)
     if SAVE_INTERMEDIATE_FILES is True:
         fits.PrimaryHDU(data=mosaic_arr).writeto(output_filename,
-                                                 clobber=True)
+                                                 **write_to_kwargs)
 
     # mosaic_arr = fits.open(output_filename)[0].data
     # if not SAVE_INTERMEDIATE_FILES:
@@ -619,7 +628,7 @@ def makeMosaic(im_type, frnum, input_data, c_file,
 #     if os.path.exists(input_filename):
 #         os.remove(input_filename)
 #     fits.PrimaryHDU(data=combined_image).writeto(input_filename,
-#                                     clobber=True)
+#                                     **write_to_kwargs)
 #     rotate(input_filename, output_filename, 90.0, ncols=2048, nlines=3569)
 #     mosaic_arr = fits.open(output_filename)[0].data
 
@@ -686,7 +695,7 @@ def open_fits(filename, chipnum):
 #     output_filename = base_name + '_geotran_output%s.fits' % n
 #     if os.path.exists(output_filename):
 #         os.remove(output_filename)
-#     fits.PrimaryHDU(data=input_arr).writeto(input_filename, clobber=True)
+#     fits.PrimaryHDU(data=input_arr).writeto(input_filename, **write_to_kwargs)
 #     #geotran(input_filename, output_filename, dbs_filename, gmp_filename,
 #     #        verbose='yes')
 #     output = fits.open(output_filename)[0].data
@@ -720,11 +729,11 @@ def open_fits(filename, chipnum):
 
 #     hdu = fits.PrimaryHDU(data=input1)
 #     hdu.header['BPM'] = filename_mask1
-#     hdu.writeto(input_filename1, clobber=True)
+#     hdu.writeto(input_filename1, **write_to_kwargs)
 
 #     hdu = fits.PrimaryHDU(data=input2)
 #     hdu.header['BPM'] = filename_mask2
-#     hdu.writeto(input_filename2, clobber=True)
+#     hdu.writeto(input_filename2, **write_to_kwargs)
 
 #     imcombine(','.join([input_filename1, input_filename2]), output_filename,
 #          combine='average', reject='avsig',
@@ -767,13 +776,13 @@ def combineMask(basename1, basename2, input1, input2,
     badpix1 = badpixfit1.data
 
     if SAVE_INTERMEDIATE_FILES is True:
-        hdu.writeto(input_filename1, clobber=True)
+        hdu.writeto(input_filename1, **write_to_kwargs)
 
     hdu = fits.PrimaryHDU(data=input2)
     badpixfit2 = fits.open(filename_mask2 + '.fits')[0]
     badpix2 = badpixfit2.data
     if SAVE_INTERMEDIATE_FILES is True:
-        hdu.writeto(input_filename2, clobber=True)
+        hdu.writeto(input_filename2, **write_to_kwargs)
 
     img = input1 * np.subtract(1, badpix1) + input2 * np.subtract(1, badpix2)
 
@@ -783,7 +792,7 @@ def combineMask(basename1, basename2, input1, input2,
     outhdu = fits.PrimaryHDU(data=img)
     if SAVE_INTERMEDIATE_FILES is True:
         # log("Writing commbined image...")
-        outhdu.writeto(output_filename, overwrite=True)
+        outhdu.writeto(output_filename, **write_to_kwargs)
     # output = fits.open(output_filename)[0].data
 
 #    if not SAVE_INTERMEDIATE_FILES:

@@ -23,6 +23,7 @@ from numpy import ma
 
 import astropy.io.fits as fits
 from astropy.io import ascii
+import astropy.utils.introspection
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from scipy import signal
@@ -43,7 +44,23 @@ from ginga.util import plots
 # ginga imports
 from ginga.misc.Callback import CallbackError
 
+# The HOUGH_GRADIENT value is in a different location in OpenCV 3
+# compared to OpenCV 2. Determine which version of OpenCV has been
+# loaded and get the HOUGH_GRADIENT value from the correct location.
+if astropy.utils.introspection.minversion(cv2, '3'):
+    # OpenCV version 3 (and later?)
+    HOUGH_GRADIENT = cv2.HOUGH_GRADIENT
+else:
+    # OpenCV version 2
+    HOUGH_GRADIENT = cv2.cv.CV_HOUGH_GRADIENT
 
+# The astropy.io.fits.writeto API changed from a "clobber" argument to
+# an "overwrite" argument in version 1.3. Determine which version we
+# are running and set the keyword argument appropriately.
+if astropy.utils.introspection.minversion(astropy, '1.3'):
+    write_to_kwargs = {'overwrite': True}
+else:
+    write_to_kwargs = {'clobber': True}
 
 
 DIR_MCSRED = '/home/gen2/Procedure/MOIRCS/MCSRED2/'
@@ -3257,11 +3274,11 @@ class MoircsAlignImage(object):
 
             log("Writing image file...")
             #fits.writeto(out)
-            self.star.mosaic.writeto(out_filename,overwrite=True)
+            self.star.mosaic.writeto(out_filename,**write_to_kwargs)
 
             out_filename = os.path.join(self.output_path,
                     'star_MCSA%08d_mosaic.fits'% self.star_fits_name[0])
-            self.star.mosaic.writeto(out_filename,overwrite=True)
+            self.star.mosaic.writeto(out_filename,**write_to_kwargs)
 
         else:
             log("Reading file from disk")    
@@ -3376,7 +3393,7 @@ class MoircsAlignImage(object):
         #np.clip(img,0,256)
         
         circles = cv2.HoughCircles(img,\
-              cv2.HOUGH_GRADIENT,1,100,param1=30,param2=30,minRadius=11,maxRadius=30)
+              HOUGH_GRADIENT,1,100,param1=30,param2=30,minRadius=11,maxRadius=30)
         
         
         if maskKey == 'ch1':
