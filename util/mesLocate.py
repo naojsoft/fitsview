@@ -108,8 +108,10 @@ class MESLocate(object):
             for col in range(2):
                 i = 2 * row + col
                 if i < len(self.thumbnails):
+                    wd, ht = self.thumbnails[i].get_desired_size()
                     pic = Viewers.GingaViewerWidget(viewer=self.thumbnails[i])
-                    self.viewer_grid.add_widget(pic, row, col)
+                    pic.resize(wd, ht)
+                    self.viewer_grid.add_widget(pic, row, col, stretch=1)
 
         # set the mouse controls and automatically start if this is starhole
         # mode
@@ -806,7 +808,7 @@ class MESLocate(object):
 
         # put it in a ViewerWidget, and put that in the gui
         frm = Widgets.Frame()
-        gui.add_widget(frm)
+        gui.add_widget(frm, stretch=1)
         pic = Viewers.GingaViewerWidget(viewer=viewer)
         frm.set_widget(pic)
 
