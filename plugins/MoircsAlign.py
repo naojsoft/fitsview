@@ -3632,7 +3632,7 @@ class MoircsAlignImage(object):
         flag |= krflag
         
         #objs.append({'r':r})
-        objs['flag'][einx]=flag
+        #objs['flag'][einx]=flag
         objs['flag'][cinx]=cflag
 
         #eliminate unwanted sources
