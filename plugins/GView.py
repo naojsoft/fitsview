@@ -24,7 +24,7 @@ import os
 import glob
 import time
 import math
-import threading
+import multiprocessing
 
 import numpy as np
 from astropy.io import fits
@@ -38,15 +38,13 @@ from ginga.misc import Bunch
 # add any matplotlib colormaps we have lying around
 cmap.add_matplotlib_cmaps(fail_on_import_error=False)
 
-from naoj.spcam.spcam_dr import SuprimeCamDR
 from naoj.hsc.hsc_dr import HyperSuprimeCamDR, hsc_ccd_data
-# add "Jon Tonley" color map
-from naoj.cmap import jt
-cmap.add_cmap("jt", jt.cmap_jt)
 
-
+from hsc_mosaic import HSC_Mosaicer
 
 class GView(Command):
+
+    category = 'Utils'
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
@@ -54,10 +52,14 @@ class GView(Command):
 
         # get GView preferences
         prefs = self.fv.get_preferences()
-        self.settings = prefs.createCategory('plugin_GView')
-        self.settings.addDefaults(font='Courier', fontsize=12,
-                                  plots_in_workspace=False,
-                                  history_limit=0)
+        self.settings = prefs.create_category('plugin_GView')
+        self.settings.add_defaults(font='Courier', fontsize=12,
+                                   plots_in_workspace=False,
+                                   history_limit=0,
+                                   bee0dir=None,
+                                   bee1dir=None,
+                                   flatdir=None,
+                                   datadir=None)
         self.settings.load(onError='silent')
 
         self._cmdobj = GViewInterpreter(fv, self)
@@ -216,7 +218,6 @@ class GViewInterpreter(CommandInterpreter):
 
         self.contour_radius = 10
 
-        self.spcam_dr = SuprimeCamDR(logger=self.logger)
         self.hsc_dr = HyperSuprimeCamDR(logger=self.logger)
 
         self.sub_bias = True
@@ -225,7 +226,6 @@ class GViewInterpreter(CommandInterpreter):
         self.flat_dir = '.'
         self.flat_filter = None
         self.use_flat = False
-        self.lock = threading.RLock()
 
     def get_buffer_name(self, bufname):
         try:
@@ -241,7 +241,7 @@ class GViewInterpreter(CommandInterpreter):
         bm = fi.get_bindmap()
 
         # add a new "zview" mode
-        bm.add_mode('b', 'zview', mode_type='locked', msg=None)
+        bm.add_mode('z', 'zview', mode_type='locked', msg=None)
 
         # zview had this kind of zooming function
         bm.map_event('zview', (), 'ms_left', 'zoom_out')
@@ -311,11 +311,12 @@ class GViewInterpreter(CommandInterpreter):
         # TODO: how to know if there is an error
         self.log("File read")
 
-    def cmd_mmbuf(self, bufname, path, wd=512, ht=512):
+    def cmd_mmbuf(self, bufname, path, wd=42354, ht=42354):
         """mmbuf bufname path
 
         Create memory-mapped buffer `bufname` by the path `path`.
-        If the buffer does not exist it will be created.
+        If the buffer does not exist it will be created with size
+        `ht`x`wd`.
 
         If `path` does not begin with a slash it is assumed to be relative
         to the current working directory.
@@ -330,16 +331,8 @@ class GViewInterpreter(CommandInterpreter):
         filepfx, fileext = os.path.splitext(filename)
         datapath = os.path.join(dirname, filepfx + '.mmap')
 
-        if not os.path.exists(hdrpath):
-            self.log("!! Buffer %s has no .fits metadata file" % (bufname))
-            return
-
-        if not os.path.exists(datapath):
-            self.log("!! Buffer %s has no .mmap data file" % (bufname))
-            return
-
         if bufname in self.buffers:
-            self.log("Buffer %s is in use. Will discard the previous data" % (
+            self.log("buffer %s is in use. Will discard the previous data" % (
                 bufname))
             image = self.buffers[bufname]
         else:
@@ -348,22 +341,40 @@ class GViewInterpreter(CommandInterpreter):
             image.set(name=bufname)
             self.buffers[bufname] = image
 
-        image.load_file(hdrpath)
-        wd, ht = image.get_keywords_list('WIDTH', 'HEIGHT')
+        if os.path.exists(hdrpath):
+            self.logger.info("reading header file: %s" % (hdrpath))
+            image.load_file(hdrpath)
+            wd, ht = image.get_keywords_list('WIDTH', 'HEIGHT')
+        else:
+            self.logger.info("writing header file: %s" % (hdrpath))
+            wd, ht = int(wd), int(ht)
+            hdu = fits.PrimaryHDU()
+            header = hdu.header
+            header['WIDTH'] = wd
+            header['HEIGHT'] = ht
+            hdu.writeto(hdrpath)
 
-        self.log("Reading buffer...(%s)" % (datapath))
-        arr_mm = np.memmap(datapath, dtype='float32', mode='r',
-                              shape=(ht, wd))
+        if os.path.exists(datapath):
+            self.log("reading mmap buffer...(%s)" % (datapath))
+            arr_mm = np.memmap(datapath, dtype='float32', mode='w+',
+                               shape=(ht, wd))
+        else:
+            self.log("creating mmap buffer...(%s)" % (datapath))
+            arr_mm = np.memmap(datapath, dtype='float32', mode='w+',
+                               shape=(ht, wd))
+            arr_mm.fill(0.0)
 
-        image.set(statinfo=os.stat(hdrpath), bufdir=dirname, bufpfx=filepfx)
+        image.set(statinfo=os.stat(hdrpath), bufdir=dirname, bufpfx=filepfx,
+                  hdrpath=hdrpath)
 
-        image._data = arr_mm
+        #image._data = arr_mm
+        image.set_data(arr_mm)
         # TODO: how to know if there is an error
-        self.log("Buffer read")
 
         timer = self.fv.get_timer()
         timer.add_callback('expired', self.check_update, image, hdrpath)
         timer.set(3.0)
+        self.log("buffer created")
 
     def check_update(self, timer, image, hdrpath):
         self.logger.debug("checking whether image was modified...")
@@ -542,31 +553,10 @@ class GViewInterpreter(CommandInterpreter):
 
         image = self.buffers[bufname]
 
-        # TODO: verify exposure exists
-
-        bufdir = image.get('bufdir', None)
-        if bufdir is None:
-            self.log("!! No directory for buffer '%s'" % (bufname))
-            return
-
-        bufpfx = image.get('bufpfx', None)
-        if bufpfx is None:
-            self.log("!! No prefix for buffer '%s'" % (bufname))
-            return
-
-        filename = '%s.fifo' % (bufpfx)
-        fifo_path = os.path.join(bufdir, filename)
-        self.logger.info("opening command FIFO '%s'" % (fifo_path))
-        if not os.path.exists(fifo_path):
-            os.mkfifo(fifo_path)
-
-        with open(fifo_path, 'w') as fifo_f:
-            fifo_f.write("hql %s\n" % exp_arg)
-
-    def cmd_ql(self, bufname, exp_arg, *args):
-        """ql bufname exp_arg
-        """
-        self._ql(bufname, exp_arg, self.spcam_dr)
+        config = self.plugin.settings
+        self.mosaicer = HSC_Mosaicer(self.logger, config)
+        self.fv.error_wrap(self.mosaicer.mosaic_exp, exp_arg, image,
+                           fork=True)
 
     def cmd_hql(self, bufname, exp_arg, *args):
         """hql bufname exp_arg
@@ -644,6 +634,9 @@ class GViewInterpreter(CommandInterpreter):
 
             #self._plot_w.set_title(title)
             #self._plot_w.raise_()
+        except Exception as e:
+            self.fv.show_error(e)
+
         finally:
             # this keeps the focus on the viewer widget, in case a new
             # window was popped up
@@ -660,8 +653,8 @@ class GViewInterpreter(CommandInterpreter):
         plot = plots.ContourPlot(logger=self.logger,
                                  figure=fig,
                                  width=600, height=600)
-        plot.interpolation = 'nearest'
-        plot.add_axis(axisbg='black')
+        kwargs = {'facecolor' if plots.MPL_GE_2_0 else 'axisbg': 'white'}
+        plot.add_axis(**kwargs)
         return plot
 
     def do_contour_plot(self, viewer, event, data_x, data_y):
@@ -678,6 +671,7 @@ class GViewInterpreter(CommandInterpreter):
             x, y = int(round(data_x)), int(round(data_y))
 
         plot = self.make_contour_plot()
+        plot.interpolation = 'nearest'
 
         image = viewer.get_image()
         data, x1, y1, x2, y2 = image.cutout_radius(x, y,
@@ -706,7 +700,8 @@ class GViewInterpreter(CommandInterpreter):
         plot = plots.FWHMPlot(logger=self.logger,
                               figure=fig,
                               width=600, height=600)
-        plot.add_axis(axisbg='white')
+        kwargs = {'facecolor' if plots.MPL_GE_2_0 else 'axisbg': 'white'}
+        plot.add_axis(**kwargs)
         return plot
 
     def do_gaussians_plot(self, viewer, event, data_x, data_y):
@@ -739,7 +734,8 @@ class GViewInterpreter(CommandInterpreter):
         plot = plots.RadialPlot(logger=self.logger,
                                 figure=fig,
                                 width=700, height=600)
-        plot.add_axis(axisbg='white')
+        kwargs = {'facecolor' if plots.MPL_GE_2_0 else 'axisbg': 'white'}
+        plot.add_axis(**kwargs)
         return plot
 
     def do_radial_plot(self, viewer, event, data_x, data_y):
