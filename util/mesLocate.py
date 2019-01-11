@@ -20,7 +20,6 @@ from ginga.gw import Widgets, Viewers
 # third-party imports
 import numpy as np
 from numpy import ma
-from six.moves import range
 
 
 # constants

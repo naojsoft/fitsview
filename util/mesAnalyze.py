@@ -16,7 +16,6 @@ from ginga.util import plots
 
 # third-party imports
 import numpy as np
-from six.moves import range
 
 
 # constants
