@@ -13,11 +13,9 @@ import tempfile
 from ginga import GingaPlugin
 from ginga.misc import Widgets, Bunch, Future
 from ginga.util import wcs, dp, catalog
-from ginga.util.six.moves import map
 
 from hsc_ccd_info import info
-from six.moves import map
-from six.moves import zip
+from g2base.six.moves import map
 
 sdo_map = {
     0: '1_53',

@@ -2,9 +2,6 @@ from __future__ import print_function
 #
 # spcam.py -- Suprime-Cam data processing routines
 #
-# Eric Jeschke (eric@naoj.org)
-#
-# Copyright (c)  Eric R. Jeschke.  All rights reserved.
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
 #
@@ -20,8 +17,7 @@ from ginga.util import dp
 from ginga.util import mosaic, wcs
 
 from astro.frame import Frame
-from six.moves import map
-from six.moves import zip
+from g2base.six.moves import map
 
 
 class SuprimeCamDR(object):

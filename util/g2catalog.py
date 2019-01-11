@@ -9,8 +9,7 @@ from ginga.misc import Bunch, Task
 
 from Gen2.starlist import starlist
 from Gen2.starlist import starfilter
-from six.moves import map
-from six.moves import zip
+from g2base.six.moves import map
 
 class CatalogServer(object):
 

@@ -10,7 +10,7 @@ from operator import itemgetter
 
 from ginga.canvas.CanvasObject import get_canvas_types
 from ginga.misc import Bunch
-from ginga.util.six.moves import map
+from g2base.six.moves import map
 
 cvtypes = get_canvas_types()
 
