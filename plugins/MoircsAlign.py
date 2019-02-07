@@ -2655,8 +2655,8 @@ class MoircsAlign(MoircsAlignWindow):
         c = math.sin(thetaR)
         e = -c
         f = b
-        newX = xshift + b * x + c * y
-        newY = yshift + e * x + f * y
+        newX = xshift + b * x + e * y
+        newY = yshift + c * x + f * y
 
         return newX, newY
 
@@ -2822,7 +2822,7 @@ class MoircsAlign(MoircsAlignWindow):
         rot_mat = u * v
         shift =  centroid[2:4] - centroid[0:2]*rot_mat
         try:
-            theta = np.mean([math.acos(rot_mat[0,0]), math.asin(rot_mat[1,0])])
+            theta = math.asin(rot_mat[0,1])
         except ValueError:
             theta = 0
         self.transformation = (shift[0,0], shift[0,1], theta)
@@ -2906,8 +2906,8 @@ class MoircsAlign(MoircsAlignWindow):
         thetaD = math.degrees(thetaR)
         
         # calculate dx and dy (no idea what all this math is)
-        dx = -yshift + xcenter*math.sin(thetaR) + ycenter*(1-math.cos(thetaR))
-        dy = xshift + xcenter*(math.cos(thetaR)-1) + ycenter*math.sin(thetaR)
+        dx = yshift + xcenter*math.sin(thetaR) - ycenter*(1-math.cos(thetaR))
+        dy = -xshift - xcenter*(math.cos(thetaR)-1) + ycenter*math.sin(thetaR)
         # normalize thetaD to the range [-180, 180)
         thetaD = (thetaD+180)%360 - 180
         
@@ -3555,6 +3555,7 @@ class MoircsAlignImage(object):
         img=np.add(0.5*avg,0.5*img)
         
         self.star.mosaic=fits.PrimaryHDU(data=shift(np.rot90(img, k=3),[33.5,0],order=0)[67:,:],
+#        self.star.mosaic=fits.PrimaryHDU(data=np.rot90(img, k=3),
             header=self.star.raw1.header)
 
 
