@@ -61,7 +61,6 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
     def build_gui(self, container, future=None):
 
-
         vtop = Widgets.VBox()
         vtop.set_border_width(2)
 
@@ -71,7 +70,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         tw = Widgets.TextArea(wrap=True, editable=False)
         tw.set_font(self.msgFont)
-        self.tw = tw
+        self.w.tw = tw
 
         fr = Widgets.Expander("Instructions")
         fr.set_widget(tw)
@@ -170,8 +169,8 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.gui_up = True
 
     def set_message(self, msg):
-        self.tw.set_text(msg)
-        self.tw.set_font(self.msgFont)
+        self.w.tw.set_text(msg)
+        self.w.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
         tags = self.fitsimage.get_tags_by_tag_pfx('qdas-')
