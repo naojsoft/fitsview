@@ -1,6 +1,6 @@
 #
 # CurveFit.py -- Curve fitting plugin for fits viewer
-# 
+#
 # Takeshi Inagaki (tinagaki@naoj.org)
 # Eric Jeschke (eric@naoj.org)
 #
@@ -33,7 +33,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
         self.cf = class2(self.plot1.fig, logger=self.logger)
         cf = Widgets.wrap(self.cf)
         cf.resize(300, 700)
-  
+
         vtop = Widgets.VBox()
         vtop.set_border_width(2)
 
@@ -43,7 +43,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
         btns = Widgets.HBox()
         btns.set_spacing(3)
 
-        # create an empty box to adjust height of cure fitting. 
+        # create an empty box to adjust height of cure fitting.
         vbox1 = Widgets.VBox()
         vbox1.set_border_width(100)
 
@@ -55,6 +55,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
         fr.set_widget(vbox1)
 
         box.add_widget(fr)
+        box.set_sizes([700])
 
         btn = Widgets.Button("Close")
         btn.add_callback('activated', lambda w: self.close())
@@ -70,7 +71,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
- 
+
     def curve_fitting(self, p, x_points, y_points, parabola):
 
         x = numpy.asarray(x_points)
@@ -98,17 +99,17 @@ class CurveFit(GingaPlugin.LocalPlugin):
 
     def pause(self):
         pass
-        
+
     def resume(self):
         pass
-        
+
     def stop(self):
         self.fv.showStatus("")
-        
+
     def redo(self):
         pass
-    
+
     def __str__(self):
         return 'curvefit'
-    
+
 # END
