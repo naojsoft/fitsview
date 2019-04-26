@@ -30,7 +30,7 @@ from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
 
 # Gen2 imports
-import Gen2.soundsink as SoundSink
+import g2client.soundsink as SoundSink
 
 # Local application imports
 from Gen2.fitsview.util import Receive

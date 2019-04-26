@@ -24,7 +24,7 @@ from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
 
 # Gen2 imports
-import Gen2.soundsink as SoundSink
+import g2client.soundsink as SoundSink
 
 # Ginga imports
 from ginga.misc import ModuleManager, Datasrc, Settings
