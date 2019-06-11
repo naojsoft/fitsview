@@ -424,7 +424,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
 
     def focus_fitting(self, tag, future,
-                      instrument_name, file_list, x1, y1, x2, y2):
+                      instrument_name, file_list, x1, y1, x2, y2, algorithm):
 
         self.fv.assert_gui_thread()
 
@@ -443,7 +443,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         try:
             # TODO: would prefer not to have the GUI thread doing
             # all that file I/O
-            z = rsobj.focus_fitting(file_list, x1, y1, x2, y2)
+            z = rsobj.focus_fitting(file_list, x1, y1, x2, y2, algorithm)
             p.setvals(result='ok', z=z)
 
         except Exception as e:

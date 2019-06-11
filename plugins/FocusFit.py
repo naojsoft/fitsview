@@ -182,7 +182,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self._draw()
         return False
 
-    def focus_fitting(self, file_list, x1, y1, x2, y2):
+    def focus_fitting(self, file_list, x1, y1, x2, y2, algorithm):
         try:
             # get beginning and ending frameids for title
             path, s_fits = os.path.split(file_list[0])
@@ -199,7 +199,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         z = None
 
         try:
-            data_points = self.lsf.buildDataPoints(file_list, x1, y1, x2, y2)
+            data_points = self.lsf.buildDataPoints(file_list, x1, y1, x2, y2, algorithm=algorithm)
 
             result = 'unknown'
             lsf_b = self.lsf.fitCurve(data_points)
