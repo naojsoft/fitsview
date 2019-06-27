@@ -31,7 +31,7 @@ from six.moves import queue as Queue
 from ginga import AstroImage
 from ginga.rv.plugins import Mosaic
 from ginga.misc import Bunch, Future
-from ginga.util import dp
+from ginga.util import dp, iohelper
 from ginga.gw import Widgets
 
 # You should install module "naojutils" to run this plugin.
@@ -177,7 +177,7 @@ class SPCAM(Mosaic.Mosaic):
         exposures = set([])
 
         for path in pathlist:
-            info = self.fv.get_fileinfo(path)
+            info = iohelper.get_fileinfo(path)
             self.logger.info("getting path")
             path = info.filepath
             self.logger.info("path is %s" % (path))

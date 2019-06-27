@@ -14,6 +14,7 @@ import numpy
 
 from ginga.misc import Bunch, Future
 from ginga import AstroImage, BaseImage
+from ginga.util import iohelper
 
 from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
@@ -73,7 +74,7 @@ class ReceiveFITS(object):
             image_loader = self.load_image
 
         try:
-            info = self.fv.get_fileinfo(filepath)
+            info = iohelper.get_fileinfo(filepath)
             filepath = info.filepath
 
             kwdargs = {}
