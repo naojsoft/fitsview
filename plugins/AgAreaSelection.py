@@ -319,7 +319,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.canvas.add(self.dc.CompoundObject(
                 self.dc.Rectangle(p.er_x1, p.er_y1, p.er_x2, p.er_y2,
                                   color=self.eregcolor),
-                self.dc.Text(p.er_x1, p.er_y2+4, "Exposure Range",
+                self.dc.Text(p.er_x1, p.er_y2, "Exposure Range",
                              color=self.eregcolor)),
                             redraw=False)
 
@@ -328,7 +328,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.dc.Rectangle(p.x1, p.y1, p.x2, p.y2,
                               color=self.pickcolor),
             self.dc.Point(p.x, p.y, 10, color='green'),
-            self.dc.Text(p.x1, p.y2+4, self.agarea,
+            self.dc.Text(p.x1, p.y2, self.agarea,
                          color=self.pickcolor)),
                               redraw=True)
         self.picktag = tag
@@ -539,7 +539,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.dc.Rectangle(x1, y1, x2, y2,
                               color=self.pickcolor),
             self.dc.Point(x, y, 10, color='red'),
-            self.dc.Text(x1, y2+4, self.agarea,
+            self.dc.Text(x1, y2, self.agarea,
                          color=self.pickcolor)),
                          redraw=False)
         self.picktag = tag

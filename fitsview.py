@@ -248,7 +248,8 @@ def main(options, args):
     settings.set_defaults(useMatplotlibColormaps=False,
                           recursion_limit=2000,
                           widgetSet='choose',
-                          WCSpkg='astropy', FITSpkg='astropy')
+                          WCSpkg='astropy', FITSpkg='astropy',
+                          font_scaling_factor=None)
 
     # default of 1000 is a little too small
     sys.setrecursionlimit(settings.get('recursion_limit'))
@@ -329,6 +330,15 @@ def main(options, args):
                                  sndsink, status_srv, ev_quit=ev_quit)
     ginga_shell.set_layout(default_layout)
     ginga_shell.follow_focus(True)
+
+    # user wants to set font scaling.
+    # NOTE: this happens *after* creation of shell object, since
+    # Application object constructor will also set this
+    font_scaling = settings.get('font_scaling_factor', None)
+    if font_scaling is not None:
+        logger.debug("font_scaling_factor={}".format(font_scaling))
+        from ginga.fonts import font_asst
+        font_asst.default_scaling_factor = font_scaling
 
     # User configuration (custom star catalogs, etc.)
     try:

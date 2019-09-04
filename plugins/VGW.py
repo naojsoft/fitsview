@@ -1456,14 +1456,14 @@ class VGW(GingaPlugin.GlobalPlugin):
                     fitsimage.add(self.dc.CompoundObject(
                         self.dc.Rectangle(x1, y1, x2, y2,
                                               color=self.colorcalc),
-                        self.dc.Text(x1, y2+4, "Calc Region",
+                        self.dc.Text(x1, y2, "Calc Region",
                                          color=self.colorcalc),
                         ), tag=calctag, redraw=False)
                 else:
                     bbox = obj.objects[0]
                     bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
                     text = obj.objects[1]
-                    text.x, text.y = x1, y2+4
+                    text.x, text.y = x1, y2
             else:
                 # Not guiding, clear the region, if any
                 if obj is not None:

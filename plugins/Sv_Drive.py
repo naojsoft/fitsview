@@ -461,8 +461,8 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         self.dsttag = canvas.add(self.dc.CompoundObject(
             self.dc.Point(x, y, 10, color='green'),
-            self.dc.Text(x+4, y, "Dst",
-                             color='green')),
+            self.dc.Text(x, y, "Dst",
+                         color='green')),
                                  redraw=False)
 
         canvas.redraw(whence=3)
@@ -498,8 +498,8 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         # Mark object center on image
         self.objtag = canvas.add(self.dc.CompoundObject(
             self.dc.Point(x, y, 10, color='cyan'),
-            self.dc.Text(x+4, y, "Object",
-                             color='green')),
+            self.dc.Text(x, y, "Object",
+                         color='green')),
                                  redraw=False)
 
         canvas.redraw(whence=3)
@@ -538,9 +538,9 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         self.regiontag = canvas.add(self.dc.CompoundObject(
             self.dc.Rectangle(x1, y1, x2, y2, color=color,
                                   linestyle=style),
-            self.dc.Text(x1, y2+4, "Target Acquisition",
-                             color=color)),
-                                 redraw=False)
+            self.dc.Text(x1, y2, "Target Acquisition",
+                         color=color)),
+                                    redraw=False)
 
         canvas.redraw(whence=3)
         if self.gui_up:
@@ -659,8 +659,8 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
             # Mark object center on image
             self.objtag = canvas.add(self.dc.CompoundObject(
                 self.dc.Point(obj_x, obj_y, 10, color='cyan'),
-                self.dc.Text(obj_x+4, obj_y, "Object",
-                                 color='green')),
+                self.dc.Text(obj_x, obj_y, "Object",
+                             color='green')),
                 ## self.dc.Rectangle(x1, y1, x2, y2, color='cyan')),
                                      redraw=False)
 
@@ -683,8 +683,8 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
             self.objtag = canvas.add(self.dc.CompoundObject(
                 self.dc.Point(obj_x, obj_y, 10, color='red'),
-                self.dc.Text(obj_x+4, obj_y, "Object",
-                                 color='green')),
+                self.dc.Text(obj_x, obj_y, "Object",
+                             color='green')),
                 ## self.dc.Rectangle(x1, y1, x2, y2, color='cyan',
                 ##                       linestyle='dash')),
                                      redraw=False)
