@@ -80,7 +80,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         self.workdir = '/tmp/sewpy'
 
         # Source Extractor configuration files
-        self.sex_filepath = 'sextractor'
+        self.sex_filepath = 'sex'
         fitsview_confpath = os.path.join(g2soss.confhome, 'fitsview')
         self.param_filepath = os.path.join(fitsview_confpath, 'mcsfcs.param')
         self.config_filepath = os.path.join(fitsview_confpath, 'mcsfcs.sex')
