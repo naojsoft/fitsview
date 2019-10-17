@@ -54,6 +54,8 @@ snd_agarea_failure = os.path.join(soundhome, "auto_agareaselect_failed3.ogg")
 snd_agarea_select_manual = os.path.join(soundhome,
                                       "select_area_manually3.ogg")
 
+cat_dict = {"SUBARU": 'ag@subaru', 'PANSTARRS': 'webcatalog@subaru'}
+
 
 class VGW(GingaPlugin.GlobalPlugin):
 
@@ -499,7 +501,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                        ag_pa=None, probe_r=None, probe_theta=None,
                        probe_x=None, probe_y=None, select_mode=None,
                        dss_mode=None, ag_area=None, instrument_name=None,
-                       limitmag=None, goodmag=None, fov_pattern=None):
+                       limitmag=None, goodmag=None, fov_pattern=None, catalog=None):
 
         self.fv.assert_gui_thread()
 
@@ -545,7 +547,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                   probe_x=probe_x, probe_y=probe_y, dss_mode=dss_mode,
                   ag_area=ag_area, instrument_name=instrument_name,
                   fov_pattern=fov_pattern, limitmag=limitmag, goodmag=goodmag,
-                  chname=chname, equinox=equinox)
+                  chname=chname, equinox=equinox, catalog=catalog)
 
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._ag_auto_select_cont3, future)
@@ -674,10 +676,17 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         def query_catalogs(p):
             try:
+                catname = cat_dict.get(p.catalog.upper(), 'ag@subaru')
+
+                self.logger.warning('catname={}'.format(catname))
+                self.logger.warning('params={}'.format(p))
                 # Get preferred guide star catalog for AG
-                catname = self.settings.get('AG_catalog', 'ag@subaru')
+                #catname = self.settings.get('AG_catalog', catalog)
+                self.logger.warning('catalogs ctbank={}'.format(self.catalogs.ctbank))
                 starcat = self.catalogs.getCatalogServer(catname)
 
+
+                self.logger.warning('starcat={}'.format(type(starcat)))
                 # Query catalog
                 ## query_result = starcat.search_ag(
                 ##     ra_deg=p.ra_deg, dec_deg=p.dec_deg, fov_deg=p.cat_fov_deg,
@@ -699,7 +708,8 @@ class VGW(GingaPlugin.GlobalPlugin):
                     probe_r=p.probe_r,
                     probe_theta=p.probe_theta,
                     probe_x=p.probe_x, probe_y=p.probe_y,
-                    fov_pattern=p.fov_pattern)
+                    fov_pattern=p.fov_pattern,
+                    catalog=p.catalog)
 
                 info, starlist = starcat.process_result(query_result)
                 p.info = info

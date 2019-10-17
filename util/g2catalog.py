@@ -3,6 +3,9 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
+
+from math import radians
+
 from ginga.util import wcs
 from ginga.util import catalog as StarCatalog
 from ginga.misc import Bunch, Task
@@ -10,6 +13,11 @@ from ginga.misc import Bunch, Task
 from Gen2.starlist import starlist
 from Gen2.starlist import starfilter
 from g2base.six.moves import map
+
+from astroquery.mast import Catalogs
+from astropy.coordinates import SkyCoord 
+import astropy.units as u
+
 
 class CatalogServer(object):
 
@@ -99,7 +107,13 @@ class CatalogServer(object):
         focus = params.get('focus', '').strip()
 
         catalog = params.get('catalog', '').strip()
-        if not catalog:
+        if catalog.upper() == 'SUBARU':
+            catalog = "usnob,gsc,sao"    
+        elif catalog.upper() == 'PANSTARRS':
+            catalog = "panstarrs"
+        elif catalog.upper() == 'UCAC4':
+            catlog = "ucac4_sources"
+        else:
             catalog = "usnob,gsc,sao"
 
         # Default min and max magnitudes if none specified
@@ -246,7 +260,159 @@ class CatalogServer(object):
         results = self.process_starlist(starlist)
         return info, results
 
+    
+class WebCatalogs(CatalogServer):
+    
+    def search(self, **params):
+        
+        k = self.get_search_params(params)
+        print('k={}'.format(k))
 
+        if k['catalog'].upper() == 'PANSTARRS':
+            starlist = PanStarrs.search(**k)
+        elif k['catalog'].upper() == 'UCAC4':     
+            print('to do; starlist = Ucac4.search(**k)')
+        else:
+            print('more web catalogs here...')
+
+            
+        #print('starlist={}'.format(starlist))    
+        filter_params = dict(ra=k['ra'], dec=k['dec'],
+                             equinox=params['equinox'], fov=k['fov'],
+                             pa=k['pa'],
+                             probe_ra=params['probe_ra_deg'],
+                             probe_dec=params['probe_dec_deg'],
+                             focus=k['focus'], ins=params['inst_name'],
+                             probe_r=params['probe_r'],
+                             probe_theta=params['probe_theta'],
+                             probe_x=params['probe_x'],
+                             probe_y=params['probe_y'],
+                             limitmag=k['uppermag'],
+                             goodmag=k['lowermag'],
+                             fov_pattern=params['fov_pattern'])
+
+        print('filter_params={}'.format(filter_params))
+        star_select = starfilter.StarSelection(logger=self.logger)
+        starlist = star_select.select_ag_stars(filter_params, starlist)
+     
+        query_result = { 'selected_stars': starlist,
+                         'query_params': k,
+                         'prefered_num': len(starlist) }
+
+        return query_result
+            
+        
+class Ucac4():
+
+    print('TO DO')
+    
+    @staticmethod
+    def search(**params):
+        print('UCAC4 can be used as back up catalog')    
+        
+class PanStarrs:
+    
+    def flag(rMag, rKronMag, iMag, iKronMag):
+
+        """
+           classify a star. algorithm is provided by Ichi Tanaka(Subaru Telescope)
+           flag 2, best guiding star candidate
+           flag 3, good candiate 
+           flag 5, not preferred
+           flag 10, avoid the candidate
+
+        """
+
+        lower = -0.5
+        upper = 0.2
+        
+        rmag_diff =  rMag - rKronMag 
+        imag_diff = iMag - iKronMag
+
+        #print('rmag_diff={}, imag_diff={}'.format(rmag_diff, imag_diff))
+        
+        if not rmag_diff:
+            rmag_diff = -1
+            
+        if not imag_diff:
+            imag_diff = -1
+
+        if (lower <= rmag_diff <= upper) and (lower <= imag_diff <= upper):
+            flag = 2
+        elif (lower <= rmag_diff <= upper) or (lower <= imag_diff <= upper):     
+            flag = 3
+        elif (rmag_diff > upper) and (imag_diff > upper):
+            flag = 5
+        elif (rmag_diff < lower) and (imag_diff < lower):
+            flag = 10
+        else:
+            flag = 10
+
+        #print('rmag_diff={}, imag_diff={}, flag={}'.format(rmag_diff, imag_diff, flag))
+            
+        return flag    
+    
+    @staticmethod
+    def search(**params):
+
+        data_release = 'dr2' # options: dr1 is older, dr2 is the latest and best
+        table = 'stacked' # options: 'mean'. for our purpose, stacked is better option
+
+
+        print('panstarrs search. params={}'.format(params))
+        c = SkyCoord(ra=params['ra'], dec=params['dec'], unit=(u.deg, u.deg), frame='icrs')
+
+        starlist = []
+        append = starlist.append
+        
+        if table == "stacked":
+            print('stacked')
+            cat = Catalogs.query_region(c, params['fov'], catalog='Panstarrs',
+                                        data_release=data_release, table=table)
+
+            # note: lower mag is fixed value 0
+            lowermag = 0.0
+            mask = (cat['rPSFMag'] <= params['uppermag']) & (cat['rPSFMag'] > lowermag) & (cat['iPSFMag'] <= params['uppermag']) & (cat['iPSFMag'] > lowermag) & ((cat['nr'] > 5) | (cat['ni'] > 5))
+   
+            """ note:
+                nr: Number of single epoch detections in r filter.
+                ni: Number of single epoch detections in i filter.
+            """
+
+            for star in cat[mask]:
+                _id = star['objID']
+                name = star['objName']
+                ra = star['raStack']
+                dec = star['decStack']
+                ra_rad = radians(ra)
+                dec_rad = radians(dec)
+                mag = star['rPSFMag']
+                append(dict(id=_id, name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=mag, flag=PanStarrs.flag(star['rPSFMag'], star['rKronMag'], star['iPSFMag'], star['iKronMag']),  b_r=99.9, r_i=99.9, field='PanStarrs'))
+
+
+        return starlist
+
+    
+        # elif table.upper() == "MEAN":
+        #     print('table mean')
+        #     panstarrs = Catalogs.query_region(c, params['fov'], catalog='Panstarrs',
+        #                                       data_release=data_release, table=table)
+
+        #     mask = (cat['rMeanPSFMag'] <= params['uppermag']) & (cat['rMeanPSFMag'] > 0) & (cat['iMeanPSFMag'] <= params['uppermag']) & (cat['iMeanPSFMag'] > 0) & ((cat['nr'] > 5) | (cat['ni'] > 5))
+
+        #     print('panstarrs num={}'.format(len(panstarrs[mask])))
+        #     for star in panstarrs[mask]:
+        #         # TO DO: find out flag here
+        #         _id = star['objID']
+        #         name = star['objName']
+        #         ra = star['raMean']
+        #         dec = star['decMean']
+        #         ra_rad = radians(ra)
+        #         dec_rad = radians(dec)
+        #         mag = star['rMeanPSFMag']
+        #         append(dict(id=_id, name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=mag, flag=PanStarrs.flag(star['rMeanPSFMag'], star['rMeanKronMag'], star['iMeanPSFMag'], star['iMeanKronMag']),  b_r=99.9, r_i=99.9, field='PanStarrs'))
+
+        
 class AgCatalogServer(CatalogServer):
 
     def search(self, **params):
