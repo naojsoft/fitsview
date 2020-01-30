@@ -54,7 +54,8 @@ snd_agarea_failure = os.path.join(soundhome, "auto_agareaselect_failed3.ogg")
 snd_agarea_select_manual = os.path.join(soundhome,
                                       "select_area_manually3.ogg")
 
-cat_dict = {"SUBARU": 'ag@subaru', 'PANSTARRS': 'webcatalog@subaru'}
+cat_dict = {"SUBARU": 'ag@subaru', 'PANSTARRS': 'webcatalog@subaru',
+            'UCAC4': 'webcatalog@subaru', 'GAIA': 'webcatalog@subaru'}
 
 
 class VGW(GingaPlugin.GlobalPlugin):
@@ -678,15 +679,16 @@ class VGW(GingaPlugin.GlobalPlugin):
             try:
                 catname = cat_dict.get(p.catalog.upper(), 'ag@subaru')
 
-                self.logger.warning('catname={}'.format(catname))
-                self.logger.warning('params={}'.format(p))
+                self.logger.debug('catname={}'.format(catname))
+                self.logger.debug('params={}'.format(p))
                 # Get preferred guide star catalog for AG
                 #catname = self.settings.get('AG_catalog', catalog)
-                self.logger.warning('catalogs ctbank={}'.format(self.catalogs.ctbank))
+                self.logger.debug('catalogs ctbank={}'.format(self.catalogs.ctbank))
                 starcat = self.catalogs.getCatalogServer(catname)
 
 
                 self.logger.warning('starcat={}'.format(type(starcat)))
+                self.logger.warning('p={}'.format(p))
                 # Query catalog
                 ## query_result = starcat.search_ag(
                 ##     ra_deg=p.ra_deg, dec_deg=p.dec_deg, fov_deg=p.cat_fov_deg,
