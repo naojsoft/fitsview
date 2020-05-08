@@ -173,10 +173,11 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.w.tw.set_font(self.msgFont)
 
     def withdraw_qdas_layers(self):
-        tags = self.fitsimage.get_tags_by_tag_pfx('qdas-')
+        p_canvas = self.fitsimage.get_canvas()
+        tags = p_canvas.get_tags_by_tag_pfx('qdas-')
         for tag in tags:
             try:
-                self.fitsimage.delete_object_by_tag(tag)
+                p_canvas.delete_object_by_tag(tag)
             except:
                 pass
 
@@ -192,12 +193,13 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.withdraw_qdas_layers()
 
         # insert our canvas to fitsimage if it is not already
+        p_canvas = self.fitsimage.get_canvas()
         try:
-            obj = self.fitsimage.getObjectByTag(self.layertag)
+            obj = p_canvas.getObjectByTag(self.layertag)
 
         except KeyError:
             # Add canvas layer
-            self.fitsimage.add(self.canvas, tag=self.layertag)
+            p_canvas.add(self.canvas, tag=self.layertag)
 
         self.canvas.delete_all_objects(redraw=False)
         self.instructions()
@@ -311,12 +313,13 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         self.withdraw_qdas_layers()
 
         # insert our canvas to fitsimage if it is not already
+        p_canvas = self.fitsimage.get_canvas()
         try:
-            obj = self.fitsimage.get_object_by_tag(self.layertag)
+            obj = p_canvas.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
-            self.fitsimage.add(self.canvas, tag=self.layertag)
+            p_canvas.add(self.canvas, tag=self.layertag)
 
         self.canvas.delete_all_objects(redraw=False)
 
