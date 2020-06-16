@@ -1,3 +1,4 @@
+
 #
 # Gen2.py -- Gen2 plugin for Ginga FITS viewer
 #
@@ -575,6 +576,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         """Method called by some Gen2 plugins to play sound through
         the Gen2 sound system.
         """
+        self.logger.info("playing sound '{}' to soundsink".format(filepath))
         self.sndsink.playFile(filepath, format=format, priority=priority)
 
     def get_gen2_status(self, stat_dict):

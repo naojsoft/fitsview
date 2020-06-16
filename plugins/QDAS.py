@@ -152,7 +152,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             except Exception as e:
                 errmsg = "Automatic region selection failed: %s" % str(e)
                 self.logger.error(errmsg)
-                self.fv.play_soundfile(snd_region_failure, priority=19)
+                self.play_soundfile(snd_region_failure, priority=19)
 
         #elif select_mode in ('manual', ):
 
@@ -161,7 +161,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                                          future)
 
         self.fv.update_pending(timeout=0.10)
-        self.fv.play_soundfile(snd_region_select_manual, priority=20)
+        self.play_soundfile(snd_region_select_manual, priority=20)
 
 
     def _auto_region_selection(self, image, p):
@@ -342,7 +342,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 ##                width=width, height=height)
                 errmsg = "Automatic target reacquisition failed: %s" % str(e)
                 self.logger.error(errmsg)
-                self.fv.play_soundfile(snd_region_failure, priority=19)
+                self.play_soundfile(snd_region_failure, priority=19)
 
                 if select_mode == 'auto':
                     # TODO: need to show failure visibly on QDAS canvas
@@ -362,7 +362,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.fv.update_pending()
 
         #self.fv.update_pending(timeout=0.10)
-        self.fv.play_soundfile(snd_region_select_manual, priority=20)
+        self.play_soundfile(snd_region_select_manual, priority=20)
 
 
     def _telescope_move_cb(self, future2, future, p, image):
@@ -868,6 +868,10 @@ class QDAS(GingaPlugin.GlobalPlugin):
         p.setvals(result='error', errmsg="No such image: '%s' in channel %s" % (
             imname, channel.name))
         future.resolve(0)
+
+    def play_soundfile(self, filepath, format=None, priority=20):
+        self.fv.call_global_plugin_method('Gen2Int', 'play_soundfile', [filepath],
+                                          dict(format=format, priority=priority))
 
     def __str__(self):
         return 'qdas'

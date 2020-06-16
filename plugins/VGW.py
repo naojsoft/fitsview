@@ -1,3 +1,4 @@
+
 #
 # VGW.py -- VGW plugin for fits viewer
 #
@@ -206,7 +207,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             except Exception as e:
                 errmsg = "Automatic region selection failed: %s" % str(e)
                 self.logger.error(errmsg)
-                self.fv.play_soundfile(snd_region_failure, priority=19)
+                self.play_soundfile(snd_region_failure, priority=19)
 
         #elif select_mode in ('manual', ):
 
@@ -220,7 +221,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         chinfo.opmon.start_plugin_future(self.qdaschname, pluginName,
                                          future2)
         self.fv.update_pending(timeout=0.10)
-        self.fv.play_soundfile(snd_region_select_manual, priority=20)
+        self.play_soundfile(snd_region_select_manual, priority=20)
 
 
     def _region_selection_cb(self, future2, future, p, image):
@@ -355,7 +356,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             except Exception as e:
                 errmsg = "Automatic ag area selection failed: %s" % str(e)
                 self.logger.error(errmsg)
-                self.fv.play_soundfile(snd_agarea_failure, priority=19)
+                self.play_soundfile(snd_agarea_failure, priority=19)
 
         #elif select_mode in ('manual', ):
 
@@ -368,7 +369,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Invoke the operation manually
         chinfo.opmon.start_plugin_future(self.qdaschname, pluginName, future2)
         self.fv.update_pending(timeout=0.10)
-        self.fv.play_soundfile(snd_agarea_select_manual, priority=20)
+        self.play_soundfile(snd_agarea_select_manual, priority=20)
 
 
     def _agarea_selection_cb(self, future2, future, p, image):
@@ -786,7 +787,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 (p.info['num_preferred'] == 0) or
                 (len(p.starlist) == 0)):
                 msg = msg_semiauto_failure
-                self.fv.play_soundfile(snd_auto_failure, priority=19)
+                self.play_soundfile(snd_auto_failure, priority=19)
                 manualSelect = True
             else:
                 p.result = 'ok'
@@ -807,7 +808,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             return
 
         #self.fv.update_pending(timeout=0.10)
-        self.fv.play_soundfile(snd_auto_select_manual, priority=20)
+        self.play_soundfile(snd_auto_select_manual, priority=20)
 
     def _ag_auto_select_cont3(self, future2, future):
         self.logger.debug("continuation 3 resumed...")
@@ -1000,7 +1001,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                (p.info['num_preferred'] == 0):
                 msg = msg_semiauto_failure
                 manualSelect = True
-                self.fv.play_soundfile(snd_auto_failure, priority=19)
+                self.play_soundfile(snd_auto_failure, priority=19)
             else:
                 p.result = 'ok'
                 p.selected = [ p.starlist[0] ]
@@ -1016,7 +1017,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             future2.resolve(0)
             return
 
-        self.fv.play_soundfile(snd_auto_select_manual, priority=20)
+        self.play_soundfile(snd_auto_select_manual, priority=20)
 
     def _sh_auto_select_cont2(self, future2, future):
         self.logger.debug("continuation 2 resumed...")
@@ -1369,7 +1370,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                (p.info['num_preferred'] == 0) or
                 len(p.starlist) == 0):
                 msg = msg_semiauto_failure
-                self.fv.play_soundfile(snd_auto_failure, priority=19)
+                self.play_soundfile(snd_auto_failure, priority=19)
                 manualSelect = True
             else:
                 p.result = 'ok'
@@ -1388,7 +1389,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             return
 
         #self.fv.update_pending(timeout=0.10)
-        self.fv.play_soundfile(snd_auto_select_manual, priority=20)
+        self.play_soundfile(snd_auto_select_manual, priority=20)
 
     def _hsc_ag_auto_select_cont3(self, future2, future):
         self.logger.debug("continuation 3 resumed...")
@@ -1619,6 +1620,9 @@ class VGW(GingaPlugin.GlobalPlugin):
             # Only raise for a draw
             self.fv.ds.raise_tab(chname)
 
+    def play_soundfile(self, filepath, format=None, priority=20):
+        self.fv.call_global_plugin_method('Gen2Int', 'play_soundfile', [filepath],
+                                          dict(format=format, priority=priority))
 
     def __str__(self):
         return 'vgw'
