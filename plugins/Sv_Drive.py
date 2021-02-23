@@ -3,7 +3,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import print_function
 
 from ginga.misc import Bunch
 from ginga.gw import Widgets
@@ -372,11 +371,11 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def stop(self):
         # remove the canvas from the image
         self.canvas.ui_set_active(False)
+        self.gui_up = False
 
     def close(self):
         chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
-        self.gui_up = False
         return True
 
     def release_caller(self):

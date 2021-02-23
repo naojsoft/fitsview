@@ -8,7 +8,6 @@
 
 
 # ginga imports
-from __future__ import absolute_import
 from ginga import GingaPlugin
 from ginga.gw import GwHelp, Widgets
 

@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import print_function
 #!/usr/bin/env python
 #
 # Takeshi Inagaki (tinagaki@naoj.org)
@@ -33,13 +31,13 @@ def make_CurveFittingCanvas(canvasClass):
 
             super(CurveFittingCanvas, self).__init__(self.fig)
             self.axes = self.fig.add_subplot(111)
-            #self.set_size_request(-1, 400) 
+            #self.set_size_request(-1, 400)
 
             canvasClass.__init__(self, self.fig)
             self.logger = logger
 
 
-        def set_axes(self): 
+        def set_axes(self):
 
             self.axes.grid(True)
 
@@ -58,7 +56,7 @@ def make_CurveFittingCanvas(canvasClass):
             x = x_points.mean()
             y = y_points.mean()
             bbox_args = dict(boxstyle="round", fc="red", alpha=0.6)
-            self.axes.annotate(msg, xy=(x, y), xytext=(x, y), 
+            self.axes.annotate(msg, xy=(x, y), xytext=(x, y),
                                size=20, color='g',
                                bbox=bbox_args,
                                ha='center',
@@ -67,7 +65,7 @@ def make_CurveFittingCanvas(canvasClass):
         def vertex(self, x, y):
 
             bbox_args = dict(boxstyle="round", fc="cyan", alpha=0.1)
-            self.axes.annotate('Vertex(%.2f, %.2f)'%(x,y)  , xy=(x, y), xytext=(x, y), 
+            self.axes.annotate('Vertex(%.2f, %.2f)'%(x,y)  , xy=(x, y), xytext=(x, y),
                                size=20, color='g',
                                bbox=bbox_args,
                                ha='center',
@@ -86,7 +84,7 @@ def make_CurveFittingCanvas(canvasClass):
 
             min_x = x_points.min()
             max_x = x_points.max()
-            num = len(x_points)        
+            num = len(x_points)
 
             margin = (max_x - min_x) / num
 
@@ -103,7 +101,7 @@ def make_CurveFitting(klass):
     class CurveFitting(klass):
         def __init__(self, figure,  logger=None):
 
-            super(CurveFitting, self).__init__(figure, logger=logger) 
+            super(CurveFitting, self).__init__(figure, logger=logger)
 
             self.num_points = 10
             self.qf = QuadraticFunction(logger=logger)
@@ -121,7 +119,7 @@ def make_CurveFitting(klass):
                 raise VertexError(msg)
 
             else:
-                return (max_x, max_y)        
+                return (max_x, max_y)
                 #self.error_message(msg, x, y)
                 #self.logger.error('error: coefficient A is equal or greater than 0.')
 
@@ -152,7 +150,7 @@ def make_CurveFitting(klass):
             self.set_axes()
             self.plot_points(x_points, y_points)
 
-            opens = {'upward': self.parabola_upward, 
+            opens = {'upward': self.parabola_upward,
                      'downward': self.parabola_downward}
 
             try:
@@ -165,7 +163,7 @@ def make_CurveFitting(klass):
                 self.error_message(msg, x_points, y_points)
                 errmsg = "error: failed to find quadratic equation: %s" % (str(e))
                 self.logger.error(errmsg)
-                raise CurveFitError(errmsg)   
+                raise CurveFitError(errmsg)
 
             else:
 
@@ -179,7 +177,7 @@ def make_CurveFitting(klass):
                     self.error_message(str(e), x_points, y_points)
                     errmsg = 'error selecting parabola type: %s' % (str(e))
                     self.logger.error(errmsg)
-                    raise CurveFitError(errmsg)   
+                    raise CurveFitError(errmsg)
 
                 else:
                     xs = len(x_points) * self.num_points
@@ -203,7 +201,7 @@ def main(options,args):
 
     class1 = make_CurveFittingCanvas(FigureCanvas)
     class2 = make_CurveFitting(class1)
-    
+
     logname = 'curve_fitting'
     # Create top level logger.
     logger = ssdlog.make_logger(logname, options)
@@ -214,11 +212,11 @@ def main(options,args):
     if options.parabola == 'downward':
         # parabola opens downward
         ys = [11.598, 13.533, 13.564, 14.148, 13.443, 12.381, 10.997, 10.809, 8.695]
-    
+
     if options.parabola == 'upward':
         # parabola opens upward
         ys = [11.598, 9.533, 7.564, 5.148, 3.443, 4.381, 6.997, 8.809, 10.695]
-    
+
     # error case
     #ys = [11.598, 9.533, 23.564, 4.148, 0.443, 15.381, 10.997, 10.809, 20.695]
     #ys = [10, 10, 10, 10, 10, 10, 10, 10, 10]
@@ -228,10 +226,10 @@ def main(options,args):
     ypoints = np.asarray(ys)
 
     class MainWindow(QtGui.QMainWindow):
- 
+
         def __init__(self, logger):
             super(MainWindow, self).__init__()
-  
+
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
             self.w, self.h = (600, 600)
@@ -240,7 +238,7 @@ def main(options,args):
 
             self.set_gui()
 
-        def set_gui(self): 
+        def set_gui(self):
 
             self.resize(self.w, self.h)
             self.main_widget = QtGui.QWidget(self)
@@ -289,9 +287,9 @@ def main(options,args):
         mw.show()
         sys.exit(qApp.exec_())
     except KeyboardInterrupt:
-        print('keyboard interrupting...') 
+        print('keyboard interrupting...')
         sys.exit(0)
-        
+
 
 if __name__ == "__main__":
 
@@ -303,7 +301,7 @@ if __name__ == "__main__":
 
     optprs.add_option("-p", "--parabola", dest="parabola", default='downward',
                       help="Parabola opens upward|downward")
-    
+
     optprs.add_option("--debug", dest="debug", default=False,
                       action="store_true",
                       help="Enter the pdb debugger on main()")
@@ -317,7 +315,7 @@ if __name__ == "__main__":
 
     #if len(args) > 0:
     #    optprs.error("incorrect number of arguments")
-       
+
     # Are we debugging this?
     if options.debug:
         import pdb
@@ -333,9 +331,3 @@ if __name__ == "__main__":
 
     else:
         main(options, args)
-
-
-
-
-
-

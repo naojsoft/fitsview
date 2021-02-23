@@ -1,7 +1,6 @@
 #
 # Takeshi Inagaki (tinagaki@naoj.org)
 #
-from __future__ import print_function
 import os
 import sys
 import numpy as np
@@ -24,24 +23,24 @@ class QuadraticFunction(object):
         self.logger = logger
 
     def coefficient(self, x_points, y_points, degree=2):
- 
+
         try:
             self.coeffs = scipy.polyfit(x_points, y_points, degree)
 
         except Exception as e:
             self.logger.error('error: failed to calculate coefficient. %s" %e')
-            raise QuadraticError("failed to calculate coefficient. %s" %e )   
+            raise QuadraticError("failed to calculate coefficient. %s" %e )
 
-        else:  
+        else:
             self.a = self.coeffs[0]
             self.b = self.coeffs[1]
-            self.c = self.coeffs[2] 
+            self.c = self.coeffs[2]
             self.logger.debug('coefficient a=%f b=%f c=%f' % (
                 self.a, self.b, self.c))
 
     def _calc_vertex(self):
 
-        try:   
+        try:
             y = self.c - (self.b**2 / (4.0*self.a))
             x = -self.b / (2.0*self.a)
             self.logger.debug("vertex x=%f y=%f" %(x,y))
@@ -57,13 +56,13 @@ class QuadraticFunction(object):
     def _is_zero(self):
 
         is_zero = False
- 
+
         zero = 0.0000000001
         try:
             assert not (-zero <= self.a <= zero)
 
         except AssertionError as e:
-            self.logger.error('error: coefficient A is 0') 
+            self.logger.error('error: coefficient A is 0')
             is_zero = True
 
         return is_zero
@@ -74,11 +73,11 @@ class QuadraticFunction(object):
 
         if self.a >= 0 or self._is_zero():
             self.logger.error('error: coefficient A is equal or greater than 0.')
-            raise QuadraticError("coefficient A is equal or greater than 0.")   
+            raise QuadraticError("coefficient A is equal or greater than 0.")
 
         else:
             res = self._calc_vertex()
-         
+
         return res
 
     def min_vertex(self):
@@ -87,10 +86,10 @@ class QuadraticFunction(object):
 
         #try:
         #    assert (self.a > 0)
-        #except Exception as e: 
+        #except Exception as e:
         if self.a <= 0 or self._is_zero():
             self.logger.error('error: coefficient A is equal or less than 0.')
-            raise QuadraticError("coefficient A is equal or greater than 0.")   
+            raise QuadraticError("coefficient A is equal or greater than 0.")
 
         else:
             res = self._calc_vertex()
@@ -155,7 +154,7 @@ if __name__ == "__main__":
 
     usage = "usage: %prog [options] [file] ..."
     optprs = OptionParser(usage=usage, version=('%prog'))
-    
+
     optprs.add_option("--debug", dest="debug", default=False,
                       action="store_true",
                       help="Enter the pdb debugger on main()")
@@ -169,7 +168,7 @@ if __name__ == "__main__":
 
     #if len(args) > 0:
     #    optprs.error("incorrect number of arguments")
-       
+
     # Are we debugging this?
     if options.debug:
         import pdb
@@ -185,5 +184,3 @@ if __name__ == "__main__":
 
     else:
         main(options, args)
-
-

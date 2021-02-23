@@ -1,4 +1,3 @@
-from __future__ import print_function
 #
 # spcam.py -- Suprime-Cam data processing routines
 #

@@ -239,11 +239,11 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
     def stop(self):
         # disable canvas
         self.canvas.ui_set_active(False)
+        self.gui_up = False
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
-        self.gui_up = False
         return True
 
     def release_caller(self):

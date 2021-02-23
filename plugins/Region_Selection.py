@@ -231,11 +231,11 @@ class Region_Selection(GingaPlugin.LocalPlugin):
     def stop(self):
         self.logger.debug("disabling canvas")
         self.canvas.ui_set_active(False)
+        self.gui_up = False
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
-        self.gui_up = False
         return True
 
     def release_caller(self):

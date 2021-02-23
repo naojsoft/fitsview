@@ -11,7 +11,6 @@
 
 
 # standard imports
-from __future__ import absolute_import
 import math
 
 # ginga imports

@@ -8,7 +8,6 @@
 #      Adding functions to remove the denpendicies of IRAF.
 
 # standard imports
-from __future__ import absolute_import
 import os
 import threading
 
