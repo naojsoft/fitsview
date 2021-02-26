@@ -17,11 +17,10 @@ os.environ['GTK_THEME'] = 'Greybird'
 
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1600, height=1100),
-                    dict(row=['hbox', dict(name='menu')],
-                         stretch=0),
-                    dict(row=['hpanel', {},
-                     ['ws', dict(name='left', width=300),
+                   ['vbox', dict(name='top', width=1900, height=1300),
+                    ['hbox', dict(name='menu', stretch=0)],
+                    ['hpanel', dict(stretch=1),
+                     ['ws', dict(name='left', width=300, stretch=0),
                       # (tabname, layout), ...
                       [("Info", ['vpanel', {},
                                  ['ws', dict(name='uleft', height=300,
@@ -31,36 +30,35 @@ default_layout = ['seq', {},
                                  ]
                         )]
                       ],
-                     ['vpanel', dict(width=1300),
-                      ['hpanel', dict(height=450),
-                       ['vbox', dict(name='main', width=600),
-                        dict(row=['ws', dict(name='channels', group=1)], stretch=1),
-                        dict(row=['ws', dict(wstype='stack', name='cbar',
-                                             group=99)], stretch=0),
-                        dict(row=['ws', dict(wstype='stack', name='readout',
-                                           group=99)], stretch=0),
-                        dict(row=['ws', dict(wstype='stack', name='operations',
-                                             group=99)], stretch=0),
+                     ['vpanel', dict(width=1600, stretch=1),
+                      ['hpanel', dict(height=600),
+                       ['vbox', dict(name='main', width=800),
+                        ['ws', dict(name='channels', group=1, stretch=1)],
+                        ['ws', dict(wstype='stack', stretch=0, name='cbar',
+                                    group=99)],
+                        ['ws', dict(wstype='stack', stretch=0, name='readout',
+                                    group=99)],
+                        ['ws', dict(wstype='stack', stretch=0, name='operations',
+                                    group=99)],
                         ],
-                       ['ws', dict(name='right', width=600, group=2),
+                       ['ws', dict(name='right', width=800, group=2),
                         # (tabname, layout), ...
                         [("Dialogs", ['ws', dict(name='dialogs', group=2)
                                       ]
                           )]
                         ],
                        ],
-                      ['hpanel', dict(height=550),
-                       ['ws', dict(name='sub1', width=600, height=420,
+                      ['hpanel', dict(height=600),
+                       ['ws', dict(name='sub1', width=800, height=420,
                                    group=1)],
-                       ['ws', dict(name='sub2', width=600, group=1)],
+                       ['ws', dict(name='sub2', width=800, group=1)],
                        ],
                       ],
-                     ], stretch=1),
-                    dict(row=['ws', dict(name='toolbar', height=40,
-                                             show_tabs=False, group=2)],
-                         stretch=0),
-                    dict(row=['hbox', dict(name='status')], stretch=0),
-                    ]]
+                     ],
+                    ['ws', dict(name='toolbar', height=40, stretch=0,
+                                show_tabs=False, group=2)],
+                    ['hbox', dict(name='status', stretch=0)],
+                   ]]
 
 
 def get_plugin_spec(name):
