@@ -1,5 +1,5 @@
 #
-# CHARIS.py -- CHARIS plugin for Ginga reference viewer
+# QL_CHARIS.py -- QuickLook CHARIS plugin for Ginga reference viewer
 #
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
@@ -11,9 +11,9 @@ from ginga.AstroImage import AstroImage
 import numpy as np
 from astropy.io import fits
 
-class CHARIS(GingaPlugin.GlobalPlugin):
+class QL_CHARIS(GingaPlugin.GlobalPlugin):
     """
-    CHARIS
+    QL_CHARIS
     ======
     CHARIS Gen2 quick look plugin.
 
@@ -23,7 +23,7 @@ class CHARIS(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
-        super(CHARIS, self).__init__(fv)
+        super(QL_CHARIS, self).__init__(fv)
 
         self.sb_hdu1 = True
         self.hdu1_path = None
@@ -33,13 +33,13 @@ class CHARIS(GingaPlugin.GlobalPlugin):
         self._ht = 300
         self.q_image = None
         self.fitsimage = None
-               
+
     def build_gui(self, container):
         # Users sometimes don't open the plugin on the correct channel.
         # Force the correct channel to be used.
         chinfo = self.fv.get_channel_on_demand('CHARIS')
         self.fitsimage = chinfo.fitsimage
-            
+
         top = Widgets.VBox()
         top.set_border_width(4)
         top.set_spacing(2)
@@ -67,14 +67,14 @@ class CHARIS(GingaPlugin.GlobalPlugin):
         zi.set_name('charis_qimage')
         zi.add_callback('cursor-changed', self.motion_cb)
         self.q_image = zi
-        
+
         bd = zi.get_bindings()
         bd.enable_all(True)
-        
+
         iw = Viewers.GingaViewerWidget(zi)
         iw.resize(self._wd, self._ht)
         vbox1.add_widget(iw, stretch=1)
-        
+
         fr = Widgets.Frame("Reduced")
         fr.set_widget(vbox1)
         top.add_widget(fr, stretch=1)
@@ -93,7 +93,7 @@ class CHARIS(GingaPlugin.GlobalPlugin):
 
         b.quick_reduce.add_callback('activated', lambda w: self.quick_reduce())
         b.quick_reduce.set_tooltip("Update from the current image in the channel")
-        
+
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
@@ -191,7 +191,7 @@ class CHARIS(GingaPlugin.GlobalPlugin):
         return True
 
     def __str__(self):
-        return 'charis'
+        return 'ql_charis'
 
 
 #END

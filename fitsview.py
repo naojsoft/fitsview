@@ -41,6 +41,10 @@ if __name__ == "__main__":
     spec.start = True
     spec.optray = False
 
+    spec = get_plugin_spec('header')
+    spec.start = True
+    spec.optray = False
+
     # Add Subaru-specific plugins
     for spec in [
         Bunch(module='Gen2Int', ptype='global', hidden=True, optray=False,
@@ -59,7 +63,11 @@ if __name__ == "__main__":
 
         ## Bunch(module='GView', tab='GView', ws='right', ptype='global',
         ##       start=False, category='Subaru'),
-        Bunch(module='CHARIS', ws='right', ptype='global', start=False,
+        Bunch(module='QL_CHARIS', ws='right', ptype='global', start=False,
+              category='Subaru'),
+        Bunch(module='QL_FOCAS', ws='right', ptype='global', start=False,
+              category='Subaru'),
+        Bunch(module='QL_IRCS', ws='in:toplevel', ptype='global', start=False,
               category='Subaru'),
         ]:
         add_plugin_spec(spec)
