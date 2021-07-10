@@ -1,6 +1,6 @@
 #
 # ANA.py -- ANA plugin for Ginga FITS viewer
-# 
+#
 # Takeshi Inagaki
 # Eric Jeschke (eric@naoj.org)
 #
@@ -13,7 +13,7 @@ from ginga.util import wcs
 
 from ginga.misc import Future, Bunch
 import remoteObjects as ro
-import cfg.INS as INSconfig
+import g2cam.INS as INSconfig
 
 # this file written by ANA menu software
 #propid_file = "/tmp/propid"
@@ -23,7 +23,7 @@ try:
 except Exception:
     import getpass
     homedir = '/home/%s' %getpass.getuser()
-    
+
 propid_file = os.path.join(homedir, 'propid')
 
 anacmd_tbl = {
@@ -36,7 +36,7 @@ class AnaError(Exception):
 class ANA(GingaPlugin.GlobalPlugin):
     """
     NOTE: *** All these methods are running as the GUI thread, unless
-    otherwise noted. Do not block!! ***  
+    otherwise noted. Do not block!! ***
     """
 
     def __init__(self, fv):
@@ -125,7 +125,7 @@ class ANA(GingaPlugin.GlobalPlugin):
             cmdstr = cmd
 
         p = future.get_data()
-        
+
         self.logger.info("Executing command: %s" % (cmdstr))
         try:
             res = os.system(cmdstr)
@@ -136,7 +136,7 @@ class ANA(GingaPlugin.GlobalPlugin):
 
         except Exception as e:
             p.setvals(result='error', errmsg=str(e))
-            
+
         future.resolve(0)
 
     def execute_program(self, tag, future, command=None, parameter=None):
@@ -166,7 +166,7 @@ class ANA(GingaPlugin.GlobalPlugin):
     def _show_fits(self, fitspath):
 
         dirname, filename = os.path.split(fitspath)
-        
+
         # Create an empty image
         image = AstroImage.AstroImage(logger=self.logger)
         try:
@@ -178,10 +178,10 @@ class ANA(GingaPlugin.GlobalPlugin):
             self.fv.error("Error loading %s: %s" % (
                 filename, str(e)))
             return
-            
+
         header = image.get_header()
 
-        # Try to figure out the frame id of the image 
+        # Try to figure out the frame id of the image
         (path, filename) = os.path.split(fitspath)
         (frameid, ext) = os.path.splitext(filename)
 
@@ -189,7 +189,7 @@ class ANA(GingaPlugin.GlobalPlugin):
         try:
             # 1st try the filename
             chname = self.insconfig.getNameByFrameId(frameid)
-                
+
         except Exception:
             # No go.  How about an embedded keyword?
             try:
@@ -216,19 +216,19 @@ class ANA(GingaPlugin.GlobalPlugin):
                     filename))
             return
 
-        if propid.lower() != self.propid:    
+        if propid.lower() != self.propid:
             self.logger.error("propid of file and login don't match: %s" % (
                     filename))
             return
-        
-        # OK--display image. 
+
+        # OK--display image.
         #self.fv.make_callback('file-notify', fitspath)
         self.fv.gui_do(self.fv.add_image, frameid, image, chname=chname)
 
 
     def __str__(self):
         return 'ana'
-    
+
     def mesoffset(self, tag, future, instrument_name=None, star_chip1=None,
                   rootname=None, c_file=None, img_dir=None, exec_mode=None,
                   mcsred_dir=None, training_dir=None, work_dir=None, wait_gui = None):
