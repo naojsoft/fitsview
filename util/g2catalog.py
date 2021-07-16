@@ -2,6 +2,7 @@
 # g2catalog.py -- Fits viewer interface to the Gen2 star catalog
 #
 # Eric Jeschke (eric@naoj.org)
+# T. Inagaki
 #
 
 from math import radians
@@ -9,7 +10,6 @@ import time
 import json
 import requests
 
-#from math import pow
 from numpy import power as pow
 
 from ginga.util import wcs
@@ -26,6 +26,9 @@ import astropy.units as u
 from astroquery.utils.tap.core import TapPlus
 from astroquery.irsa import Irsa
 from astroquery.gaia import Gaia as GaiaCatalog
+from astropy.coordinates import Angle
+from astroquery.vizier import Vizier
+
 
 TAP_service = TapPlus(url="http://vao.stsci.edu/PS1DR2/tapservice.aspx")
 
@@ -134,6 +137,8 @@ class CatalogServer(object):
         elif catname.upper() == 'GAIA_WEB':
             catalog = "gaiadr2.gaia_source"
         # this is for SH and HSC catalog query
+        elif catname.upper() == '2MASS':
+            catalog = "II/246"
         elif catname ==  '':
             catname = "subaru"
             catalog = "usnob,gsc,sao"
@@ -167,20 +172,13 @@ class CatalogServer(object):
     def search(self, **params):
         kwdargs = self.get_search_params(params)
 
-        # starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], kwdargs['lowermag'], kwdargs['uppermag'],
-        #                                            catalog=kwdargs['catalog'])
-
-        # TO DO:
-        # temporary assign hard-coded value 0 as lower mag
-        starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'], kwdargs['fov'], 0.0, kwdargs['uppermag'],
+        # TODO: temporary assign hard-coded value 0 as lower mag
+        starlist = self.catalog.search_starcatalog(kwdargs['ra'], kwdargs['dec'],
+                                                   kwdargs['fov'], 0.0, #kwdargs['lowermag'],
+                                                   kwdargs['uppermag'],
                                                    catalog=kwdargs['catalog'])
 
-
-
-        #print "QUERY RESULT=", query_result
-
         starlist = self.process_starlist(starlist)
-        #print "STARLIST=", starlist
 
         # metadata about the list
         columns = [('Name', 'name'),
@@ -246,11 +244,11 @@ class CatalogServer(object):
 
                 star = StarCatalog.Star(**args)
 
-                # adjust priority if star is blacklisted
-                if blacklist.check_blacklist(star):
+                # adjust priority if star is blocklisted
+                if blocklist.check_blocklist(star):
                     star['priority'] = 9999999
                     star['preference'] = 9999999
-                    star['description'] = 'BLACKLISTED'
+                    star['description'] = 'BLOCKLISTED'
                     reassigned.append(star)
                 else:
                     results.append(star)
@@ -264,7 +262,6 @@ class CatalogServer(object):
         return results
 
     def process_result(self, query_result):
-        #print query_result
         starlist = query_result['selected_stars']
 
         # filter stars here
@@ -306,6 +303,9 @@ class WebCatalogs(CatalogServer):
         elif catname.upper() == 'GAIA_WEB':
             self.logger.debug("start Gaia.searching...")
             starlist = Gaia.search(search_params, self.logger)
+        elif catname.upper() == '2MASS':
+            self.logger.debug("start 2mass searching...")
+            starlist = TwoMass.search(search_params, self.logger)
         else:
             raise CatalogServerError("error: invalid catalog name={}".format(catname))
 
@@ -360,18 +360,22 @@ class ShWebCatalog(WebCatalogs):
         search_params = self.get_search_params(params)
         self.logger.debug('search_params={}'.format(search_params))
 
+        # overwrite lower/upper mag, assign targetmag
+        search_params['lowermag'] = params['lowermag']
+        search_params['uppermag'] = params['uppermag']
+        search_params['targetmag'] = params['targetmag']
+
         starlist = self.web_search(search_params)
 
         self.logger.info("catalog search returned {} stars".format(len(starlist)))
 
         # Filter stars for SH:
-        # note: limitmag=13.0 is fixed value for sh
         filter_params = dict(ra=search_params['ra'], dec=search_params['dec'],
                              equinox=params['equinox'], fov=search_params['fov'],
                              pa=search_params['pa'],
                              #focus=k['focus'],
                              limitmag=search_params['uppermag'],
-                             #goodmag=k['lowermag']
+                             goodmag=search_params['targetmag']
                              )
 
         star_select = starfilter.StarSelection(logger=self.logger)
@@ -414,30 +418,66 @@ class HscWebCatalog(WebCatalogs):
         return starlist, info
 
 
+class TwoMass:
+
+    @staticmethod
+    def search(params, logger):
+        logger.info(f'2Mass params={params}')
+
+        starlist = []
+        append = starlist.append
+
+        catalog = params['catalog']
+        lower_mag = params['lowermag']
+        upper_mag = params['uppermag']
+
+        v = Vizier(columns=["RAJ2000", "DEJ2000", "2MASS", "Qflg", "Cflg", "Jmag", "Hmag", "Kmag"], catalog=catalog, row_limit=-1, column_filters={'Qflg': '=AAA', 'Cflg': '=000', 'Kmag': f'{lower_mag}..{upper_mag}'})
+        stars = v.query_region(SkyCoord(ra=params['ra'], dec=params['dec'], unit=(u.deg, u.deg)), radius=Angle(params['fov'], "deg"))[0]
+
+        for num in range(len(stars)):
+            #logger.info(f"ra={star['RAJ2000']}, dec={star['DEJ2000']}, name={star['_2MASS']}, mag={star['Kmag']}")
+            try:
+                ra = stars['RAJ2000'][num]
+                dec = stars['DEJ2000'][num]
+                ra_rad = radians(ra)
+                dec_rad = radians(dec)
+                star_id = stars['_2MASS'][num]
+                name = f"2MASS{star_id}"
+                mag = stars['Kmag'][num]
+            except Exception as e:
+                logger.error(f'key error={e}')
+                continue
+            else:
+                pass
+                append(dict(star_id=star_id, name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=mag, flag=2,  b_r=99.9, r_i=99.9, field=catalog))
+
+        logger.info(f'starlist={len(starlist)}')
+
+        return starlist
+
+
 class Gaia:
 
     def flag(parallax):
     #def flag(pmra, pmdec, parallax):
 
         """
-           star classification. algorithm is designed by Akihito Tajitsu(Subaru Telescope)
+           Star Classification.
+           Algorithm is designed by Akihito Tajitsu (Subaru Telescope, NAOJ)
            flag 2, the best guiding star candidate
            flag 5, might be ok, but not preferred
 
-        """
-
-        """
             algorithm below is commented out now.
             but might be used later if parallax algorithm is not working well
-        try:
-            if (pmra+pmdec) > 10000: # find out the number(10000?)
-                flag = 5
-                return flag
-        except Exception as e:
-            print('error. {}'.format(e))
-            flag = 5
-            return flag
         """
+        # try:
+        #     if (pmra+pmdec) > 10000: # find out the number(10000?)
+        #         flag = 5
+        #         return flag
+        # except Exception as e:
+        #     print('error. {}'.format(e))
+        #     flag = 5
+        #     return flag
 
         try:
             assert parallax > 0.01
@@ -469,21 +509,16 @@ class Gaia:
 
         catalog = params['catalog']
         gaias = job.get_results()
-        #pmras = pow(gaias['pmra'], 2)
-        #pmdecs = pow(gaias['pmdec'], 2)
 
-        #for pmra, pmdec, gaia in zip(pmras, pmdecs, gaias):
         for gaia in gaias:
             ra = gaia['ra']
             dec = gaia['dec']
             ra_rad = radians(ra)
             dec_rad = radians(dec)
-            #_id = gaia['source_id']
             # py37 is ok, but py38 spits decode error
             #name = gaia['designation'].decode('utf-8')
             name = gaia['designation']
             append(dict(star_id=gaia['source_id'], name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=gaia['phot_rp_mean_mag'], flag=Gaia.flag(gaia['parallax']),  b_r=99.9, r_i=99.9, field=catalog))
-            #append(dict(id=_id, name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=gaia['phot_rp_mean_mag'], flag=Gaia.flag(pmra, pmdec, gaia['parallax']),  b_r=99.9, r_i=99.9, field=catalog))
 
         return starlist
 
@@ -545,11 +580,6 @@ class PanStarrs3:
         lowermag = 0
         #print('im here... params={}'.format(params))
         uppermag = params['uppermag']
-
-        # nr/ni could be replaced by nDetections
-        # constraints = {"nr.gt": 5, "ni.gt": 5,
-        #                "rPSFMag.lte": uppermag, "rPSFMag.gt": lowermag,
-        #                "iPSFMag.lte": uppermag, "iPSFMag.gt": lowermag}
 
         constraints = {"nDetections.gt": 5,
                        "rPSFMag.lte": uppermag, "rPSFMag.gt": lowermag,
@@ -728,7 +758,8 @@ class PanStarrs:
     def flag(rMag, rKronMag, iMag, iKronMag):
 
         """
-           star classification. algorithm is provided by Ichi Tanaka(Subaru Telescope)
+           Star Classification
+           Algorithm is provided by Ichi Tanaka (Subaru Telescope, NAOJ)
            flag 2, best guiding star candidate
            flag 3, good candiate
            flag 5, not preferred
@@ -809,26 +840,6 @@ class PanStarrs:
         return starlist
 
 
-        # elif table.upper() == "MEAN":
-        #     print('table mean')
-        #     panstarrs = Catalogs.query_region(c, params['fov'], catalog='Panstarrs',
-        #                                       data_release=data_release, table=table)
-
-        #     mask = (cat['rMeanPSFMag'] <= params['uppermag']) & (cat['rMeanPSFMag'] > 0) & (cat['iMeanPSFMag'] <= params['uppermag']) & (cat['iMeanPSFMag'] > 0) & ((cat['nr'] > 5) | (cat['ni'] > 5))
-
-        #     print('panstarrs num={}'.format(len(panstarrs[mask])))
-        #     for star in panstarrs[mask]:
-        #         # TO DO: find out flag here
-        #         _id = star['objID']
-        #         name = star['objName']
-        #         ra = star['raMean']
-        #         dec = star['decMean']
-        #         ra_rad = radians(ra)
-        #         dec_rad = radians(dec)
-        #         mag = star['rMeanPSFMag']
-        #         append(dict(id=_id, name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=mag, flag=PanStarrs.flag(star['rMeanPSFMag'], star['rMeanKronMag'], star['iMeanPSFMag'], star['iMeanKronMag']),  b_r=99.9, r_i=99.9, field='PanStarrs'))
-
-
 class AgCatalogServer(CatalogServer):
 
     def search(self, **params):
@@ -839,17 +850,9 @@ class AgCatalogServer(CatalogServer):
         self.logger.debug("querying the server %s, params=%s" % (
             self.svcname, str(k)))
 
-        # starlist = self.catalog.search_starcatalog(k['ra'], k['dec'],
-        #                                            k['fov'], k['lowermag'],
-        #                                            k['uppermag'],
-        #                                            pa=k['pa'],
-        #                                            focus=k['focus'],
-        #                                            catalog=k['catalog'])
-
-        # TO DO:
-        # temporary assign hard-coded value 0 as lower mag
+        # TODO: temporary assign hard-coded value 0 as lower mag
         starlist = self.catalog.search_starcatalog(k['ra'], k['dec'],
-                                                   k['fov'], 0,
+                                                   k['fov'], 0, #k['lowermag'],
                                                    k['uppermag'],
                                                    pa=k['pa'],
                                                    focus=k['focus'],
@@ -883,11 +886,17 @@ class AgCatalogServer(CatalogServer):
                          'prefered_num': len(starlist) }
         return query_result
 
+
 class ShCatalogServer(CatalogServer):
 
     def search(self, **params):
 
         k = self.get_search_params(params)
+
+        # overwrite lower/upper mag, assign targetmag
+        k['lowermag'] = params['lowermag']
+        k['uppermag'] = params['uppermag']
+        k['targetmag'] = params['targetmag']
 
         self.logger.debug("querying the server %s, params=%s" % (
             self.svcname, str(k)))
@@ -898,13 +907,12 @@ class ShCatalogServer(CatalogServer):
         self.logger.debug("catalog search returned %d stars" % (len(starlist)))
 
         # Filter stars for SH:
-        # note: limitmag=13.0 is fixed value for sh
         filter_params = dict(ra=k['ra'], dec=k['dec'],
                              equinox=params['equinox'], fov=k['fov'],
                              pa=k['pa'],
                              #focus=k['focus'],
                              limitmag=k['uppermag'],
-                             #goodmag=k['lowermag']
+                             goodmag=k['targetmag']
                              )
 
         star_select = starfilter.StarSelection(logger=self.logger)
@@ -916,13 +924,12 @@ class ShCatalogServer(CatalogServer):
         return query_result
 
 
-class GuideStarBlacklist(object):
+class GuideStarBlocklist(object):
 
     def __init__(self, filepath):
-        # TODO: read in the blacklist from file
+        # TODO: read in the blocklist from file
         self.filepath = filepath
-
-        self.blacklist = {}
+        self.blocklist = {}
         try:
             with open(self.filepath, 'r') as in_f:
                 buf = in_f.read()
@@ -940,7 +947,7 @@ class GuideStarBlacklist(object):
                     value = True
                 cat, cat_id = line.split(',')
                 cat_id = int(cat_id)
-                self.blacklist[(cat, cat_id)] = value
+                self.blocklist[(cat, cat_id)] = value
 
         except IOError as e:
             pass
@@ -949,34 +956,37 @@ class GuideStarBlacklist(object):
         key = (star['catalog'].lower(), star['cat_id'])
         return key
 
-    def check_blacklist(self, star):
-        return self.mk_key(star) in self.blacklist
+    def check_blocklist(self, star):
+        return self.mk_key(star) in self.blocklist
 
-    def checkpoint_file(self):
+    def checkpoint_file(self, logger):
         # TODO: find a reasonable file format library
         with open(self.filepath, 'w') as out_f:
-            for key, value in self.blacklist.items():
+            for key, value in self.blocklist.items():
+                logger.debug(f'key={key}, value={value}')
                 catalog, cat_id = key
-                out_f.write("%s,%d   # %s\n" % (catalog, cat_id, str(value)))
+                out_f.write(f"{catalog},{cat_id}   # {value}\n")
 
-    def add_blacklist(self, star):
+    def add_blocklist(self, star, logger):
         info = (star['ra'], star['dec'], star['name'])
-        self.blacklist[self.mk_key(star)] = info
-        self.checkpoint_file()
+        logger.debug(f'add blocklist. info={info}')
+        self.blocklist[self.mk_key(star)] = info
+        logger.debug(f'blocklist={blocklist}')
+        self.checkpoint_file(logger)
 
-    def remove_blacklist(self, star):
-        del self.blacklist[self.mk_key(star)]
-        self.checkpoint_file()
+    def remove_blocklist(self, star, logger):
+        del self.blocklist[self.mk_key(star)]
+        self.checkpoint_file(logger)
 
 
-# This implements the global blacklist for guide stars
+# This implements the global blocklist for guide stars
 import os
 if 'CONFHOME' in os.environ:
-    blacklist_path = os.path.join(os.environ['CONFHOME'], 'guideview',
-                                  "blacklist.txt")
+    blocklist_path = os.path.join(os.environ['CONFHOME'], 'guideview',
+                                  "blocklist.txt")
 else:
-    blacklist_path = os.path.join("/tmp", "blacklist.txt")
+    blocklist_path = os.path.join("/tmp", "blocklist.txt")
 
-blacklist = GuideStarBlacklist(blacklist_path)
+blocklist = GuideStarBlocklist(blocklist_path)
 
 #END

@@ -26,11 +26,11 @@ class AgAutoSelect(Catalogs.Catalogs):
     def build_gui(self, container, future=None):
         super(AgAutoSelect, self).build_gui(container, future=future)
 
-        # add blacklist feature
-        self.table.add_operation("add to blacklist", self.add_blacklist)
-        self.table.add_operation("rm from blacklist", self.rem_blacklist)
-        self.table.btn['oprn'].append_text("add to blacklist")
-        self.table.btn['oprn'].append_text("rm from blacklist")
+        # add blocklist feature
+        self.table.add_operation("add to blocklist", self.add_blocklist)
+        self.table.add_operation("rm from blocklist", self.rem_blocklist)
+        self.table.btn['oprn'].append_text("add to blocklist")
+        self.table.btn['oprn'].append_text("rm from blocklist")
         self.table.btn['oprn'].set_index(0)
 
     def start(self, future):
@@ -127,15 +127,15 @@ class AgAutoSelect(Catalogs.Catalogs):
         return True
 
 
-    def add_blacklist(self, selected):
+    def add_blocklist(self, selected):
         self.logger.info("selected=%s" % (str(selected)))
         star = selected[0]
-        g2catalog.blacklist.add_blacklist(star)
+        g2catalog.blocklist.add_blocklist(star, self.logger)
 
-    def rem_blacklist(self, selected):
+    def rem_blocklist(self, selected):
         self.logger.info("selected=%s" % (str(selected)))
         star = selected[0]
-        g2catalog.blacklist.remove_blacklist(star)
+        g2catalog.blocklist.remove_blocklist(star,  self.logger)
 
     def __str__(self):
         return 'agautoselect'

@@ -10,7 +10,6 @@ from operator import itemgetter
 
 from ginga.canvas.CanvasObject import get_canvas_types
 from ginga.misc import Bunch
-from g2base.six.moves import map
 
 cvtypes = get_canvas_types()
 
@@ -84,7 +83,7 @@ class TELESCOPEfov(object):
             y1 = int(ctr_y - radius_px * math.sin(rad))
             return (x1, y1)
 
-        return list(map(mm2pix, vlist))
+        return [mm2pix(_t) for _t in vlist]
 
     def draw(self, pluginObj):
         canvas = pluginObj.get_canvas()
@@ -477,7 +476,7 @@ class HSCfov(object):
 
             star['preference'] = pref
             if (star['description'] is not None and
-                'BLACKLISTED' in star['description']):
+                'BLOCKLISTED' in star['description']):
                 star['preference'] = 9999999
 
         all_stars = sorted(all_stars, key=itemgetter('preference'))

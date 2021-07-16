@@ -31,6 +31,7 @@ Double-click on a log entry.
 
 """
 import os
+from datetime import datetime
 from collections import OrderedDict
 
 from ginga import GingaPlugin, AstroImage
@@ -46,6 +47,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         self.chname = None
         self.file_prefixes = []
+        self.auto_scroll = True
 
         # columns to be shown in the table
         columns = [("Obs Mod", 'OBS-MOD'),
@@ -120,7 +122,8 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         obs_log = self.settings.get('obslog_name', None)
         if obs_log is None:
-            obs_log = ''
+            now = datetime.utcnow()
+            obs_log = now.strftime("IRCS-obslog-%Y-%m-%d.csv")
         b.obslog_name.set_text(obs_log)
         b.obslog_name.set_tooltip('File name for observation log')
         b.obslog_name.add_callback('activated', self.write_obslog_cb)
@@ -147,6 +150,10 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         btns.add_widget(btn)
         btn = Widgets.Button("Help")
         btn.add_callback('activated', lambda w: self.help())
+        btns.add_widget(btn, stretch=0)
+        btn = Widgets.CheckBox("Auto scroll")
+        btn.set_state(self.auto_scroll)
+        btn.add_callback('activated', self.set_auto_scroll_cb)
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
         vbox.add_widget(btns, stretch=0)
@@ -214,6 +221,9 @@ class ObsLog(GingaPlugin.GlobalPlugin):
             return
 
         self.w.rpt_tbl.set_tree(self.rpt_dict)
+
+        if self.auto_scroll:
+            self.w.rpt_tbl.scroll_to_end()
 
         obslog_name = self.w.obslog_name.get_text().strip()
         if len(obslog_name) > 0:
@@ -332,7 +342,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         for key in res.keys():
             self.rpt_dict[key]['G_MEMO'] = memo_txt
 
-        self.w.rpt_tbl.set_tree(self.rpt_dict)
+        self.update_obslog()
 
     def set_obslog_format_cb(self, w, idx):
         ext = w.get_text()
@@ -341,6 +351,9 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         self.w.obslog_name.set_text(name + '.' + ext)
         self.write_obslog_cb(None)
+
+    def set_auto_scroll_cb(self, widget, tf):
+        self.auto_scroll = tf
 
     def close(self):
         self.fv.stop_global_plugin(str(self))

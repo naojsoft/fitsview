@@ -54,8 +54,8 @@ snd_agarea_failure = os.path.join(soundhome, "auto_agareaselect_failed3.ogg")
 snd_agarea_select_manual = os.path.join(soundhome,
                                       "select_area_manually3.ogg")
 
-ag_web_catalog = {'PANSTARRS': 'agwebcatalog@subaru', 'UCAC4': 'agwebcatalog@subaru', 'GAIA_WEB': 'agwebcatalog@subaru'}
-sh_web_catalog = {'PANSTARRS': 'shwebcatalog@subaru', 'UCAC4': 'shwebcatalog@subaru', 'GAIA_WEB': 'shwebcatalog@subaru'}
+ag_web_catalog = {'PANSTARRS': 'agwebcatalog@subaru', 'UCAC4': 'agwebcatalog@subaru', 'GAIA_WEB': 'agwebcatalog@subaru',  '2MASS': 'agwebcatalog@subaru'}
+sh_web_catalog = {'PANSTARRS': 'shwebcatalog@subaru', 'UCAC4': 'shwebcatalog@subaru', 'GAIA_WEB': 'shwebcatalog@subaru',  '2MASS': 'shwebcatalog@subaru'}
 hsc_web_catalog = {'PANSTARRS': 'hscwebcatalog@subaru', 'UCAC4': 'hscwebcatalog@subaru', 'GAIA_WEB': 'hscwebcatalog@subaru'}
 
 
@@ -861,8 +861,8 @@ class VGW(GingaPlugin.GlobalPlugin):
 
 
     def sh_auto_select(self, tag, future,
-                       motor=None, equinox=None, ra=None, dec=None,
-                       select_mode=None, region=None, catalog=None):
+                       motor=None, equinox=None, ra=None, dec=None, select_mode=None, region=None,
+                       lowermag=None, uppermag=None, targetmag=None, catalog=None):
 
         self.fv.assert_gui_thread()
 
@@ -895,7 +895,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         p = future.get_data()
         p.setvals(equinox=equinox, chname=chname, select_mode=select_mode,
-                  image=image, catalog=catalog)
+                  image=image, lowermag=lowermag, uppermag=uppermag, targetmag=targetmag, catalog=catalog)
         future2 = Future.Future(data=p)
         future2.add_callback('resolved', self._sh_auto_select_cont2, future)
 
@@ -938,7 +938,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 #     fov_deg=cat_fov, upper_mag=13.0)
                 query_result = starcat.search(
                     ra=ra_deg, dec=dec_deg, equinox=2000.0,
-                    r1=0.0, r2=radius, m1=0.0, m2=13.0, catalog=p.catalog)
+                    r1=0.0, r2=radius, m1=0.0, m2=13.0, lowermag=p.lowermag, uppermag=p.uppermag, targetmag=p.targetmag, catalog=p.catalog)
 
                 info, starlist = starcat.process_result(query_result)
                 p.info = info

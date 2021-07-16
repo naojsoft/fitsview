@@ -100,6 +100,11 @@ class QL_IRCS(ObsLog.ObsLog):
                           report_columns=columns,
                           cache_normalized_images=True)
 
+    def build_gui(self, container):
+        super(QL_IRCS, self).build_gui(container)
+
+        self.w.obslog_dir.set_text("{}/Procedure/IRCS".format(os.environ['HOME']))
+
     def replace_kwds(self, header):
         d = super(QL_IRCS, self).replace_kwds(header)
 
