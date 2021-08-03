@@ -80,7 +80,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.settings.load(onError='silent')
 
         self.rpt_dict = OrderedDict({})
-        self.rpt_columns = []
+        self.rpt_columns = self.settings.get('report_columns')
 
         self.fv.add_callback('add-image', self.incoming_data_cb)
         self.gui_up = False
@@ -177,6 +177,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         d = OrderedDict([(kwd, d.get(kwd, ''))
                          for col, kwd in self.rpt_columns])
         self.rpt_dict[frameid] = d
+        self.logger.info("adding to dict [{}]: {}".format(frameid, str(d)))
 
         self.update_obslog()
 

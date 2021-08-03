@@ -99,6 +99,7 @@ class QL_IRCS(ObsLog.ObsLog):
                           color_alternate_rows=True,
                           report_columns=columns,
                           cache_normalized_images=True)
+        self.rpt_columns = self.settings.get('report_columns')
 
     def build_gui(self, container):
         super(QL_IRCS, self).build_gui(container)
@@ -204,7 +205,7 @@ class QL_IRCS(ObsLog.ObsLog):
         chname = self.chnames[0] if info['DET-ID'] == 'CAM' else self.chnames[1]
         channel = self.fv.get_current_channel()
         if channel.name != chname:
-            channel = self.fv.get_channel(chname)
+            channel = self.fv.get_channel_on_demand(chname)
             self.fv.change_channel(chname)
 
         # want to see the normalized image
