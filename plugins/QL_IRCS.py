@@ -191,7 +191,8 @@ class QL_IRCS(ObsLog.ObsLog):
         if self.settings.get('cache_normalized_images', True):
             # write out a cached copy so we can reload as necessary
             try:
-                prefix = os.path.join(os.environ['GEN2COMMON'], 'data_cache')
+                prefix = os.path.join(os.environ['GEN2COMMON'],
+                                      'data_cache', 'IRCS')
             except KeyError:
                 prefix = '/tmp'
             cached_path = os.path.join(prefix, newname + '.fits')
