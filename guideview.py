@@ -115,6 +115,8 @@ if __name__ == "__main__":
         Bunch(module='AgAutoSelect', ws='dialogs', ptype='local', hidden=True),
         Bunch(module='AgAreaSelection', ws='dialogs', ptype='local',
               hidden=True),
+        Bunch(module='PFS_AG', ws='dialogs', ptype='global', start=False,
+              category='Subaru'),
         ]:
         add_plugin_spec(spec)
 
@@ -125,7 +127,7 @@ if __name__ == "__main__":
                                               'FBrowser'],
                                except_local=['TVMark', 'TVMask',
                                              'ChangeHistory', 'Mosaic',
-                                             'Blink', 'MultiDim', 'Compose',
+                                             'Blink', 'Compose',
                                              'PlotTable', 'Catalogs',
                                              'FBrowser'])
     #viewer.add_separately_distributed_plugins()
