@@ -61,13 +61,13 @@ import threading
 
 # 3rd party
 import numpy as np
-from astropy.io import fits
+from fitsio import FITS
+from ginga.util.wcsmod.wcs_astropy import AstropyWCS
 # pip install inotify
 import inotify.adapters
 
 # ginga
 from ginga import trcalc, cmap, imap
-from ginga.util.io_fits import PyFitsFileHandler
 from ginga.gw import ColorBar, Widgets, Viewers
 from ginga.AstroImage import AstroImage
 from ginga import GingaPlugin
@@ -89,7 +89,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                    color_map='rainbow3',
                                    intensity_map='ramp',
                                    channel_name='PFS_1K',
-                                   rate_limit=5.0,
+                                   rate_limit=0.0,
                                    data_directory='.')
         self.settings.load(onError='silent')
 
@@ -122,8 +122,6 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.tbl_io = None
 
         self.viewer = dict()
-        self.processed = set([])
-        self.opener = PyFitsFileHandler(self.logger)
         self.dc = fv.get_draw_classes()
 
         #self.fv.add_callback('add-image', self.incoming_data_cb)
@@ -216,7 +214,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         b.pause.set_state(self.pause_flag)
         b.pause.add_callback('activated', self.pause_cb)
         b.pause.set_tooltip("Pause updates")
-        b.rate_limit.set_limits(5.0, 60.0, incr_value=1.0)
+        b.rate_limit.set_limits(0.0, 60.0, incr_value=1.0)
         b.rate_limit.set_value(self.rate_limit)
         b.rate_limit.add_callback('value-changed', self.set_rate_limit_cb)
         b.rate_limit.set_tooltip("Set the rate limit for PFS AG files")
@@ -306,7 +304,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.fv.change_channel(chname, raisew=True)
 
     def incoming_data_cb(self, fv, chname, image, info):
-        if chname != self.chname:
+        if chname != 'Image':
             return
 
         #header = image.get_header()
@@ -348,17 +346,16 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         new_img = AstroImage(data_np=data)
         new_img.update_keywords(image.get_header())
-        #new_img.set(name=image.get('name'))
-        new_img.set(name='PFS' + str(time.time()), nothumb=True)
+        new_img.set(name=image.get('name'))
+        #new_img.set(name='PFS' + str(time.time()), nothumb=True)
         return new_img
 
     def process_image(self, image):
-        imname = image.get('name', None)
-        if imname is None:
+        path = image.get('path', None)
+        if path is None:
             return
 
-        path = image.io.fileinfo['filepath']
-        self.process_file(path)
+        self.process_file(path, set_1k=True)
 
     def update_grid(self, images):
         self.fv.assert_gui_thread()
@@ -383,19 +380,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         channel = self.fv.get_channel_on_demand(self.chname)
         channel.add_image(image)
 
-    def process_file(self, path):
+    def process_file(self, path, set_1k=False):
         self.fv.assert_nongui_thread()
 
         start_time = time.time()
-        #opener = PyFitsFileHandler(self.logger)
-        opener = self.opener
-        try:
-            opener.open_file(path)
-
-        except Exception as e:
-            self.logger.error("Failed to process image: {}".format(e),
-                              exc_info=True)
-            return
 
         if self.current_file is not None:
             self.remove_file(self.current_file)
@@ -403,56 +391,83 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.tbl_go = None
         self.tbl_do = None
         self.tbl_io = None
-
         images = []
-        for dct in opener.hdu_info:
-            if dct['name'] == 'PRIMARY':
-                # anything we need to do here?  Something with the header?
-                pass
 
-            elif dct['name'].startswith('CAM'):
-                # load camera image
-                idx, name = dct['index'], dct['name']
+        fits_f = None
+        try:
+            self.logger.info(f'opening file {path}')
+            fits_f = FITS(path)
 
-                image = opener.get_hdu(idx)
+            for idx, hdu in enumerate(fits_f):
+                hdu_name = hdu.get_extname()
+                if hdu_name == 'PRIMARY':
+                    # anything we need to do here?  Something with the header?
+                    pass
 
-                if name == 'CAM1':
-                    image.set(path=path)
-                    self.fv.gui_do(self.set_1k, image)
+                elif hdu_name.startswith('CAM'):
+                    # load camera image
+                    name = hdu_name
 
-                # perform any desired subtractions
-                image = self.quick_data_reduce(image, name)
-                #image.set(path=f"{path}[{idx}]")
+                    _dir, fname = os.path.split(path)
+                    fname, ext = os.path.split(fname)
+                    imname = fname + f'[{name}]'
+                    data_np = hdu.read()
+                    image = AstroImage(logger=self.logger, data_np=data_np)
+                    fio_hdr = hdu.read_header()
+                    header = image.get_header()
+                    for info in fio_hdr.records():
+                        header.set_card(info['name'], info['value'],
+                                        comment=info['comment'])
+                    image.set(name=imname)
+                    image.wcs = AstropyWCS(self.logger)
+                    image.wcs.load_header(header)
 
-                # update the image in the channel viewer
-                images.append((name, image))
+                    if name == 'CAM1' and set_1k:
+                        image.set(path=path)
+                        self.fv.gui_do(self.set_1k, image)
 
-            elif dct['name'] == 'detected_objects':
-                atbl = opener.get_hdu(dct['index'])
-                self.tbl_do = atbl.get_data()
+                    # perform any desired subtractions
+                    image = self.quick_data_reduce(image, name)
+                    #image.set(path=f"{path}[{idx}]")
 
-            elif dct['name'] == 'guide_objects':
-                atbl = opener.get_hdu(dct['index'])
-                self.tbl_go = atbl.get_data()
+                    # update the image in the channel viewer
+                    images.append((name, image))
 
-            elif dct['name'] == 'identified_objects':
-                atbl = opener.get_hdu(dct['index'])
-                self.tbl_io = atbl.get_data()
+                elif hdu_name == 'detected_objects':
+                    self.logger.info('reading do table')
+                    self.tbl_do = hdu.read()
 
-            else:
-               self.logger.info("Unrecognized HDU: name='{}'".format(dct['name']))
+                elif hdu_name == 'guide_objects':
+                    self.logger.info('reading go table')
+                    self.tbl_go = hdu.read()
 
-        # determine max and min magnitude
-        if self.tbl_go is not None:
-            mags = self.tbl_go['mag']
-            self.mag_max = np.max(mags)
-            self.mag_min = np.min(mags)
+                elif hdu_name == 'identified_objects':
+                    self.logger.info('reading io table')
+                    self.tbl_io = hdu.read()
 
-        opener.close()
-        end_time = time.time()
-        self.logger.info("processing time %.4f sec" % (end_time - start_time))
+                else:
+                    self.logger.info("Unrecognized HDU: name='{}'".format(hdu_name))
+            self.logger.info('read all HDUs')
 
-        self.fv.gui_do_oneshot('pfsag_update', self.update_grid, images)
+            # determine max and min magnitude
+            if self.tbl_go is not None:
+                mags = self.tbl_go['mag']
+                self.mag_max = np.max(mags)
+                self.mag_min = np.min(mags)
+
+            self.logger.info('determined minmax')
+            end_time = time.time()
+            self.logger.info("processing time %.4f sec" % (end_time - start_time))
+            print("processing time %.4f sec" % (end_time - start_time))
+
+            self.fv.gui_do_oneshot('pfsag_update', self.update_grid, images)
+
+        except Exception as e:
+            self.logger.error("Failed to process image: {}".format(e),
+                              exc_info=True)
+
+        finally:
+            fits_f = None
 
     def remove_file(self, path):
         try:
@@ -465,24 +480,20 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
     def read_calib(self, path, dct):
         """Read a calibration file and store the slices in dictionary `dct`.
         """
-        opener = PyFitsFileHandler(self.logger)
         try:
-            opener.open_file(path)
+            with fits.open(path, 'readonly') as fits_f:
+
+                for idx, hdu in enumerate(fits_f):
+                    hdu_name = hdu.get_extname()
+                    if hdu_name.startswith('CAM'):
+                        # load camera image
+                        dct[hdu_name] = hdu.read()
 
         except Exception as e:
             self.logger.error("Failed to open calib file '{}': {}".format(path, e),
                               exc_info=True)
-            return
-
-        for dct in opener.hdu_info:
-            if dct['name'].startswith('CAM'):
-                # load camera image
-                idx, name = dct['index'], dct['name']
-
-                image = opener.get_hdu(idx)
-                dct[name] = image.get_data()
-
-        opener.close()
+        finally:
+            fits_f = None
 
     def plot_stars(self):
         if self.tbl_io is None:
@@ -586,22 +597,22 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
     def subtract_bias_cb(self, w, tf):
         self.settings.set(subtract_bias=tf)
         if self.current_file is not None:
-            self.process_file(self.current_file)
+            self.fv.nongui_do(self.process_file, self.current_file)
 
     def subtract_bg_cb(self, w, tf):
         self.settings.set(subtract_background=tf)
         if self.current_file is not None:
-            self.process_file(self.current_file)
+            self.fv.nongui_do(self.process_file, self.current_file)
 
     def subtract_dark_cb(self, w, tf):
         self.settings.set(subtract_dark=tf)
         if self.current_file is not None:
-            self.process_file(self.current_file)
+            self.fv.nongui_do(self.process_file, self.current_file)
 
     def divide_flat_cb(self, w, tf):
         self.settings.set(divide_flat=tf)
         if self.current_file is not None:
-            self.process_file(self.current_file)
+            self.fv.nongui_do(self.process_file, self.current_file)
 
     def set_flats_cb(self, w):
         path = w.get_text().strip()
@@ -655,13 +666,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                             continue
                         fits_tot.append(filename)
 
-                        #self.fv.nongui_do(self.fv.load_file, filepath,
-                        #                  chname=self.chname)
-                        if filepath in self.processed:
-                            self.logger.info(f"file '{filepath}' has already been processed")
-                            continue
-                        self.processed.add(filepath)
-                        self.fv.nongui_do(self.process_file, filepath)
+                        self.fv.nongui_do(self.process_file, filepath,
+                                          set_1k=True)
             self.logger.info("---------")
             self.logger.info("{} files: {}".format(len(loop_tot), loop_tot))
             self.logger.info("{} fits: {}".format(len(fits_tot), fits_tot))

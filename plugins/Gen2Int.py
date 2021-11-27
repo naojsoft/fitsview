@@ -1,4 +1,3 @@
-
 #
 # Gen2.py -- Gen2 plugin for Ginga FITS viewer
 #
@@ -70,6 +69,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         # for looking up instrument names
         self.insconfig = INSdata()
+        self.pfs_arm_dct = {'1': 'B', '2': 'R', '3': 'N'}
+
 
         # make a name for our monitor
         mymonname = '{}-{}-{}.mon'.format(self.svcname,
@@ -184,6 +185,23 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             self.fv.show_error(errmsg)
             return ro.ERROR
 
+    def get_chname(self, frameid, header, chname):
+        """Determine the channel name from the FRAMEID, FITS header and
+        default CHNAME.
+        """
+        fr = Frame(frameid)
+        if fr.inscode == 'PFS':
+            if fr.frametype == 'A':
+                digits = str(fr.number)
+                # PFS data model: spectrograph indicated by second digit from right,
+                # arm indicated by right-most digit
+                spg, arm = digits[-2], self.pfs_arm_dct[digits[-1]]
+                chname = f"PFSA_{spg}{arm}"
+            else:
+                chname = fr.inscode + fr.frametype
+
+        return chname
+
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
                   image_loader=None, display_image=True):
 
@@ -248,7 +266,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             chname = 'Image'
 
         if not channel:
-            channel = chname
+            channel = self.get_chname(frameid, header, chname)
 
         image.set(name=name, chname=channel)
 
