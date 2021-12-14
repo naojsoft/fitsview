@@ -49,13 +49,15 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         self.settings = prefs.create_category('plugin_Gen2Int')
         self.settings.add_defaults(svcname='fitsview', port=13088,
                                    monport=13089, monitor_name='monitor',
-                                   subscribe_fits=False, disp_cache=None)
+                                   subscribe_fits=False, disp_cache=None,
+                                   session_name='main')
         self.settings.load()
 
         self.svcname = self.settings.get('svcname')
         self.port = self.settings.get('port')
         self.monport = self.settings.get('monport')
         self.monitor_name = self.settings.get('monitor_name')
+        self.session_name = self.settings.get('session_name')
         # points to a possible display cache of images
         self.disp_cache = self.settings.get('disp_cache')
 
@@ -63,7 +65,9 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         #self.host = 'localhost'
 
         # monitor channels we are interested in
-        self.channels = ['fits']
+        self.channels = ['fits', 'sessions']
+        self.insnames = []
+        self.inscodes = []
 
         ro.init([self.host])
 
@@ -89,6 +93,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                                              channels=['sound'])
 
         self.status_srv = ro.remoteObjectProxy('status')
+        self.sessions_svc = ro.remoteObjectProxy('sessions')
 
         # some of the other plugins expect this handle to be available
         # via fv
@@ -115,7 +120,12 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         if self.settings.get('subscribe_fits', False):
             # Register local fits info subscription callback
             self.monitor.subscribe_cb(self.arr_fitsinfo, ['fits'])
+        self.monitor.subscribe_cb(self.arr_sessinfo, ['sessions'])
         #self.monitor.subscribe_cb(self.arr_taskinfo, ['taskmgr'])
+
+        # find out what instruments are allocated in our session
+        info = self.sessions_svc.getSessionInfo(self.session_name)
+        self._update_session(info)
 
         # Create our remote service object
         threadPool = self.fv.get_threadPool()
@@ -491,6 +501,22 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         except Exception as e:
             self.logger.error("error writing cache file: {}".format(e))
 
+    def _update_session(self, info):
+        self.logger.debug("session updated. info=%s" % str(info))
+        # fetch allocated instruments
+        allocs = info.get('allocs', [])
+
+        self.insnames = [name
+                         for name in self.insconfig.getNames(active=True)
+                         if name in allocs]
+        self.logger.info("allocated instruments: {}".format(str(self.insnames)))
+
+        # List of inst codes we should pay attention to
+        self.inscodes = [self.insconfig.getCodeByName(name)
+                         for name in self.insnames]
+        self.logger.info("allocated inscodes: {}".format(str(self.inscodes)))
+
+
     #############################################################
     # Methods called when we are notified via monitor of a new
     # FITS file.
@@ -559,6 +585,14 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             except KeyError:
                 return
 
+            # check if this frame is from an instrument allocated to our
+            # session; if not, don't display it
+            fr = Frame(frameid)
+            if fr.inscode not in self.inscodes:
+                insname = self.insconfig.getNameByCode(fr.inscode)
+                self.logger.info("frame {} for instrument '{}', not in allocated instruments: {}--skipping".format(frameid, insname, self.insnames))
+                return
+
             self.fv.nongui_do(self.file_notify, fitspath)
             #self.fv.gui_do(self.file_notify, fitspath)
 
@@ -585,6 +619,22 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             if res == 3:
                 self.logger.info("Task cancelled (%s)" % bnch.path)
                 self.cancel_commands(bnch.path)
+
+    # this one is called if new data becomes available about the session
+    def arr_sessinfo(self, payload, name, channels):
+        self.logger.debug("received values '%s'" % str(payload))
+
+        try:
+            bnch = Monitor.unpack_payload(payload)
+
+        except Monitor.MonitorError as e:
+            self.logger.error("malformed packet '%s': %s" % (
+                str(payload), str(e)))
+            return
+
+        if bnch.path == ('mon.session.%s' % self.session_name):
+            info = bnch.value
+            self._update_session(info)
 
     #############################################################
     # Methods called by other Gen2 plugins
