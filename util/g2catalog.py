@@ -231,9 +231,8 @@ class CatalogServer(object):
                     ra_deg, dec_deg = wcs.eqToEq2000(ra_deg, dec_deg,
                                                      self.equinox)
 
-                ra_txt = wcs.raDegToString(ra_deg, format='%02d:%02d:%06.3f')
-                dec_txt = wcs.decDegToString(dec_deg,
-                                               format='%s%02d:%02d:%05.2f')
+                ra_txt = wcs.ra_deg_to_str(ra_deg)
+                dec_txt = wcs.dec_deg_to_str(dec_deg)
                 args['ra'] = ra_txt
                 args['dec'] = dec_txt
                 args['ra_deg'] = ra_deg
