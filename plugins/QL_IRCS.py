@@ -61,7 +61,7 @@ class QL_IRCS(ObsLog.ObsLog):
                    #("UT", 'UT'),
                    ("HST", 'HST'),
                    #("PropId", 'PROP-ID'),
-                   ("Exp Time", 'EXPTIME'),
+                   ("Exp Time", 'EXP1TIME'),
                    ("Ndr", 'NDR'),
                    ("CoAdds", 'COADDS'),
                    ("Air Mass", 'AIRMASS'),
