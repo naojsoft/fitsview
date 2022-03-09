@@ -70,6 +70,8 @@ import inotify.adapters
 from ginga import trcalc, cmap, imap
 from ginga.gw import ColorBar, Widgets, Viewers
 from ginga.AstroImage import AstroImage
+from ginga.util.io_fits import FitsioFileHandler
+from ginga.util.wcsmod.wcs_astropy import AstropyWCS
 from ginga import GingaPlugin
 
 
@@ -124,7 +126,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.viewer = dict()
         self.dc = fv.get_draw_classes()
 
-        #self.fv.add_callback('add-image', self.incoming_data_cb)
+	# NOTE: comment this out when not in testing mode
+        self.fv.add_callback('add-image', self.incoming_data_cb)
         self.gui_up = False
 
     def build_gui(self, container):
@@ -411,16 +414,11 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     _dir, fname = os.path.split(path)
                     fname, ext = os.path.split(fname)
                     imname = fname + f'[{name}]'
-                    data_np = hdu.read()
-                    image = AstroImage(logger=self.logger, data_np=data_np)
-                    fio_hdr = hdu.read_header()
-                    header = image.get_header()
-                    for info in fio_hdr.records():
-                        header.set_card(info['name'], info['value'],
-                                        comment=info['comment'])
+                    image = AstroImage(logger=self.logger,
+                                       ioclass=FitsioFileHandler,
+                                       wcsclass=AstropyWCS)
+                    image.load_hdu(hdu)
                     image.set(name=imname)
-                    image.wcs = AstropyWCS(self.logger)
-                    image.wcs.load_header(header)
 
                     if name == 'CAM1' and set_1k:
                         image.set(path=path)

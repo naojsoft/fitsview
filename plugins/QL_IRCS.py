@@ -23,7 +23,7 @@ The file is rewritten out every time a new entry is added to the log
 **Adding a memo to one or more log entries**
 
 Write a memo in the memo box.  Select one or more frames to add the memo
-to and press the "Add Memo" button.  Multiple selection follows the usual
+to and press the "Set Memo" button.  Multiple selection follows the usual
 rules about holding down CTRL and/or SHIFT keys.
 
 **Displaying an image**
@@ -38,6 +38,9 @@ from ginga import GingaPlugin, AstroImage
 from ginga.misc import Bunch
 from ginga.gw import Widgets
 
+from g2base.astro.frame import Frame
+
+
 __all__ = ['QL_IRCS']
 
 import ObsLog
@@ -50,56 +53,59 @@ class QL_IRCS(ObsLog.ObsLog):
         self.chname = 'IRCS'
         self.chnames = ['IRCS_Norm_Cam', 'IRCS_Norm_Spg']
         self.file_prefixes = ['IRCA']
-        #self.ql_tagname = 'AQUISITION'
 
         # columns to be shown in the table
-        columns = [("Array", 'DET-ID'),
-                   ("Obs Mod", 'OBS-MOD'),
-                   ("Datatype", 'DATA-TYP'),
-                   ("FrameID", 'FRAMEID'),
-                   ("Object", 'OBJECT'),
-                   #("UT", 'UT'),
-                   ("HST", 'HST'),
-                   #("PropId", 'PROP-ID'),
-                   ("Exp Time", 'EXP1TIME'),
-                   ("Ndr", 'NDR'),
-                   ("CoAdds", 'COADDS'),
-                   ("Air Mass", 'AIRMASS'),
-                   #("Pos Ang", 'INST-PA'),
-                   #("Ins Rot", 'INSROT'),
-                   #("Foc Val", 'FOC-VAL'),
-                   #("Filter01", 'FILTER01'),
-                   #("Filter02", 'FILTER02'),
-                   #("Filter03", 'FILTER03'),
-                   #("RA", 'RA'),
-                   #("DEC", 'DEC'),
-                   #("EQUINOX", 'EQUINOX'),
-                   ("IMR STAT", 'D_IMR'),
-                   ("PA", 'D_IMRPAD'),
-                   ("IMR Mode", 'D_IMRMOD'),
-                   ("CW1", 'I_MCW1NM'),
-                   ("CW2", 'I_MCW2NM'),
-                   ("CW3", 'I_MCW3NM'),
-                   ("Cam Res", 'I_CAMRES'),
-                   ("Cam Focus", 'I_MFOCMC'),
-                   ("SLW", 'I_SLWNM'),
-                   ("SPW", 'I_SPWNM'),
-                   ("ECH", 'I_MECHAS'),
-                   ("XDS", 'I_MXDSAS'),
-                   ("Loop (AO)", 'D_LOOP'),
-                   ("AO Mode", 'D_MODE'),
-                   ("VM", 'D_VMVOLT'),
-                   ("DM", 'D_DMGAIN'),
-                   ("HTTG", 'D_WTTG'),
-                   ("LTTG", 'D_LTTG'),
-                   ("Memo", 'G_MEMO'),
-                  ]
+        column_info = [dict(col_title="Array", fits_kwd='DET-ID'),
+                       dict(col_title="Obs Mod", fits_kwd='OBS-MOD'),
+                       dict(col_title="Datatype", fits_kwd='DATA-TYP'),
+                       dict(col_title="FrameID", fits_kwd='FRAMEID',
+                            col_width=160),
+                       dict(col_title="Object", fits_kwd='OBJECT'),
+                       #dict(col_title="UT", fits_kwd='UT'),
+                       dict(col_title="HST", fits_kwd='HST'),
+                       #dict(col_title="PropId", fits_kwd='PROP-ID'),
+                       dict(col_title="Exp Time", fits_kwd='EXP1TIME'),
+                       dict(col_title="Ndr", fits_kwd='NDR'),
+                       dict(col_title="CoAdds", fits_kwd='COADDS'),
+                       dict(col_title="Air Mass", fits_kwd='AIRMASS'),
+                       #dict(col_title="Pos Ang", fits_kwd='INST-PA'),
+                       #dict(col_title="Ins Rot", fits_kwd='INSROT'),
+                       #dict(col_title="Foc Val", fits_kwd='FOC-VAL'),
+                       #dict(col_title="Filter01", fits_kwd='FILTER01'),
+                       #dict(col_title="Filter02", fits_kwd='FILTER02'),
+                       #dict(col_title="Filter03", fits_kwd='FILTER03'),
+                       #dict(col_title="RA", fits_kwd='RA'),
+                       #dict(col_title="DEC", fits_kwd='DEC'),
+                       #dict(col_title="EQUINOX", fits_kwd='EQUINOX'),
+                       dict(col_title="IMR STAT", fits_kwd='D_IMR'),
+                       dict(col_title="PA", fits_kwd='D_IMRPAD'),
+                       dict(col_title="IMR Mode", fits_kwd='D_IMRMOD'),
+                       dict(col_title="CW1", fits_kwd='I_MCW1NM'),
+                       dict(col_title="CW2", fits_kwd='I_MCW2NM'),
+                       dict(col_title="CW3", fits_kwd='I_MCW3NM'),
+                       dict(col_title="Cam Res", fits_kwd='I_CAMRES'),
+                       dict(col_title="Cam Focus", fits_kwd='I_MFOCMC'),
+                       dict(col_title="SLW", fits_kwd='I_SLWNM'),
+                       dict(col_title="SPW", fits_kwd='I_SPWNM'),
+                       dict(col_title="ECH", fits_kwd='I_MECHAS'),
+                       dict(col_title="XDS", fits_kwd='I_MXDSAS'),
+                       dict(col_title="Loop (AO)", fits_kwd='D_LOOP'),
+                       dict(col_title="AO Mode", fits_kwd='D_MODE'),
+                       dict(col_title="VM", fits_kwd='D_VMVOLT'),
+                       dict(col_title="DM", fits_kwd='D_DMGAIN'),
+                       dict(col_title="HTTG", fits_kwd='D_WTTG'),
+                       dict(col_title="LTTG", fits_kwd='D_LTTG'),
+                       dict(col_title="Memo", fits_kwd='G_MEMO'),
+                       ]
 
+        prefs = self.fv.get_preferences()
+        self.settings = prefs.create_category('plugin_QL_IRCS')
         self.settings.set(sortable=True,
                           color_alternate_rows=True,
-                          report_columns=columns,
+                          column_info=column_info,
                           cache_normalized_images=True)
-        self.rpt_columns = self.settings.get('report_columns')
+        self.settings.load(onError='silent')
+
 
     def build_gui(self, container):
         super(QL_IRCS, self).build_gui(container)
@@ -130,7 +136,7 @@ class QL_IRCS(ObsLog.ObsLog):
         return d
 
     def process_image(self, chname, header, image):
-        if chname != 'IRCS':
+        if chname != 'IRCS' or not self.gui_up:
             return
 
         imname = image.get('name', None)
@@ -148,9 +154,11 @@ class QL_IRCS(ObsLog.ObsLog):
             return
 
         frameid = frameid.strip()
+        fr = Frame(frameid)
 
         # normalized image prefix
-        newname = 'IRCN' + frameid[4:]
+        fr.frametype = 'N'
+        newname = fr.frameid
 
         try:
             det_id = int(header.get('DET-ID', 1)) - 1
@@ -202,7 +210,7 @@ class QL_IRCS(ObsLog.ObsLog):
 
         return new_image
 
-    def view_image(self, imname, info):
+    def view_image(self, frameid, info):
         chname = self.chnames[0] if info['DET-ID'] == 'CAM' else self.chnames[1]
         channel = self.fv.get_current_channel()
         if channel.name != chname:
@@ -210,8 +218,18 @@ class QL_IRCS(ObsLog.ObsLog):
             self.fv.change_channel(chname)
 
         # want to see the normalized image
-        imname = 'IRCN' + imname[4:]
-        channel.switch_name(imname)
+        imname = 'IRCN' + frameid[4:]
+        if imname in channel:
+            channel.switch_name(imname)
+
+        else:
+            #<-- need to load the original image and reprocess it
+            chname = 'IRCS'
+            # TODO: record the absolute path to the file in the ObsLog
+            filepath = os.path.join('/gen2', 'share', 'data', chname,
+                                    frameid + '.fits')
+            self.logger.info(f"attempting to load '{filepath}'...")
+            self.fv.load_file(filepath, chname=chname)
 
     def __str__(self):
         return 'ql_ircs'

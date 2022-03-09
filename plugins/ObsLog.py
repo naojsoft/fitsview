@@ -22,7 +22,7 @@ The file is rewritten out every time a new entry is added to the log
 ***Adding a memo to one or more log entries***
 
 Write a memo in the memo box.  Select one or more frames to add the memo
-to and press the "Add Memo" button.  Multiple selection follows the usual
+to and press the "Set Memo" button.  Multiple selection follows the usual
 rules about holding down CTRL and/or SHIFT keys.
 
 ***Displaying an image***
@@ -48,42 +48,46 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.chname = None
         self.file_prefixes = []
         self.auto_scroll = True
+        self.sort_hdr = 'FrameID'
 
         # columns to be shown in the table
-        columns = [("Obs Mod", 'OBS-MOD'),
-                   ("Datatype", 'DATA-TYP'),
-                   ("FrameID", 'FRAMEID'),
-                   ("Object", 'OBJECT'),
-                   ("UT", 'UT'),
-                   ("PropId", 'PROP-ID'),
-                   ("Exp Time", 'EXPTIME'),
-                   ("Air Mass", 'AIRMASS'),
-                   #("Pos Ang", 'INST-PA'),
-                   #("Ins Rot", 'INSROT'),
-                   #("Foc Val", 'FOC-VAL'),
-                   #("Filter01", 'FILTER01'),
-                   #("Filter02", 'FILTER02'),
-                   #("Filter03", 'FILTER03'),
-                   ("RA", 'RA'),
-                   ("DEC", 'DEC'),
-                   ("EQUINOX", 'EQUINOX'),
-                   ("Memo", 'G_MEMO'),
-                  ]
+        column_info = [dict(col_title="Obs Mod", fits_kwd='OBS-MOD'),
+                       dict(col_title="Datatype", fits_kwd='DATA-TYP'),
+                       dict(col_title=self.sort_hdr, fits_kwd='FRAMEID'),
+                       dict(col_title="Object", fits_kwd='OBJECT'),
+                       dict(col_title="UT", fits_kwd='UT'),
+                       dict(col_title="PropId", fits_kwd='PROP-ID'),
+                       dict(col_title="Exp Time", fits_kwd='EXPTIME'),
+                       dict(col_title="Air Mass", fits_kwd='AIRMASS'),
+                       dict(col_title="RA", fits_kwd='RA'),
+                       dict(col_title="DEC", fits_kwd='DEC'),
+                       dict(col_title="EQUINOX", fits_kwd='EQUINOX'),
+                       dict(col_title="Memo", fits_kwd='G_MEMO'),
+                       ]
 
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_ObsLog')
         self.settings.add_defaults(sortable=True,
                                    color_alternate_rows=True,
-                                   #max_rows_for_col_resize=5000,
-                                   report_columns=columns,
+                                   column_info=column_info,
                                    cache_normalized_images=True)
-        self.settings.load(onError='silent')
 
         self.rpt_dict = OrderedDict({})
-        self.rpt_columns = self.settings.get('report_columns')
+        self.rpt_columns = []
+        self.col_widths = []
+        self.memo_txt = ''
 
         self.fv.add_callback('add-image', self.incoming_data_cb)
         self.gui_up = False
+
+    def process_columns(self, spec_lst):
+        rpt_columns = []
+        col_widths = []
+        for dct in spec_lst:
+            rpt_columns.append((dct['col_title'], dct['fits_kwd']))
+            col_widths.append(dct.get('col_width', None))
+        self.rpt_columns = rpt_columns
+        self.col_widths = col_widths
 
     def build_gui(self, container):
         vbox = Widgets.VBox()
@@ -99,22 +103,39 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         tv.add_callback('activated', self.dblclick_cb)
         tv.add_callback('selected', self.select_cb)
 
-        self.rpt_columns = self.settings.get('report_columns')
+        self.col_info = self.settings.get('column_info', [])
+        # this will set rpt_columns and col_widths
+        self.process_columns(self.col_info)
+
         tv.setup_table(self.rpt_columns, 1, 'FRAMEID')
 
-        captions = (("Memo:", 'label', "memo", 'entry', 'Add Memo', 'button'),
+        # set any specified column widths
+        tv.set_optimal_column_widths()
+        for i, wd in enumerate(self.col_widths):
+            if wd is None:
+                continue
+            tv.set_column_width(i, wd)
+
+        captions = (("Memo:", 'label', "memo", 'entry', "Set Memo", 'button',
+                     "Copy Memo", 'button', "Paste Memo", 'button'),
                     )
         w, b = Widgets.build_info(captions, orientation='vertical')
         self.w.update(b)
         vbox.add_widget(w, stretch=0)
 
         b.memo.set_tooltip('Set memo for selected frames')
-        b.add_memo.add_callback('activated', self.add_memo_cb)
-        b.add_memo.set_enabled(False)
+        b.set_memo.add_callback('activated', self.set_memo_cb)
+        b.set_memo.set_enabled(False)
+        b.copy_memo.add_callback('activated', self.copy_memo_cb)
+        #b.copy_memo.set_enabled(False)
+        b.paste_memo.add_callback('activated', self.paste_memo_cb)
+        #b.paste_memo.set_enabled(False)
 
         captions = (("Folder:", 'label', "obslog_dir", 'entry',
                      "Name:", 'label', "obslog_name", 'entryset',
-                     "Type", 'combobox', "Load", 'button'),
+                     "Type", 'combobox', "Load", 'button',
+                     "merge", 'checkbutton', "Save", 'button',
+                     "auto save", 'checkbutton'),
                     )
         w, b = Widgets.build_info(captions, orientation='vertical')
         self.w.update(b)
@@ -126,11 +147,11 @@ class ObsLog(GingaPlugin.GlobalPlugin):
             obs_log = now.strftime("IRCS-obslog-%Y-%m-%d.csv")
         b.obslog_name.set_text(obs_log)
         b.obslog_name.set_tooltip('File name for observation log')
-        b.obslog_name.add_callback('activated', self.write_obslog_cb)
+        #b.obslog_name.add_callback('activated', self.save_obslog_cb)
 
         b.obslog_dir.set_text("/tmp")
         b.obslog_dir.set_tooltip('Folder path for observation log')
-        b.obslog_dir.add_callback('activated', self.write_obslog_cb)
+        #b.obslog_dir.add_callback('activated', self.save_obslog_cb)
 
         b.type.insert_alpha("csv")
         b.type.insert_alpha("xlsx")
@@ -140,16 +161,25 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         b.load.set_tooltip("Load a saved ObsLog")
         b.load.add_callback('activated', self.load_obslog_cb)
 
+        b.merge.set_tooltip("Merge the loaded ObsLog with current table")
+        b.merge.set_state(False)
+
+        b.save.set_tooltip("Save the ObsLog now")
+        b.save.add_callback('activated', self.save_obslog_cb)
+
+        b.auto_save.set_tooltip("Automatically save the ObsLog when new entries are added")
+        b.auto_save.set_state(False)
+
         btns = Widgets.HBox()
         btns.set_border_width(4)
         btns.set_spacing(4)
 
         btn = Widgets.Button("Close")
         btn.add_callback('activated', lambda w: self.close())
-        btn.set_enabled(False)
+        #btn.set_enabled(False)
         btns.add_widget(btn)
-        btn = Widgets.Button("Help")
-        btn.add_callback('activated', lambda w: self.help())
+        btn = Widgets.Button("Save column widths")
+        btn.add_callback('activated', self.record_col_widths_cb)
         btns.add_widget(btn, stretch=0)
         btn = Widgets.CheckBox("Auto scroll")
         btn.set_state(self.auto_scroll)
@@ -161,6 +191,8 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         container.add_widget(vbox, stretch=1)
         self.gui_up = True
 
+        self.update_obslog()
+
     def replace_kwds(self, header):
         """Subclass this method to do munge the data for special reports."""
         d = dict()
@@ -169,6 +201,10 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
     def add_to_obslog(self, header, image):
         frameid = header['FRAMEID']
+
+        if frameid in self.rpt_dict:
+            # already an entry for this frame?
+            return
 
         # replace some kwds as needed in the table
         d = self.replace_kwds(header.asdict())
@@ -226,13 +262,14 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         if self.auto_scroll:
             self.w.rpt_tbl.scroll_to_end()
 
-        obslog_name = self.w.obslog_name.get_text().strip()
-        if len(obslog_name) > 0:
-            obslog_path = os.path.join(self.w.obslog_dir.get_text().strip(),
-                                       obslog_name)
-            self.write_obslog(obslog_path)
+        if self.w.auto_save.get_state():
+            obslog_name = self.w.obslog_name.get_text().strip()
+            if len(obslog_name) > 0:
+                obslog_path = os.path.join(self.w.obslog_dir.get_text().strip(),
+                                           obslog_name)
+                self.save_obslog(obslog_path)
 
-    def write_obslog(self, filepath):
+    def save_obslog(self, filepath):
         if len(self.rpt_dict) == 0:
             return
 
@@ -260,7 +297,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
             self.logger.error("Error writing obslog: {}".format(e),
                               exc_info=True)
 
-    def load_obslog(self, filepath):
+    def load_obslog(self, filepath, merge=False):
         try:
             import pandas as pd
         except ImportError:
@@ -268,43 +305,53 @@ class ObsLog(GingaPlugin.GlobalPlugin):
                                "'openpyxl' to use this feature")
             return
 
+        save_dict = dict()
+        if merge:
+            save_dict = dict(self.rpt_dict)
+
         try:
             self.logger.info("loading obslog: {}".format(filepath))
 
-            col_hdr = [colname for colname, key in self.rpt_columns]
+            col_hdr = [key for colname, key in self.rpt_columns]
             if filepath.endswith('.csv'):
-                df = pd.read_csv(filepath, header=0, #names=col_hdr,
-                                   index_col=None)
+                df = pd.read_csv(filepath, header=0, names=col_hdr,
+                                 keep_default_na=False, index_col=None)
 
             else:
-                df = pd.read_excel(filepath, header=0, #names=col_hdr,
+                df = pd.read_excel(filepath, header=0, names=col_hdr,
                                    index_col=None)
-
-            self.rpt_dict = OrderedDict({})
 
             res = df.to_dict('index')
 
+            # merge loaded table (as dict) into save_dict
             for row in res.values():
-                frameid = row['FrameID']
-                d = OrderedDict([(kwd, row.get(col, ''))
+                frameid = row['FRAMEID']
+                d = OrderedDict([(kwd, row.get(kwd, ''))
                                  for col, kwd in self.rpt_columns])
-                self.rpt_dict[frameid] = d
+                save_dict[frameid] = d
 
+            rows = list(save_dict.values())
+            rows.sort(key=lambda dct: dct['FRAMEID'])
+
+            rpt_dict = OrderedDict([(row['FRAMEID'], row) for row in rows])
+
+            self.rpt_dict = rpt_dict
             self.w.rpt_tbl.set_tree(self.rpt_dict)
 
         except Exception as e:
             self.logger.error("Error loading obslog: {}".format(e),
                               exc_info=True)
 
-    def write_obslog_cb(self, w):
+    def save_obslog_cb(self, w):
         obslog_path = os.path.join(self.w.obslog_dir.get_text().strip(),
                                    self.w.obslog_name.get_text().strip())
-        self.write_obslog(obslog_path)
+        self.save_obslog(obslog_path)
 
     def load_obslog_cb(self, w):
         obslog_path = os.path.join(self.w.obslog_dir.get_text().strip(),
                                    self.w.obslog_name.get_text().strip())
-        self.load_obslog(obslog_path)
+        merge = self.w.merge.get_state()
+        self.load_obslog(obslog_path, merge=merge)
 
     def get_selected(self):
         res_dict = self.w.rpt_tbl.get_selected()
@@ -317,23 +364,35 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         self.view_image(frameid, info)
 
-    def view_image(self, imname, info):
+    def view_image(self, frameid, info):
         chname = self.chname
         channel = self.fv.get_current_channel()
         if channel.name != chname:
-            channel = self.fv.get_channel(chname)
+            channel = self.fv.get_channel_on_demand(chname)
             self.fv.change_channel(chname)
 
-        channel.switch_name(imname)
+        if frameid in channel:
+            channel.switch_name(frameid)
+        else:
+            # TODO: record the absolute path to the file
+            filepath = os.path.join('/gen2', 'share', 'data', chname,
+                                    frameid + '.fits')
+            self.logger.info(f"attempting to load '{filepath}'...")
+            self.fv.load_file(filepath, chname=chname)
 
     def select_cb(self, widget, d):
         res = self.get_selected()
         if len(res) == 0:
-            self.w.add_memo.set_enabled(False)
+            self.w.set_memo.set_enabled(False)
         else:
-            self.w.add_memo.set_enabled(True)
+            self.w.set_memo.set_enabled(True)
+            # grab the first memo item we can find to populate the memo box
+            for frame_id, d in res.items():
+                memo_txt = d['G_MEMO']
+                self.w.memo.set_text(memo_txt)
+                break
 
-    def add_memo_cb(self, widget):
+    def set_memo_cb(self, widget):
         memo_txt = self.w.memo.get_text().strip()
         res = self.get_selected()
         if len(res) == 0:
@@ -345,13 +404,31 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         self.update_obslog()
 
+    def copy_memo_cb(self, widget):
+        self.memo_txt = self.w.memo.get_text().strip()
+        if len(self.memo_txt) > 0:
+            self.fv.show_status("Memo copied")
+            return
+
+    def paste_memo_cb(self, widget):
+        self.w.memo.set_text(self.memo_txt)
+
+    def record_col_widths_cb(self, widget):
+        widths = self.w.rpt_tbl.get_column_widths()
+        column_info = self.settings.get('column_info')
+        for i, wd in enumerate(widths):
+            column_info[i]['col_width'] = wd
+
+        # save settings
+        self.settings.save()
+
     def set_obslog_format_cb(self, w, idx):
         ext = w.get_text()
         obslog_name = self.w.obslog_name.get_text().strip()
         name, old_ext = os.path.splitext(obslog_name)
 
         self.w.obslog_name.set_text(name + '.' + ext)
-        self.write_obslog_cb(None)
+        #self.save_obslog_cb(None)
 
     def set_auto_scroll_cb(self, widget, tf):
         self.auto_scroll = tf

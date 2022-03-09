@@ -532,23 +532,23 @@ class QDAS(GingaPlugin.GlobalPlugin):
             future.resolve(0)
 
         self.logger.info('QDAS MESOffset completed')
-   
-    def moircsAlign(self, tag, future, instrument_name=None, 
-            star_chip1=None,rootname=None, c_file=None, img_dir=None, 
-            exec_mode=None, mcsred_dir=None, training_dir=None, 
+
+    def moircsAlign(self, tag, future, instrument_name=None,
+            star_chip1=None,rootname=None, c_file=None, img_dir=None,
+            exec_mode=None, mcsred_dir=None, training_dir=None,
             work_dir=None, wait_gui = None):
-        
+
         self.logger.info('OBC MoircsAlign called')
 
         chname = '%s_Online' % (instrument_name)
         if not self.fv.has_channel(chname):
             self.fv.add_channel(chname)
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
 
-        mainfo = chinfo.opmon.getPluginInfo('MoircsAlign')
+        mainfo = chinfo.opmon.get_plugin_info('MoircsAlign')
         maobj = mainfo.obj
 
-        
+
 
         # Deactivate plugin if one is already running
         pluginName = 'MoircsAlign'
@@ -568,9 +568,9 @@ class QDAS(GingaPlugin.GlobalPlugin):
             future.resolve(0)
         else:
             # TO-DO:  the wait_gui == TRUE needs to be taken care of.
-            # 
-            pass    
-        
+            #
+            pass
+
 
 
         self.logger.info('OBC MoircsAlign completed')

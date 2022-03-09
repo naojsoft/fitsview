@@ -960,7 +960,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         f_cat = Future.Future()
         f_cat.freeze(query_catalogs, p)
 
-        chinfo = self.fv.get_channelInfo(chname)
+        chinfo = self.fv.get_channel(chname)
         # Clear old data from canvas
         pluginInfo = chinfo.opmon.get_plugin_info('AgAutoSelect')
         pluginObj = pluginInfo.obj
@@ -1318,7 +1318,7 @@ class VGW(GingaPlugin.GlobalPlugin):
         f_cat = Future.Future()
         f_cat.freeze(query_catalogs, queries, p)
 
-        chinfo = self.fv.get_channelInfo(p.chname)
+        chinfo = self.fv.get_channel(p.chname)
         chinfo.fitsimage.onscreen_message("Querying catalog db...",
                                           delay=1.0)
         self.fv.show_status("Querying catalog for objects ...")
