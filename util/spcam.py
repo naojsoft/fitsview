@@ -16,7 +16,6 @@ from ginga.util import dp
 from ginga.util import mosaic, wcs
 
 from astro.frame import Frame
-from g2base.six.moves import map
 
 
 class SuprimeCamDR(object):
@@ -83,7 +82,7 @@ class SuprimeCamDR(object):
     def get_file_list(self, path):
         frame = Frame(path)
         exp_num = self.get_exp_num(path)
-        nums = map(lambda off: exp_num+off, self.frameid_offsets)
+        nums = [exp_num + off for off in self.frameid_offsets]
         res = []
         for num in nums:
             frame.number = num

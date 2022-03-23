@@ -1,12 +1,8 @@
 #
 # SPCAM.py -- Suprime-Cam quick look plugin for Ginga FITS viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
-# Copyright (c) 2014-2015  National Astronomical Observatory of Japan.
-#   All rights reserved.
-# This is open-source software licensed under a BSD license.
-# Please see the file LICENSE.txt for details.
 #
 """
 A plugin for the Ginga scientific image viewer for quick look viewing and
@@ -26,7 +22,7 @@ NOTE: this requires the "naojutils" module, available at
 import os, re, glob
 import time
 import threading
-from six.moves import queue as Queue
+import queue as Queue
 
 from ginga import AstroImage
 from ginga.rv.plugins import Mosaic
