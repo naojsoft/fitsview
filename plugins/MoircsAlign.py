@@ -3,7 +3,6 @@
 #
 import os
 import threading
-import six
 
 import sys
 import logging
@@ -1250,7 +1249,7 @@ class MoircsAlign(MoircsAlignWindow):
             value = get_val()
             if par_file != None:
                 par_file.write('{},{}\n'.format(key,value))
-            if type(value) in (str, six.text_type):
+            if isinstance(value, str):
                 value = self.process_filename(value, self.variables)
             new_params[key] = value
 

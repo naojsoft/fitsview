@@ -13,7 +13,6 @@ from time import strftime
 # ginga imports
 from ginga.gw import Widgets
 from ginga.misc.Callback import CallbackError
-import six
 
 
 # constants
@@ -102,7 +101,7 @@ class MESInterface(object):
             value = get_val()
             if par_file is not None:
                 par_file.write('{},{}\n'.format(key, value))
-            if type(value) in (str, six.text_type):
+            if isinstance(value, str):
                 value = process_filename(value, self.variables)
             new_params[key] = value
 
