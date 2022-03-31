@@ -15,7 +15,7 @@ from ginga.misc import Bunch, log
 from ginga.util import dp
 from ginga.util import mosaic, wcs
 
-from astro.frame import Frame
+from g2base.astro.frame import Frame
 
 
 class SuprimeCamDR(object):

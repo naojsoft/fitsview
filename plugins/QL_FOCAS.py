@@ -15,7 +15,7 @@ try:
 except ImportError:
     raise ImportError("Please install naojutils with the 'focas' bits")
 
-from astro.frame import Frame
+from g2base.astro.frame import Frame
 
 __all__ = ['QL_FOCAS']
 
