@@ -6,7 +6,7 @@
 #
 import os.path
 
-import numpy
+import numpy as np
 
 from ginga.util import plots
 
@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.figure as figure
 from matplotlib.patches import Ellipse
 
-import astro.curvefit as curvefit
+import Gen2.astro.curvefit as curvefit
 
 from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
@@ -157,7 +157,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
                            %(str(stX), str(minX), str(enX),  str(min(dpY)), str(minY), str(max(dpY)) ) )
 
         # TODO: Hard coded constants!!
-        t1 = numpy.arange(stX -0.035  , enX + 0.035, 0.005)
+        t1 = np.arange(stX -0.035  , enX + 0.035, 0.005)
 
         t2 = self.lsf.plotQuadratic(t1, a, b, c)
         self.ax.plot(dpX, dpY, 'go', t1, t2)
