@@ -1,8 +1,8 @@
 #
 # FocusFit.py -- Focus fitting plugin for fits viewer
 #
-# Yasu Sakakibara
-# Eric Jeschke (eric@naoj.org)
+# Y. Sakakibara
+# E. Jeschke
 #
 import os.path
 
@@ -14,7 +14,6 @@ import matplotlib
 import matplotlib.figure as figure
 from matplotlib.patches import Ellipse
 
-import astro.fitsutils as fitsutils
 import astro.curvefit as curvefit
 
 from ginga.gw import Widgets, Plot
