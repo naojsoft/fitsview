@@ -1,7 +1,7 @@
 #
-# PFSAG.py -- PFS AG routines
+# PFS_AG.py -- PFS AG routines
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 # Q for Hiro:
 #  ) Does the "guide objects" table contain all GAIA stars found within the
@@ -58,6 +58,7 @@ import sys
 import os
 import time
 import threading
+import tempfile
 
 # 3rd party
 import numpy as np
@@ -65,6 +66,7 @@ from fitsio import FITS
 from ginga.util.wcsmod.wcs_astropy import AstropyWCS
 # pip install inotify
 import inotify.adapters
+import yaml
 
 # ginga
 from ginga import trcalc, cmap, imap
@@ -72,7 +74,17 @@ from ginga.gw import ColorBar, Widgets, Viewers
 from ginga.AstroImage import AstroImage
 from ginga.util.io_fits import FitsioFileHandler
 from ginga.util.wcsmod.wcs_astropy import AstropyWCS
+from ginga.util import wcs, dp
+from ginga.util.mosaic import CanvasMosaicer
 from ginga import GingaPlugin
+
+# g2cam
+from g2cam.status.client import StatusClient
+
+# local
+import pfswcs
+
+is_summit = True
 
 
 class PFS_AG(GingaPlugin.GlobalPlugin):
@@ -84,28 +96,31 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         # get PFSAG preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_PFS_AG')
-        self.settings.add_defaults(plot_guide_stars=False,
+        self.settings.add_defaults(plot_fov=True,
+                                   collage_method='simple',
+                                   plot_guide_stars=False,
                                    plot_offsets=False,
                                    subtract_bias=False,
                                    subtract_background=False,
                                    color_map='rainbow3',
                                    intensity_map='ramp',
                                    channel_name='PFS_1K',
-                                   rate_limit=0.0,
-                                   data_directory='.')
+                                   rate_limit=5.0,
+                                   data_directory='.',
+                                   save_directory=tempfile.gettempdir(),
+                                   auto_orient=False)
         self.settings.load(onError='silent')
 
         self.chname = self.settings.get('channel_name')
         self.wsname = 'PFS_AG_CAMS'
         self.wstype = 'grid'
-        #self.inspace = 'top level'
-        #self.inspace = 'channels'
-        self.inspace = 'sub1'
+        self.inspace = 'channels' if not is_summit else 'sub1' # 'top_level'
+        self.fov_inspace = 'channels' if not is_summit else 'sub2'
 
         self._wd = 300
         self._ht = 300
-        self.mag_max = 0.0
-        self.mag_min = 0.0
+        self.mag_max = 20.0
+        self.mag_min = 12.0
         self.current_file = None
         self.ev_quit = threading.Event()
         self.dark = dict()
@@ -114,9 +129,14 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.cmap = cmap.get_cmap(self.settings.get('color_map'))
         self.imap_names = list(imap.get_names())
         self.imap = imap.get_imap(self.settings.get('intensity_map'))
+        self.field_names = ['mag']
+        self.field = 'mag'
         self.last_image_time = time.time()
         self.pause_flag = False
         self.rate_limit = self.settings.get('rate_limit', 5.0)
+        self.error_scale = 10.0
+        self.save_dir = self.settings.get('save_directory', '/tmp')
+        self.mode = 'processed'
 
         # hold tables of detected objs, guide objs and identified objs
         self.tbl_do = None
@@ -126,8 +146,21 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.viewer = dict()
         self.dc = fv.get_draw_classes()
 
-	# NOTE: comment this out when not in testing mode
-        self.fv.add_callback('add-image', self.incoming_data_cb)
+        self.mosaicer = CanvasMosaicer(self.logger)
+        t_ = self.mosaicer.get_settings()
+        collage_method = self.settings['collage_method']
+        t_.set(annotate_images=True, match_bg=False,
+               center_image=False, collage_method=collage_method)
+
+        if not is_summit:
+            self.fv.add_callback('add-image', self.incoming_data_cb)
+
+        self.sc = None
+        configfile = os.path.join(os.environ['CONFHOME'], 'sts', 'gen2sts.yml')
+        with open(configfile, 'r') as in_f:
+            buf = in_f.read()
+        self.config_d = yaml.safe_load(buf)
+
         self.gui_up = False
 
     def build_gui(self, container):
@@ -154,24 +187,68 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                 settings.load(onError='silent')
                 channel = self.fv.add_channel(chname, settings=settings,
                                               workspace=self.wsname)
-
                 viewer = channel.viewer
+
+                # add a label, in case we are in grid view
+                lbl = self.dc.Text(20, 30, chname, color='skyblue',
+                                   fontsize=12, font='sans',
+                                   coord='window')
+                lbl.crdmap = viewer.get_coordmap('window')
+                canvas = viewer.get_canvas()
+                canvas.add(lbl, redraw=False)
                 settings = viewer.get_settings()
                 settings.set(enter_focus=True) #, channel_follows_focus=True)
                 #viewer.add_callback('focus', self.focus_cb)
 
-        captions = [('Plot guide stars', 'checkbutton'),
-                    ('Plot offsets', 'checkbutton'),
+        # create "big picture" FOV channel
+        chname = 'PFS_FOV'
+        settings = prefs.create_category(f'channel_PFS_FOV')
+        settings.set(numImages=1, genthumb=False, raisenew=False)
+        settings.load(onError='silent')
+        channel = self.fv.add_channel(chname, settings=settings,
+                                      workspace=self.fov_inspace)
+        viewer = channel.viewer
+        #canvas = viewer.get_canvas()
+        canvas = self.dc.DrawingCanvas()
+        ## canvas.add_draw_mode('zoom', key=self.zoom_fov_cb)
+        ## canvas.register_for_cursor_drawing(viewer)
+        ## viewer.get_canvas().add(canvas, redraw=False)
+        ## canvas.set_draw_mode('zoom')
+        canvas.set_surface(viewer)
+        canvas.ui_set_active(True)
+        self.fov_canvas = canvas
+
+        captions = [('Plot FOV', 'checkbutton',
+                     "Method:", 'label', 'method', 'combobox'),
+                    ('Plot guide stars', 'checkbutton',
+                     'Plot offsets', 'checkbutton',
+                     'Auto orient', 'checkbutton'),
                     ('Subtract bias', 'checkbutton'),
                     ('Subtract dark', 'checkbutton', 'Darks:', 'llabel',
                      'dark_frames', 'entryset'),
                     ('Subtract background', 'checkbutton'),
                     ('Divide flat', 'checkbutton', 'Flats:', 'llabel',
                      'flat_frames', 'entryset'),
-                    ('Pause', 'togglebutton', 'Rate Limit', 'spinfloat'),
+                    ('Pause', 'togglebutton', 'Rate Limit', 'spinfloat',
+                     'Save', 'button'),
                     ]
         w, b = Widgets.build_info(captions)
         self.w.update(b)
+
+        tf = self.settings.get('plot_fov', False)
+        b.plot_fov.set_state(tf)
+        b.plot_fov.set_tooltip("Plot images/stars in PFS FOV")
+        b.plot_fov.add_callback('activated', self.toggle_plot_fov_cb)
+
+        combobox = b.method
+        options = ['simple', 'warp']
+        for name in options:
+            combobox.append_text(name)
+        method = self.settings.get('collage_method', 'simple')
+        combobox.set_text(method)
+        combobox.add_callback('activated', self.set_collage_method_cb)
+        combobox.set_tooltip("Choose collage method: %s" % ','.join(options))
+
         tf = self.settings.get('plot_guide_stars', False)
         b.plot_guide_stars.set_state(tf)
         b.plot_guide_stars.set_tooltip("Plot the guide stars")
@@ -181,6 +258,11 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         b.plot_offsets.set_state(tf)
         b.plot_offsets.set_tooltip("Plot the offsets from the guide stars")
         b.plot_offsets.add_callback('activated', self.toggle_plot_offsets_cb)
+
+        tf = self.settings.get('auto_orient', False)
+        b.auto_orient.set_state(tf)
+        b.auto_orient.set_tooltip("Auto rotate images to orient by N")
+        b.auto_orient.add_callback('activated', self.auto_orient_cb)
 
         tf = self.settings.get('subtract_bias', False)
         b.subtract_bias.set_state(tf)
@@ -222,16 +304,59 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         b.rate_limit.add_callback('value-changed', self.set_rate_limit_cb)
         b.rate_limit.set_tooltip("Set the rate limit for PFS AG files")
 
+        b.save.add_callback('activated', self.save_file_cb)
+        b.save.set_tooltip("Save current FITS object")
+
         top.add_widget(w, stretch=0)
+
+        hbox = Widgets.HBox()
+        btn1 = Widgets.RadioButton("Raw")
+        btn1.set_state(self.mode == 'raw')
+        btn1.add_callback('activated', self.set_mode_cb, 'raw')
+        btn1.set_tooltip("Show raw frames")
+        hbox.add_widget(btn1)
+
+        btn2 = Widgets.RadioButton("Processed", group=btn1)
+        btn2.set_state(self.mode == 'processed')
+        btn2.add_callback('activated', self.set_mode_cb, 'processed')
+        btn2.set_tooltip("Show processed frames")
+        hbox.add_widget(btn2)
+
+        fr = Widgets.Frame("AG Files")
+        fr.set_widget(hbox)
+        top.add_widget(fr, stretch=0)
+
+        # add CAM pan buttons
+        hbox = Widgets.HBox()
+        for i in range(1, 7):
+            w = Widgets.Button(f"CAM{i}")
+            hbox.add_widget(w, stretch=1)
+            w.add_callback('activated', self.pan_cam_cb, i)
+            w.set_tooltip(f"Pan to CAM{i} in the PFS_FOV viewer")
+        top.add_widget(hbox, stretch=0)
 
         # stretch spacer
         top.add_widget(Widgets.Label(''), stretch=1)
 
-        captions = [('color_map', 'combobox',
-                     'intensity_map', 'combobox')
+        captions = [('error_scaling', 'hslider'),
+                    ('Set minmax', 'button', 'minf', 'entry', 'maxf', 'entry'),
+                    ('color_map', 'combobox', 'intensity_map', 'combobox',
+                     'field', 'combobox')
                     ]
         w, b = Widgets.build_info(captions)
         self.w.update(b)
+
+        b.error_scaling.set_limits(1.0, 100.0, incr_value=5)
+        b.error_scaling.set_value(self.error_scale)
+        b.error_scaling.add_callback('value-changed', self.set_error_scale_cb)
+        b.error_scaling.set_tooltip("Change the error scaling")
+
+        b.minf.set_text(str(self.mag_min))
+        b.minf.add_callback('activated', self.set_minmax_cb)
+        b.maxf.set_text(str(self.mag_max))
+        b.maxf.add_callback('activated', self.set_minmax_cb)
+        b.set_minmax.add_callback('activated', self.set_minmax_cb)
+        b.set_minmax.set_tooltip("Set min/max values for color bar")
 
         combobox = b.color_map
         for name in self.cmap_names:
@@ -254,6 +379,17 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             index = self.imap_names.index('ramp')
         combobox.set_index(index)
         combobox.add_callback('activated', self.set_imap_cb)
+
+        combobox = b.field
+        for name in self.field_names:
+            combobox.append_text(name)
+        field_name = 'mag'
+        try:
+            index = self.field_names.index(field_name)
+        except Exception:
+            index = self.field_names.index('mag')
+        combobox.set_index(index)
+        combobox.add_callback('activated', self.set_field_cb)
 
         top.add_widget(w, stretch=0)
 
@@ -294,7 +430,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
     def start(self):
         self.ev_quit.clear()
-        self.fv.nongui_do(self.watch_loop, self.ev_quit)
+        if is_summit:
+            self.fv.nongui_do(self.watch_loop, self.ev_quit)
+
+        self.connect_status()
 
     def stop(self):
         self.ev_quit.set()
@@ -349,7 +488,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         new_img = AstroImage(data_np=data)
         new_img.update_keywords(image.get_header())
-        new_img.set(name=image.get('name'))
+        new_img.set(name=image.get('name'), nothumb=True)
         #new_img.set(name='PFS' + str(time.time()), nothumb=True)
         return new_img
 
@@ -360,21 +499,50 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         self.process_file(path, set_1k=True)
 
+    def orient(self, viewer):
+        if self.settings.get('auto_orient', False):
+            bd = viewer.get_bindings()
+            bd._orient(viewer, righthand=False, msg=False)
+
     def update_grid(self, images):
+        # NOTE: assumes images come in the order CAM1 .. CAM6
         self.fv.assert_gui_thread()
         for name, image in images:
+            image.set(tag=name)
             channel = self.fv.get_channel(name)
             viewer = channel.viewer
             canvas = viewer.get_canvas()
-            canvas.delete_all_objects()
+            #canvas.delete_all_objects()
+            canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
+                                         redraw=False)
             #viewer.set_image(image)
             channel.add_image(image)
+            self.orient(viewer)
 
             self.fv.update_pending()
 
-        if self.tbl_go is not None:
-            self.cbar.set_range(self.mag_min, self.mag_max)
+        if self.settings.get('plot_fov', False):
+            images_only = [image for cam_name, image in images]
+            #ref_image = self.get_center(images_only)
+            #ref_image.set(tag='CAM0')
+            ref_image = images_only[0]
+            self.ref_image = ref_image
 
+            channel = self.fv.get_channel_on_demand('PFS_FOV')
+            viewer = channel.viewer
+            canvas = viewer.get_canvas()
+            ## canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('CAM'),
+            ##                              redraw=False)
+            ## canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
+            ##                              redraw=False)
+            #canvas.delete_all_objects()
+
+            self.mosaicer.reset()
+            self._images = images_only
+            self.mosaicer.mosaic(viewer, self._images, canvas=canvas)
+            self.orient(viewer)
+
+        if self.tbl_go is not None:
             self.plot_stars()
 
     def set_1k(self, image):
@@ -391,10 +559,18 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         if self.current_file is not None:
             self.remove_file(self.current_file)
         self.current_file = path
+
+        # filename beginning with an underscore is supposedly a raw file
+        # with no WCS and no summary detection tables
+        _dir, fname = os.path.split(path)
+        fname, ext = os.path.splitext(fname)
+        is_raw = fname.startswith('_')
+
         self.tbl_go = None
         self.tbl_do = None
         self.tbl_io = None
         images = []
+        wcses = None
 
         fits_f = None
         try:
@@ -409,16 +585,26 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                 elif hdu_name.startswith('CAM'):
                     # load camera image
-                    name = hdu_name
+                    name = hdu_name.strip()
+                    cam_num = int(name[-1])
 
-                    _dir, fname = os.path.split(path)
-                    fname, ext = os.path.split(fname)
-                    imname = fname + f'[{name}]'
+                    #imname = fname + f'[{name}]'
+                    imname = f'{name}'
                     image = AstroImage(logger=self.logger,
                                        ioclass=FitsioFileHandler,
                                        wcsclass=AstropyWCS)
                     image.load_hdu(hdu)
                     image.set(name=imname)
+
+                    self.logger.info(f'{fname}, {is_raw}')
+                    # make a WCS for the image if it doesn't have one
+                    if is_raw or image.wcs is None or image.wcs.wcs is None:
+                        # create wcses from Kawanomoto-san's module
+                        if wcses is None:
+                            wcses = self.make_WCSes()
+                        header = image.get_header()
+                        wcs = wcses[cam_num - 1]
+                        image.update_keywords(wcs.to_header(relax=True))
 
                     if name == 'CAM1' and set_1k:
                         image.set(path=path)
@@ -450,13 +636,12 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             # determine max and min magnitude
             if self.tbl_go is not None:
                 mags = self.tbl_go['mag']
-                self.mag_max = np.max(mags)
-                self.mag_min = np.min(mags)
+                #self.mag_max = np.max(mags)
+                #self.mag_min = np.min(mags)
 
             self.logger.info('determined minmax')
             end_time = time.time()
-            self.logger.info("processing time %.4f sec" % (end_time - start_time))
-            print("processing time %.4f sec" % (end_time - start_time))
+            self.logger.info("file processing time %.4f sec" % (end_time - start_time))
 
             self.fv.gui_do_oneshot('pfsag_update', self.update_grid, images)
 
@@ -466,6 +651,34 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         finally:
             fits_f = None
+
+    def make_WCSes(self):
+        self.logger.info('fetching status ...')
+        ra, dec, pa = self.sc.fetch_list(['STATS.RA_DEG', 'STATS.DEC_DEG',
+                                          'FITS.SBR.INST_PA'])
+        pa = float(pa)
+
+        self.logger.info('making wcses ...')
+        wcses = pfswcs.agcwcs_sip(ra, dec, pa)
+        self.logger.info('returning wcses ...')
+        return wcses
+
+    def get_center(self, images):
+        coords = []
+        for im in images:
+            wd, ht = im.get_size()
+            coords.append((im.pixtoradec(wd * 0.5, ht * 0.5)))
+        coords = np.array(coords)
+        ra_deg, dec_deg = np.mean(coords, axis=0)
+
+        fov_deg = 0.001
+        px_scale = 4.0694108718577e-05    # measured
+        rot_deg = 0.0
+
+        img_ctr = dp.create_blank_image(ra_deg, dec_deg, fov_deg,
+                                        px_scale, rot_deg, dtype=np.uint)
+        return img_ctr
+
 
     def remove_file(self, path):
         try:
@@ -494,8 +707,11 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             fits_f = None
 
     def plot_stars(self):
+        self.cbar.set_range(self.mag_min, self.mag_max)
+
         if self.tbl_io is None:
             return
+        images = self._images
         mags = self.tbl_go['mag']
 
         # delete previously plotted objects
@@ -505,6 +721,13 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             viewer = channel.viewer
             canvas = viewer.get_canvas()
             canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'))
+
+        # Update PFS_FOV channel
+        channel = self.fv.get_channel_on_demand('PFS_FOV')
+        viewer = channel.viewer
+        fov_canvas = viewer.get_canvas()
+        fov_canvas.delete_objects_by_tag(fov_canvas.get_tags_by_tag_pfx('_io'))
+        ref_image = self.ref_image
 
         # plot identified objects
         for io_idx, io_row in enumerate(self.tbl_io):
@@ -521,10 +744,15 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             _go_row_num = int(io_row['guide_object_id'])
             mag = mags[_go_row_num]
 
+            # skip stars that fall outside the selected area
+            if not (self.mag_min <= mag <= self.mag_max):
+                continue
+
             # add circle for detected position
             color = self.get_color(mag)
             radius = 15
             objs = []
+            fov_objs = []
 
             if self.settings.get('plot_guide_stars', False):
                 c = self.dc.Circle(ctr_x, ctr_y, radius,
@@ -533,26 +761,76 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                   color=color, linewidth=2)
                 objs.extend([c, p])
 
-            if self.settings.get('plot_offsets', False):
-                gde_x, gde_y = (io_row['guide_object_xdet'],
-                                io_row['guide_object_ydet'])
-                # ra_deg = self.tbl_go['ra'][_go_row_num]
-                # dec_deg = self.tbl_go['dec'][_go_row_num]
-                # image = viewer.get_image()
-                # gde_x, gde_y = image.radectopix(ra_deg, dec_deg)
+                if self.settings.get('plot_fov', False):
+                    ra_ctr, dec_ctr = images[cam_num].pixtoradec(ctr_x, ctr_y)
+                    #print(f"circle({ra_ctr}d, {dec_ctr}d, 20)")
+                    fov_ctr_x, fov_ctr_y = ref_image.radectopix(ra_ctr, dec_ctr)
 
-                c = self.dc.Circle(gde_x, gde_y, radius,
-                                   color=color, linestyle='dash',
-                                   linewidth=2)
-                l = self.dc.Line(ctr_x, ctr_y, gde_x, gde_y,
-                                 color=color, linestyle='solid',
-                                 linewidth=2, arrow='end')
-                objs.extend([c, l])
+                    c = self.dc.Circle(fov_ctr_x, fov_ctr_y, radius,
+                                       color=color, linewidth=2)
+                    p = self.dc.Point(fov_ctr_x, fov_ctr_y, radius, style='plus',
+                                      color=color, linewidth=2)
+                    fov_objs.extend([c, p])
 
-            canvas.add(self.dc.CompoundObject(*objs),
-                       tag=f'_io{io_idx}', redraw=False)
+                if self.settings.get('plot_offsets', False):
 
-        canvas.update_canvas(whence=3)
+                    gde_x, gde_y = (io_row['guide_object_xdet'],
+                                    io_row['guide_object_ydet'])
+
+                    error = np.sqrt((gde_y - ctr_y) ** 2 + (gde_x - ctr_x) ** 2)
+                    # scale the error for better visibility
+                    err_long = error * self.error_scale
+
+                    theta_rad = np.arctan2(gde_y - ctr_y, gde_x - ctr_x)
+                    long_x, long_y = (ctr_x + err_long * np.cos(theta_rad),
+                                      ctr_y + err_long * np.sin(theta_rad))
+
+                    c = self.dc.Circle(gde_x, gde_y, radius,
+                                       color=color, linestyle='dash',
+                                       linewidth=2)
+                    #l = self.dc.Line(ctr_x, ctr_y, gde_x, gde_y,
+                    l = self.dc.Line(ctr_x, ctr_y, long_x, long_y,
+                                     color=color, linestyle='solid',
+                                     linewidth=2, arrow='end')
+                    objs.extend([c, l])
+
+                    if self.settings.get('plot_fov', False):
+                        ra_gde, dec_gde = images[cam_num].pixtoradec(gde_x, gde_y)
+                        fov_gde_x, fov_gde_y = ref_image.radectopix(ra_gde, dec_gde)
+                        ## ra_deg = self.tbl_go['ra'][_go_row_num]
+                        ## dec_deg = self.tbl_go['dec'][_go_row_num]
+                        ## fov_gde_x, fov_gde_y = ref_image.radectopix(ra_deg, dec_deg)
+
+                        theta_rad = np.arctan2(fov_gde_y - fov_ctr_y, fov_gde_x - fov_ctr_x)
+                        fov_long_x, fov_long_y = (fov_ctr_x + err_long * np.cos(theta_rad),
+                                                  fov_ctr_y + err_long * np.sin(theta_rad))
+
+                        c = self.dc.Circle(fov_gde_x, fov_gde_y, radius,
+                                           color=color, linestyle='dash',
+                                           linewidth=2)
+                        #l = self.dc.Line(fov_ctr_x, fov_ctr_y, fov_gde_x, fov_gde_y,
+                        l = self.dc.Line(fov_ctr_x, fov_ctr_y, fov_long_x, fov_long_y,
+                                         color=color, linestyle='solid',
+                                         linewidth=2, arrow='end')
+                        fov_objs.extend([c, l])
+
+            if len(objs) > 0:
+                canvas.add(self.dc.CompoundObject(*objs),
+                           tag=f'_io{io_idx}', redraw=False)
+
+            if len(fov_objs) > 0:
+                fov_canvas.add(self.dc.CompoundObject(*fov_objs),
+                               tag=f'_io{io_idx}', redraw=False)
+
+        # update all canvases
+        fov_canvas.update_canvas(whence=3)
+
+        for cam_num in (1, 2, 3, 4, 5, 6):
+            cam_id = 'CAM{}'.format(cam_num)
+            channel = self.fv.get_channel(cam_id)
+            viewer = channel.viewer
+            canvas = viewer.get_canvas()
+            canvas.update_canvas(whence=3)
 
     def get_color(self, mag):
 
@@ -583,6 +861,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         # not necessary if link=True when creating ColorBar object
         #self.cbar.cbar_view.redraw()
         self.plot_stars()
+
+    def toggle_plot_fov_cb(self, w, tf):
+        self.settings.set(plot_fov=tf)
 
     def toggle_plot_guide_stars_cb(self, w, tf):
         self.settings.set(plot_guide_stars=tf)
@@ -620,6 +901,24 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         path = w.get_text().strip()
         self.read_calib(path, self.dark)
 
+    def set_minmax_cb(self, *args):
+        minval = float(self.w.minf.get_text().strip())
+        self.mag_min = minval
+        maxval = float(self.w.maxf.get_text().strip())
+        self.mag_max = maxval
+
+        self.plot_stars()
+
+    def save_file_cb(self, w):
+        _dir, filename = os.path.split(self.current_file)
+        dst_path = os.path.join(self.save_dir, filename)
+        res = os.system("cp {} {}".format(self.current_file, dst_path))
+        if res == 0 and os.path.exists(dst_path):
+            channel = self.fv.get_channel_on_demand('PFS_SAVE')
+            image = AstroImage(logger=self.logger)
+            image.load_file(dst_path)
+            channel.add_image(image)
+
     def redo(self, channel, image):
         """This is called when a new image arrives or the data in the
         existing image changes.
@@ -651,6 +950,12 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                         if not filename.endswith('.fits'):
                             continue
 
+                        # TEMP: choose which type to accept
+                        if self.mode == 'processed' and filename.startswith('_'):
+                            continue
+                        if self.mode == 'raw' and not filename.startswith('_'):
+                            continue
+
                         start_time = time.time()
                         if start_time < self.last_image_time + self.rate_limit:
                             self.logger.info(f"skipping file '{filename}' for rate limit")
@@ -662,6 +967,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                         if self.pause_flag:
                             self.logger.info("plugin is paused, skipping new file")
                             continue
+
                         fits_tot.append(filename)
 
                         self.fv.nongui_do(self.process_file, filepath,
@@ -686,11 +992,80 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.cbar.set_imap(im)
         self.plot_stars()
 
+    def set_field_cb(self, w, idx):
+        # Get field name
+        self.field = w.get_text().lower()
+        self.plot_stars()
+
+    def set_error_scale_cb(self, w, val):
+        self.error_scale = val
+        self.plot_stars()
+
+    def zoom_fov_cb(self, canvas, event, *args):
+        print(event)
+        if event.key in ['1', '2', '3', '4', '5', '6']:
+            cam = 'CAM%d' % event.key
+            print(cam, 'selected')
+            return True
+        return False
+
     def pause_cb(self, w, tf):
         self.pause_flag = tf
 
+    def auto_orient_cb(self, w, tf):
+        self.settings.set(auto_orient=tf)
+        for cam_num in (1, 2, 3, 4, 5, 6):
+            cam_id = 'CAM{}'.format(cam_num)
+            channel = self.fv.get_channel(cam_id)
+            viewer = channel.viewer
+            if tf:
+                self.orient(viewer)
+            else:
+                viewer.transform(False, False, False)
+                viewer.rotate(0.0)
+
+        channel = self.fv.get_channel('PFS_FOV')
+        viewer = channel.viewer
+        if tf:
+            self.orient(viewer)
+        else:
+            viewer.transform(False, False, False)
+            viewer.rotate(0.0)
+
     def set_rate_limit_cb(self, w, val):
         self.rate_limit = val
+
+    def set_mode_cb(self, w, tf, mode):
+        if tf:
+            self.mode = mode
+
+    def pan_cam_cb(self, w, cam_num):
+        name, ra, dec = self.mosaicer.image_list[cam_num - 1]
+        channel = self.fv.get_channel('PFS_FOV')
+        viewer = channel.viewer
+        with viewer.suppress_redraw:
+            viewer.set_pan(ra, dec, coord='wcs')
+            #viewer.zoom_to(-2.0)
+
+    def set_collage_method_cb(self, w, idx):
+        method = w.get_text()
+        settings = self.mosaicer.get_settings()
+        settings.set(collage_method=method)
+
+        # "warp" currently takes longer, so automatically set rate limit
+        # to accomodate that
+        if method == 'warp':
+            self.rate_limit = max(15.0, self.rate_limit)
+            self.w.rate_limit.set_value(self.rate_limit)
+
+        if self.current_file is not None:
+            self.fv.nongui_do(self.process_file, self.current_file)
+
+    def connect_status(self):
+        self.sc = StatusClient(host=self.config_d['status_client_host'],
+                               username=self.config_d['status_client_user'],
+                               password=self.config_d['status_client_pass'])
+        self.sc.connect()
 
     def __str__(self):
         return 'PFS_AG'
