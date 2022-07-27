@@ -106,7 +106,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
         captions = (('New algorithm', 'checkbutton'),
                     ('Radius:', 'label', 'Radius',
-                     'spinbutton', 'xlbl_radius', 'llabel'),
+                     'spinfloat', 'xlbl_radius', 'llabel'),
                     ('Threshold:', 'label', 'Threshold', 'entry',
                      'xlbl_threshold', 'label'),
                     )

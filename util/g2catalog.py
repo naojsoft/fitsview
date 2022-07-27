@@ -516,7 +516,8 @@ class Gaia:
             dec_rad = radians(dec)
             # py37 is ok, but py38 spits decode error
             #name = gaia['designation'].decode('utf-8')
-            name = gaia['designation']
+            #name = gaia['designation']
+            name = gaia['DESIGNATION'] # changed lower case colum name to  upper case one.
             append(dict(star_id=gaia['source_id'], name=name, ra_rad=ra_rad, dec_rad=dec_rad, ra=ra, dec=dec, mag=gaia['phot_rp_mean_mag'], flag=Gaia.flag(gaia['parallax']),  b_r=99.9, r_i=99.9, field=catalog))
 
         return starlist
