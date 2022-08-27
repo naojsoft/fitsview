@@ -172,7 +172,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.fov_deg = 2.0
 
         # Add ESO DSS image server to our set of image servers
-        bank = fv.get_ServerBank()
+        bank = fv.get_server_bank()
         for (longname, shortname, klass, url, description) in image_archives:
             obj = klass(self.logger, longname, shortname, url, description)
             bank.addImageServer(obj)

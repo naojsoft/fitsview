@@ -396,7 +396,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 pluginName, methodName, str(args), str(kwdargs), tag))
 
         # Get object associated with plugin
-        obj = self.fv.gpmon.getPlugin(pluginName)
+        obj = self.fv.gpmon.get_plugin(pluginName)
 
         # Get method we should call
         if not hasattr(obj, methodName):
@@ -420,7 +420,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 pluginName, methodName, str(args), str(kwdargs), tag))
 
         # Get object associated with plugin
-        obj = self.fv.gpmon.getPlugin(pluginName)
+        obj = self.fv.gpmon.get_plugin(pluginName)
 
         # Get method we should call
         if not hasattr(obj, methodName):

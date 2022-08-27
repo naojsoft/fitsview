@@ -512,9 +512,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             channel = self.fv.get_channel(name)
             viewer = channel.viewer
             canvas = viewer.get_canvas()
-            #canvas.delete_all_objects()
-            canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
-                                         redraw=False)
+            #canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
+            #                             redraw=False)
             #viewer.set_image(image)
             channel.add_image(image)
             self.orient(viewer)
@@ -535,12 +534,13 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             ##                              redraw=False)
             ## canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
             ##                              redraw=False)
-            #canvas.delete_all_objects()
 
             self.mosaicer.reset()
             self._images = images_only
-            self.mosaicer.mosaic(viewer, self._images, canvas=canvas)
-            self.orient(viewer)
+            with viewer.suppress_redraw:
+                self.mosaicer.mosaic(viewer, self._images, canvas=canvas)
+                self.orient(viewer)
+                viewer.redraw(whence=0)
 
         if self.tbl_go is not None:
             self.plot_stars()
@@ -720,13 +720,15 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             channel = self.fv.get_channel(cam_id)
             viewer = channel.viewer
             canvas = viewer.get_canvas()
-            canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'))
+            canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
+                                         redraw=False)
 
         # Update PFS_FOV channel
         channel = self.fv.get_channel_on_demand('PFS_FOV')
         viewer = channel.viewer
         fov_canvas = viewer.get_canvas()
-        fov_canvas.delete_objects_by_tag(fov_canvas.get_tags_by_tag_pfx('_io'))
+        fov_canvas.delete_objects_by_tag(fov_canvas.get_tags_by_tag_pfx('_io'),
+                                         redraw=False)
         ref_image = self.ref_image
 
         # plot identified objects
@@ -1040,7 +1042,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             self.mode = mode
 
     def pan_cam_cb(self, w, cam_num):
-        name, ra, dec = self.mosaicer.image_list[cam_num - 1]
+        tup = self.mosaicer.image_list[cam_num - 1]
+        name, tag, ra, dec = tup
         channel = self.fv.get_channel('PFS_FOV')
         viewer = channel.viewer
         with viewer.suppress_redraw:
