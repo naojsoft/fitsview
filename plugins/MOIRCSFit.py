@@ -144,7 +144,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         container.add_widget(vtop, stretch=1)
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
+        chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         self.plots = {}
         try:

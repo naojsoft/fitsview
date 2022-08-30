@@ -110,11 +110,12 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         p = future.get_data()
 
-        canvas = chinfo.fitsimage
+        viewer = chinfo.fitsimage
+        canvas = viewer.get_canvas()
 
         if not coord == 'PIX':
             self.logger.debug('coord is %s' %coord)
-            image = canvas.get_image()
+            image = viewer.get_image()
             #self.logger.info('funkyradec x=%s y=%s' %(x, y))
             ra_deg = radec.funkyHMStoDeg(x)
             dec_deg = radec.funkyDMStoDeg(y)
@@ -656,8 +657,8 @@ class VGW(GingaPlugin.GlobalPlugin):
             # calculate center pixel for ra/dec
             ctr_x, ctr_y = image.radectopix(p.ra_deg, p.dec_deg)
             # calculate radius of probe vignetting
-            probe_vignette_radius = image.calc_radius_xy(ctr_x, ctr_y,
-                                                         p.probe_vignette_fov)
+            probe_vignette_radius = wcs.calc_radius_xy(image, ctr_x, ctr_y,
+                                                       p.probe_vignette_fov)
 
             p.setvals(ctr_x=ctr_x, ctr_y=ctr_y, probe_x=probe_x, probe_y=probe_y,
                       probe_vignette_radius=probe_vignette_radius,
@@ -686,7 +687,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 # Get preferred guide star catalog for AG
                 #catname = self.settings.get('AG_catalog', catalog)
                 self.logger.debug('catalogs ctbank={}'.format(self.catalogs.ctbank))
-                starcat = self.catalogs.getCatalogServer(catname)
+                starcat = self.catalogs.get_catalog_server(catname)
 
 
                 self.logger.warning('starcat={}'.format(type(starcat)))
@@ -913,13 +914,13 @@ class VGW(GingaPlugin.GlobalPlugin):
         radii = []
         r = 0.5
         while r <= region:
-            cat_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, r)
+            cat_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, r)
             radii.append(cat_radius)
             r += 0.5
         p.cat_radii = radii
 
         # calculate radius of probe outer movable area fov
-        p.outer_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, outer_fov)
+        p.outer_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, outer_fov)
         self.logger.info("Probe outer movable area radius is %d pixels." % (
             p.outer_radius))
 
@@ -927,7 +928,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             try:
                 # Get preferred guide star catalog for SH
                 catname = sh_web_catalog.get(p.catalog.upper(), 'sh@subaru')
-                starcat = self.catalogs.getCatalogServer(catname)
+                starcat = self.catalogs.get_catalog_server(catname)
                 self.logger.debug('catname={}'.format(catname))
                 self.logger.debug('params={}'.format(p))
 
@@ -1284,7 +1285,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
                 catname = hsc_web_catalog.get(p.catalog.upper(), 'hscag@subaru')
                 #catname = self.settings.get('HSC_catalog', 'hscag@subaru')
-                starcat = self.catalogs.getCatalogServer(catname)
+                starcat = self.catalogs.get_catalog_server(catname)
 
                 # Query catalog
                 for (ra, dec, radius) in queries:
@@ -1458,7 +1459,8 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         calctag = "%s-calc" % (chname)
         try:
-            obj = fitsimage.get_object_by_tag(calctag)
+            canvas = fitsimage.get_canvas()
+            obj = canvas.get_object_by_tag(calctag)
 
         except KeyError:
             obj = None

@@ -9,6 +9,7 @@ import math
 from operator import itemgetter
 
 from ginga.canvas.CanvasObject import get_canvas_types
+from ginga.util import wcs
 from ginga.misc import Bunch
 
 cvtypes = get_canvas_types()
@@ -31,17 +32,17 @@ class TELESCOPEfov(object):
                                   vignette='green', probe='cyan')
 
         # calculate radius of probe outer movable area fov
-        outer_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.outer_fov)
+        outer_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, p.outer_fov)
         self.logger.debug("Probe outer movable area radius is %d pixels." % (
             outer_radius))
 
         ## # calculate radius of probe inner movable area fov
-        ## inner_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, inner_fov)
+        ## inner_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, inner_fov)
         ## self.logger.debug("Probe inner movable area radius is %d pixels." % (
         ##     inner_radius))
 
         # calculate probe circle
-        probe_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.probe_head_fov)
+        probe_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, p.probe_head_fov)
         self.logger.debug("Actual probe head radius is %d pixels." % (
             probe_radius))
 
@@ -65,7 +66,7 @@ class TELESCOPEfov(object):
 
         def mm2pix(tup):
             angle, mm = tup
-            radius_px = image.calc_radius_xy(ctr_x, ctr_y, mm * scale)
+            radius_px = wcs.calc_radius_xy(image, ctr_x, ctr_y, mm * scale)
             if focus in ('CS', 'CS_IR', 'CS_OPT'):
                 angle += pa_deg
             elif focus in ('NS_IR', 'NS_OPT',):
@@ -128,7 +129,7 @@ class GENERICfov(TELESCOPEfov):
         super(GENERICfov, self).__init__(logger, image, p)
 
         # calculate radius of instrument fov
-        inst_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.inst_fov)
+        inst_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, p.inst_fov)
         self.logger.debug("Instrument radius is %d pixels." % (
             inst_radius))
 
@@ -224,21 +225,21 @@ class MOIRCSfov(TELESCOPEfov):
         self.fov_pts = []
         for (xoff, yoff) in ((-fov_hw, -fov_hh), (-fov_hw, +fov_hh),
                              (+fov_hw, +fov_hh), (+fov_hw, -fov_hh)):
-            self.fov_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
+            self.fov_pts.append(wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+                                                  xoff, yoff))
         # coords of FOV w/vignette
         self.vig_pts = []
         for (xoff, yoff) in ((-vig_hw, -vig_hh), (-vig_hw, +vig_hh),
                              (+vig_hw, +vig_hh), (+vig_hw, -vig_hh)):
-            self.vig_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
+            self.vig_pts.append(wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+                                                  xoff, yoff))
 
         # calculate the position of the MOIRCS CCD chip and indicate
         # the position by text
-        self.c1x, self.c1y = image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                 0, -fov_hh/2.0)
-        self.c2x, self.c2y = image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                 0, +fov_hh/2.0)
+        self.c1x, self.c1y = wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+                                               0, -fov_hh/2.0)
+        self.c2x, self.c2y = wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+                                               0, +fov_hh/2.0)
 
 
     def draw(self, pluginObj):
@@ -292,22 +293,22 @@ class SPCAMfov(object):
                                   vignette='green', probe='cyan')
 
         ## # calculate radius of probe inner movable area fov
-        ## inner_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, inner_fov)
+        ## inner_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, inner_fov)
         ## self.logger.debug("Probe inner movable area radius is %d pixels." % (
         ##     inner_radius))
 
         # calculate probe circle
-        probe_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.probe_head_fov)
+        probe_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, p.probe_head_fov)
         self.logger.debug("Actual probe head radius is %d pixels." % (
             probe_radius))
 
         # calculate radius of probe outer movable area fov
-        outer_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, outer_fov)
+        outer_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, outer_fov)
         self.logger.debug("Probe outer movable area radius is %d pixels." % (
             outer_radius))
 
         # calculate radius of instrument fov
-        inst_radius = image.calc_radius_xy(p.ctr_x, p.ctr_y, p.inst_fov)
+        inst_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, p.inst_fov)
         self.logger.debug("Instrument radius is %d pixels." % (
             inst_radius))
 
@@ -333,8 +334,8 @@ class SPCAMfov(object):
         self.fov_pts = []
         for (xoff, yoff) in ((-pb_minus, -pb_height), (-pb_minus, +pb_height),
                              (+pb_plus, +pb_height), (+pb_plus, -pb_height)):
-            self.fov_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
+            self.fov_pts.append(wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+                                                  xoff, yoff))
 
     def draw(self, pluginObj):
         self.pluginObj = pluginObj
@@ -535,15 +536,15 @@ class MIMIZUKUfov(TELESCOPEfov):
         self.vig_pts = []
         for (xoff, yoff) in ((-vig_hw, -vig_hh), (-vig_hw, +vig_hh),
                              (+vig_hw, +vig_hh), (+vig_hw, -vig_hh)):
-            self.vig_pts.append(image.add_offset_xy(p.ctr_x, p.ctr_y,
-                                                    xoff, yoff))
+            self.vig_pts.append(wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+                                                  xoff, yoff))
 
         # calculate the position of the MIMIZUKU CCD chip and indicate
         # the position by text
-        ## self.c1x, self.c1y = image.add_offset_xy(p.ctr_x, p.ctr_y,
-        ##                                          0, -fov_hh/2.0)
-        ## self.c2x, self.c2y = image.add_offset_xy(p.ctr_x, p.ctr_y,
-        ##                                          0, +fov_hh/2.0)
+        ## self.c1x, self.c1y = wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+        ##                                        0, -fov_hh/2.0)
+        ## self.c2x, self.c2y = wcs.add_offset_xy(image, p.ctr_x, p.ctr_y,
+        ##                                        0, +fov_hh/2.0)
 
         self.dith_obj = None
 
