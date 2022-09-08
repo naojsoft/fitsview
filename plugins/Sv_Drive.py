@@ -1,7 +1,7 @@
 #
 # Sv_Drive.py -- Object/destination calculation plugin for fits viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 
 from ginga.misc import Bunch
@@ -398,13 +398,13 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
             self.y1 = float(self.w.y1.get_text()) - 1
             self.x2 = float(self.w.x2.get_text()) - 1
             self.y2 = float(self.w.y2.get_text()) - 1
-            ## pt = self.canvas.getObjectByTag(self.dsttag)
+            ## pt = self.canvas.get_object_by_tag(self.dsttag)
             ## self.dst_x, self.dst_y = pt.objects[0].x, pt.objects[0].y
 
-            ## pt = self.canvas.getObjectByTag(self.objtag)
+            ## pt = self.canvas.get_object_by_tag(self.objtag)
             ## self.obj_x, self.obj_y = pt.objects[0].x, pt.objects[0].y
 
-            ## rect = self.canvas.getObjectByTag(self.regiontag)
+            ## rect = self.canvas.get_object_by_tag(self.regiontag)
             ## (self.x1, self.y1, self.x2, self.y2) = (
             ##     rect.objects[0].x1, rect.objects[0].y1,
             ##     rect.objects[0].x2, rect.objects[0].y2)
@@ -731,13 +731,10 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
         self.canvas.delete_all_objects(redraw=False)
 
-        print("placing dst")
         self.place_dst(self.canvas, p.dst_x, p.dst_y)
 
-        print("placing obj")
         self.place_obj(self.canvas, p.obj_x, p.obj_y)
 
-        print("placing region")
         self.place_region(self.canvas, p.x1, p.y1, p.x2, p.y2)
 
         # Set pan position to object
@@ -746,7 +743,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         # disable canvas if in automatic mode
         if p.mode in ('auto', 'semiauto'):
             #self.set_message("Automatic target reacquisition succeeded.")
-            self.fv.showStatus("Automatic target reacquisition succeeded.")
+            self.fv.show_status("Automatic target reacquisition succeeded.")
             #self.stop()
             self.close()
         elif p.mode == 'override':

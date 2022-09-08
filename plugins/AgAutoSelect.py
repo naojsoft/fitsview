@@ -1,7 +1,7 @@
 #
 # AgAutoSelect.py -- A VGW plugin for fits viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 from ginga.misc import Bunch
 from ginga.rv.plugins import Catalogs
@@ -101,7 +101,7 @@ class AgAutoSelect(Catalogs.Catalogs):
     def close(self):
         self.ok()
 
-        chname = self.fv.get_channelName(self.fitsimage)
+        chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
 
@@ -125,7 +125,6 @@ class AgAutoSelect(Catalogs.Catalogs):
         p.result = 'cancel'
         self.release_caller()
         return True
-
 
     def add_blocklist(self, selected):
         self.logger.info("selected=%s" % (str(selected)))

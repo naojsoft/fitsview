@@ -2,7 +2,7 @@
 # GView.py -- plugin for Ginga implementing some of the commands from
 #               the old ZView viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.

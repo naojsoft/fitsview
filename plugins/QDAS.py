@@ -1,8 +1,8 @@
 #
 # QDAS.py -- QDAS plugin for fits viewer
 #
-# Eric Jeschke (eric@naoj.org)
-# Takeshi Inagaki (tinagaki@naoj.org)
+# E. Jeschke
+# T. Inagaki
 #
 import math
 import os

@@ -1,7 +1,7 @@
 #
 # VGW.py -- VGW plugin for fits viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 import math
 import time

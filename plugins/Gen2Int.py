@@ -1,7 +1,7 @@
 #
 # Gen2.py -- Gen2 plugin for Ginga FITS viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 import sys, os
 import re

@@ -1,10 +1,11 @@
 #
 # AgAreaSelection.py -- Ag area selection plugin for fits viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 
 from ginga.misc import Bunch
+from ginga.util import wcs
 from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
 
@@ -234,7 +235,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         self.modes_off()
 
         self.canvas.ui_set_active(True)
-        self.fv.showStatus("Draw a rectangle with the right mouse button")
+        self.fv.show_status("Draw a rectangle with the right mouse button")
 
     def stop(self):
         # disable canvas
@@ -242,7 +243,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         self.gui_up = False
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
+        chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
 
@@ -366,7 +367,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             if (width > self.max_len) or (height > self.max_len):
                 errmsg = "Image area (%dx%d) too large!" % (
                     width, height)
-                self.fv.showStatus(errmsg)
+                self.fv.show_status(errmsg)
                 raise Exception(errmsg)
 
             # Note: FITS coordinates are 1-based, whereas numpy FITS arrays
@@ -420,8 +421,11 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             self.pick_qs = qs
 
             # TODO: Get separate FWHM for X and Y
-            cdelt1, cdelt2 = image.get_keywords_list('CDELT1', 'CDELT2')
-            starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
+            #cdelt1, cdelt2 = image.get_keywords_list('CDELT1', 'CDELT2')
+            #starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
+            header = image.get_header()
+            rot, cdelt = wcs.get_xy_rotation_and_scale(header)
+            starsize = self.iqcalc.starsize(fwhm, cdelt[0], fwhm, cdelt[1])
             self.wdetail.star_size.set_text('%.3f' % starsize)
 
         except Exception as e:
@@ -442,7 +446,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
         self.canvas.redraw(whence=3)
 
-        self.fv.showStatus("Click left mouse button to reposition pick")
+        self.fv.show_status("Click left mouse button to reposition pick")
         return True
 
     def update(self, canvas, event, data_x, data_y):

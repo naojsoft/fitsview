@@ -1,9 +1,8 @@
 #
 # HSC.py -- HSC plugin for Ginga FITS viewer
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
-# Copyright (c)  Eric R. Jeschke.  All rights reserved.
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
 #

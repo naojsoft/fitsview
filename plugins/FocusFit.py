@@ -91,7 +91,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
+        chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
 
@@ -240,7 +240,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         pass
 
     def stop(self):
-        self.fv.showStatus("")
+        self.fv.show_status("")
 
     def redo(self):
         pass

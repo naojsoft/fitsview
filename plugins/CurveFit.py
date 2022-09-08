@@ -1,8 +1,8 @@
 #
 # CurveFit.py -- Curve fitting plugin for fits viewer
 #
-# Takeshi Inagaki (tinagaki@naoj.org)
-# Eric Jeschke (eric@naoj.org)
+# T. Inagaki
+# E. Jeschke
 #
 import os.path
 
@@ -66,9 +66,8 @@ class CurveFit(GingaPlugin.LocalPlugin):
         vtop.add_widget(btns, stretch=0)
         container.add_widget(vtop, stretch=1)
 
-
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
+        chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
 
@@ -104,7 +103,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
         pass
 
     def stop(self):
-        self.fv.showStatus("")
+        self.fv.show_status("")
 
     def redo(self):
         pass

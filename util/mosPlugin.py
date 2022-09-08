@@ -5,12 +5,9 @@
 # Justin Kunimune
 #
 
-
-
 # ginga imports
 from ginga import GingaPlugin
 from ginga.gw import GwHelp, Widgets
-
 
 
 class MESPlugin(GingaPlugin.LocalPlugin):
@@ -151,7 +148,7 @@ class MESPlugin(GingaPlugin.LocalPlugin):
         One of the required LocalPlugin methods
         """
         self.canvas.ui_set_active(True)
-        self.fv.showStatus("Calculate the offset values to align MOIRCS")
+        self.fv.show_status("Calculate the offset values to align MOIRCS")
 
 
     def stop(self):
