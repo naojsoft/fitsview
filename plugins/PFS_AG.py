@@ -134,9 +134,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.last_image_time = time.time()
         self.pause_flag = False
         self.rate_limit = self.settings.get('rate_limit', 5.0)
-        self.error_scale = 10.0
+        self.error_scale = 10
         self.save_dir = self.settings.get('save_directory', '/tmp')
         self.mode = 'processed'
+        self.guide_count = 0
 
         # hold tables of detected objs, guide objs and identified objs
         self.tbl_do = None
@@ -156,7 +157,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             self.fv.add_callback('add-image', self.incoming_data_cb)
 
         self.sc = None
-        configfile = os.path.join(os.environ['CONFHOME'], 'sts', 'gen2sts.yml')
+        configfile = os.path.join(os.environ['CONFHOME'], 'status', 'status.yml')
         with open(configfile, 'r') as in_f:
             buf = in_f.read()
         self.config_d = yaml.safe_load(buf)
@@ -346,7 +347,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        b.error_scaling.set_limits(1.0, 100.0, incr_value=5)
+        b.error_scaling.set_limits(1, 100, incr_value=5)
         b.error_scaling.set_value(self.error_scale)
         b.error_scaling.add_callback('value-changed', self.set_error_scale_cb)
         b.error_scaling.set_tooltip("Change the error scaling")
@@ -519,6 +520,12 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             self.orient(viewer)
 
             self.fv.update_pending()
+
+        # increment the guide count
+        self.guide_count += 1
+        stat_d = {'VGW.PFS.AG.COUNT': self.guide_count}
+        self.fv.nongui_do(self.fv.call_global_plugin_method,
+                          'Gen2Int', 'store', [stat_d], {})
 
         if self.settings.get('plot_fov', False):
             images_only = [image for cam_name, image in images]

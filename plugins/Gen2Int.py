@@ -157,6 +157,16 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
     #    Here come the Gen2 commands
     #############################################################
 
+    def fetch(self, stat_d):
+        self.logger.info("calling status fetch")
+        res_d = self.status_srv.fetch(stat_d)
+        self.logger.info("status fetch returned with %s" % str(res_d))
+        stat_d.update(res_d)
+
+    def store(self, stat_d):
+        self.logger.info("calling status store")
+        self.status_srv.store(stat_d)
+
     def load_image(self, filepath, idx=None):
         image = self.fv.load_image(filepath, idx=idx)
 
