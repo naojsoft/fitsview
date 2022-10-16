@@ -521,11 +521,12 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
             self.fv.update_pending()
 
-        # increment the guide count
-        self.guide_count += 1
-        stat_d = {'VGW.PFS.AG.COUNT': self.guide_count}
-        self.fv.nongui_do(self.fv.call_global_plugin_method,
-                          'Gen2Int', 'store', [stat_d], {})
+        if is_summit:
+            # increment the guide count
+            self.guide_count += 1
+            stat_d = {'VGW.PFS.AG.COUNT': self.guide_count}
+            self.fv.nongui_do(self.fv.call_global_plugin_method,
+                              'Gen2Int', 'store', [stat_d], {})
 
         if self.settings.get('plot_fov', False):
             images_only = [image for cam_name, image in images]
@@ -605,7 +606,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                     self.logger.info(f'{fname}, {is_raw}')
                     # make a WCS for the image if it doesn't have one
-                    if is_raw or image.wcs is None or image.wcs.wcs is None:
+                    if (is_summit and (is_raw or image.wcs is None or
+                                       image.wcs.wcs is None)):
                         # create wcses from Kawanomoto-san's module
                         if wcses is None:
                             wcses = self.make_WCSes()
@@ -772,7 +774,6 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                 if self.settings.get('plot_fov', False):
                     ra_ctr, dec_ctr = images[cam_num].pixtoradec(ctr_x, ctr_y)
-                    #print(f"circle({ra_ctr}d, {dec_ctr}d, 20)")
                     fov_ctr_x, fov_ctr_y = ref_image.radectopix(ra_ctr, dec_ctr)
 
                     c = self.dc.Circle(fov_ctr_x, fov_ctr_y, radius,
@@ -1011,10 +1012,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.plot_stars()
 
     def zoom_fov_cb(self, canvas, event, *args):
-        print(event)
         if event.key in ['1', '2', '3', '4', '5', '6']:
             cam = 'CAM%d' % event.key
-            print(cam, 'selected')
             return True
         return False
 

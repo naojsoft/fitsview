@@ -736,10 +736,11 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
 
     def withdraw_qdas_layers(self, fitsimage):
-        tags = fitsimage.get_tags_by_tag_pfx('qdas-')
+        canvas = fitsimage.get_canvas()
+        tags = canvas.get_tags_by_tag_pfx('qdas-')
         for tag in tags:
             try:
-                fitsimage.delete_object_by_tag(tag)
+                canvas.delete_object_by_tag(tag)
             except:
                 pass
 

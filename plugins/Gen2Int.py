@@ -73,7 +73,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         # for looking up instrument names
         self.insconfig = INSdata()
-        self.pfs_arm_dct = {'1': 'B', '2': 'R', '3': 'N'}
+        self.pfs_arm_dct = {'1': 'B', '2': 'R', '3': 'N', '4': 'M'}
 
 
         # make a name for our monitor

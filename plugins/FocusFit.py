@@ -5,6 +5,7 @@
 # E. Jeschke
 #
 import os.path
+from datetime import datetime
 
 import numpy as np
 
@@ -120,8 +121,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
         el = Ellipse((2, -1), 0.5, 0.5)
 
         self.clear()
-        #self.set_title(title)
-        self.ax.set_title('Focus Fitting')
+        self.ax.set_title(title)
 
         if result == 'empty':
             # all fwhm calculations failed; no data points found
@@ -182,18 +182,20 @@ class FocusFit(GingaPlugin.LocalPlugin):
         return False
 
     def focus_fitting(self, file_list, x1, y1, x2, y2, algorithm):
-        try:
-            # get beginning and ending frameids for title
-            path, s_fits = os.path.split(file_list[0])
-            path, e_fits = os.path.split(file_list[-1])
-            s_fitsid, ext = os.path.splitext(s_fits)
-            e_fitsid, ext = os.path.splitext(e_fits)
-            title='%s ~ %s' % (s_fitsid, e_fitsid)
-            self.logger.debug('fits %s' %(title))
+        # try:
+        #     # get beginning and ending frameids for title
+        #     path, s_fits = os.path.split(file_list[0])
+        #     path, e_fits = os.path.split(file_list[-1])
+        #     s_fitsid, ext = os.path.splitext(s_fits)
+        #     e_fitsid, ext = os.path.splitext(e_fits)
+        #     title='%s ~ %s' % (s_fitsid, e_fitsid)
+        #     self.logger.debug('fits %s' %(title))
 
-        except OSError as e:
-            self.logger.error('fail to set title %s' % str(e))
-            title = ''
+        # except OSError as e:
+        #     self.logger.error('fail to set title %s' % str(e))
+        #     title = ''
+        time_s = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        title = f"Focus Fitting: {time_s}"
 
         z = None
 
@@ -204,7 +206,8 @@ class FocusFit(GingaPlugin.LocalPlugin):
             lsf_b = self.lsf.fitCurve(data_points)
             result = lsf_b.code
 
-            z = lsf_b.minX; fwhm = lsf_b.minY
+            z = lsf_b.minX
+            fwhm = lsf_b.minY
             self.logger.debug("result=%s z=%s fwhm=%s" % (result, z, fwhm))
 
             # draw graph at next available opportunity

@@ -1458,8 +1458,8 @@ class VGW(GingaPlugin.GlobalPlugin):
             readout.set_text(time_str)
 
         calctag = "%s-calc" % (chname)
+        canvas = fitsimage.get_canvas()
         try:
-            canvas = fitsimage.get_canvas()
             obj = canvas.get_object_by_tag(calctag)
 
         except KeyError:
@@ -1473,7 +1473,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 self.logger.debug("Guiding is on region is (%d,%d) (%d,%d)" % (
                     x1, y1, x2, y2))
                 if obj is None:
-                    fitsimage.add(self.dc.CompoundObject(
+                    canvas.add(self.dc.CompoundObject(
                         self.dc.Rectangle(x1, y1, x2, y2,
                                               color=self.colorcalc),
                         self.dc.Text(x1, y2, "Calc Region",
@@ -1487,7 +1487,7 @@ class VGW(GingaPlugin.GlobalPlugin):
             else:
                 # Not guiding, clear the region, if any
                 if obj is not None:
-                    fitsimage.delete_object(obj)
+                    canvas.delete_object(obj)
             fitsimage.redraw(whence=3)
 
 

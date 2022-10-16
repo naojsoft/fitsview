@@ -194,9 +194,9 @@ def make_CurveFitting(klass):
 
 def main(options,args):
 
-    from PyQt4 import QtGui, QtCore
+    from PyQt5 import QtGui, QtCore
 
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.figure import Figure
 
     class1 = make_CurveFittingCanvas(FigureCanvas)
