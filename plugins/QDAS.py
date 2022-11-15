@@ -644,7 +644,8 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         p = future.get_data()
 
-        canvas = chinfo.fitsimage
+        viewer = chinfo.fitsimage
+        canvas = viewer.get_canvas()
         try:
             self._mark(chname, canvas, x, y, mode, mark, size, color)
             p.setvals(result='ok')
