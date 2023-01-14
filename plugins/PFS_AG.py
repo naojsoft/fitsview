@@ -503,7 +503,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
     def orient(self, viewer):
         if self.settings.get('auto_orient', False):
             bd = viewer.get_bindings()
-            bd._orient(viewer, righthand=False, msg=False)
+            mode = bd.get_mode_obj('rotate')
+            mode._orient(viewer, righthand=False, msg=False)
 
     def update_grid(self, images):
         # NOTE: assumes images come in the order CAM1 .. CAM6
