@@ -377,7 +377,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         values = np.array(values, dtype=float)
         x_points, lsize, rsize = values.T
-        print(f'x={x_points}, l={lsize}, r={rsize}')
+        #print(f'x={x_points}, l={lsize}, r={rsize}')
 
         lidx = np.isfinite(x_points) & np.isfinite(lsize)
         ridx = np.isfinite(x_points) & np.isfinite(rsize)
@@ -415,14 +415,14 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         try:
             self.qf_l.coefficient(x_points[lidx], lsize[lidx])
-            print(f'qf_l coeffs={self.qf_l.coeffs}')
+            #print(f'qf_l coeffs={self.qf_l.coeffs}')
             qf_l_func = self.qf_l.quadratic()
             ax.plot(x_more_points, qf_l_func(x_more_points), 'y-', linewidth=2)
 
             l_min_x, l_min_y = self.qf_l.min_vertex()
-            print(f'lside. l_min_x={l_min_x}, l_min_y={l_min_y}')
+            #print(f'lside. l_min_x={l_min_x}, l_min_y={l_min_y}')
         except Exception as e:
-            print(f'qf lsize to do {e}')
+            #print(f'qf lsize to do {e}')
             errors.append(left)
 
         try:
@@ -431,7 +431,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             ax.plot(x_more_points, qf_r_func(x_more_points), 'b-', linewidth=2)
 
             r_min_x, r_min_y = self.qf_r.min_vertex()
-            print(f'rside. r_min_x={r_min_x}, r_min_y={r_min_y}')
+            #print(f'rside. r_min_x={r_min_x}, r_min_y={r_min_y}')
         except Exception as e:
             errors.append(right)
 
@@ -521,7 +521,8 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
             qualsize = self.iqcalc.qualsize
             qs = qualsize(image, x1, y1, x2, y2,
-                          radius=self.radius, threshold=self.threshold)
+                          radius=self.radius, threshold=self.threshold,
+                          minelipse=0.2)
 
             xl1, yl1, xl2, yl2 = bbox_limits.get_llur()
             if not (xl1 <= qs.objx <= xl2) or not (yl1 <= qs.objy <= yl2):
@@ -534,8 +535,9 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
             header = image.get_header()
             rot, cdelt1, cdelt2 = wcs.get_rotation_and_scale(header)
-            fwhm = qs.fwhm
-            starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
+            pscale_x, pscale_y = np.abs(cdelt1), np.abs(cdelt2)
+            starsize = self.iqcalc.starsize(qs.fwhm_x, pscale_x,
+                                            qs.fwhm_y, pscale_y)
 
             p.fwhm = qs.fwhm
             p.starsize = starsize

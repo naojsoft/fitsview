@@ -66,7 +66,7 @@ class QL_IRCS(ObsLog.ObsLog):
                        #dict(col_title="PropId", fits_kwd='PROP-ID'),
                        dict(col_title="Exp Time", fits_kwd='EXP1TIME'),
                        dict(col_title="Ndr", fits_kwd='NDR'),
-                       dict(col_title="CoAdds", fits_kwd='COADDS'),
+                       dict(col_title="CoAdd", fits_kwd='COADD'),
                        dict(col_title="Air Mass", fits_kwd='AIRMASS'),
                        #dict(col_title="Pos Ang", fits_kwd='INST-PA'),
                        #dict(col_title="Ins Rot", fits_kwd='INSROT'),
@@ -182,7 +182,7 @@ class QL_IRCS(ObsLog.ObsLog):
         header = image.get_header()
 
         # normalize the data
-        coadds = header.get('COADDS', 1)
+        coadds = header.get('COADD', 1)
         ndr = header.get('NDR', 1)
         divisor = coadds * ndr
 
@@ -193,7 +193,7 @@ class QL_IRCS(ObsLog.ObsLog):
         new_image = AstroImage.AstroImage(data_np=data_np, logger=self.logger)
         new_image.set(name=newname)
         new_image.update_keywords(header)
-        new_image.update_keywords(dict(COADD=1, COADDS=1, NDR=1,
+        new_image.update_keywords(dict(COADD=1, NDR=1,
                                        FRAMEID=newname))
 
         if self.settings.get('cache_normalized_images', True):
