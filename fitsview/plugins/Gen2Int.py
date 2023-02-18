@@ -242,8 +242,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
             image = image_loader(filepath, **kwdargs)
 
-            assert isinstance(image, BaseImage.BaseImage), \
-                   ValueError("Loader did not produce a loadable image: %s" % (
+            assert isinstance(image, BaseImage.ViewerObjectBase), \
+                   ValueError("Loader did not produce a loadable item: %s" % (
                 str(type(image))))
 
         except Exception as e:
