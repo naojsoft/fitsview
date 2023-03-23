@@ -17,7 +17,7 @@ import astro.radec as radec
 import cfg.g2soss as g2soss
 
 # Local application imports
-from Gen2.fitsview.util import g2calc
+from fitsview.util import g2calc
 
 class QDASError(Exception):
     pass

@@ -15,10 +15,10 @@ import matplotlib
 import matplotlib.figure as figure
 from matplotlib.patches import Ellipse
 
-import Gen2.astro.curvefit as curvefit
-
 from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
+
+import fitsview.util.curvefit as curvefit
 
 
 class FocusFit(GingaPlugin.LocalPlugin):

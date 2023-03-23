@@ -9,7 +9,7 @@ from ginga.rv.plugins import Catalogs
 # $PYHOME imports
 import astro.radec as radec
 
-from Gen2.fitsview.util import g2catalog
+from fitsview.util import g2catalog
 
 
 class AgAutoSelect(Catalogs.Catalogs):

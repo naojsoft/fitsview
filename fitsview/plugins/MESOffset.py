@@ -12,11 +12,11 @@ import os
 import threading
 
 # local imports
-from util import fitsUtils
-from util import mosPlugin
-from util.mesAnalyze import MESAnalyze
-from util.mesInterface import MESInterface
-from util.mesLocate import MESLocate
+from fitsview.util import fitsUtils
+from fitsview.util import mosPlugin
+from fitsview.util.mesAnalyze import MESAnalyze
+from fitsview.util.mesInterface import MESInterface
+from fitsview.util.mesLocate import MESLocate
 
 
 class MESOffset(mosPlugin.MESPlugin):

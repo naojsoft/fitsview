@@ -1,4 +1,3 @@
-
 #
 # PFS_Focus.py -- Region selection plugin for fits viewer
 #
@@ -62,8 +61,7 @@ from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
 from ginga.util import iqcalc
 
-#import Gen2.astro.curvefit as curvefit
-from Gen2.fitsview.util.polynomial import QuadraticFunction
+from fitsview.util.polynomial import QuadraticFunction
 
 
 class PFS_Focus(GingaPlugin.LocalPlugin):
@@ -512,7 +510,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         if not self.w.auto.get_state():
             return
         self._redo()
-        
+
     def setup_side(self, bbox_search, obj, bbox_limits):
         x1, y1, x2, y2 = bbox_search.get_llur()
         p = Bunch.Bunch()

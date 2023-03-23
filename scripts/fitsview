@@ -1,0 +1,104 @@
+#! /usr/bin/env python
+#
+# fitsview -- Customized Ginga viewer for Gen2
+#
+import sys
+import os
+# NOTE: need to set here so that ginga.util.paths picks it up first
+os.environ['GINGA_HOME'] = os.path.join(os.environ['CONFHOME'], 'fitsview')
+
+from ginga.rv import main as g_main
+from ginga.misc.Bunch import Bunch
+
+import fitsview.plugins
+
+def get_plugin_spec(name):
+    l_name = name.lower()
+    for spec in g_main.plugins:
+        if spec.module.lower() == l_name:
+            return spec
+    return KeyError(name)
+
+def add_plugin_spec(spec):
+    g_main.plugins.append(spec)
+
+
+if __name__ == "__main__":
+
+    # Tweak the sys.path here if you are loading plugins from some
+    # area outside your PYTHONPATH
+    pluginHome = os.path.split(sys.modules['fitsview.plugins'].__file__)[0]
+    sys.path.insert(0, pluginHome)
+
+    # change spec of stock Header plugin to start automatically, and don't
+    # show icon in Operations plugin
+    spec = get_plugin_spec('header')
+    spec.start = True
+    spec.optray = False
+
+    spec = get_plugin_spec('header')
+    spec.start = True
+    spec.optray = False
+
+    # Add Subaru-specific plugins
+    for spec in [
+        Bunch(module='Gen2Int', ptype='global', hidden=True, optray=False,
+              start=True),
+        Bunch(module='QDAS', hidden=True, ptype='global', optray=False,
+              start=True),
+
+        Bunch(module='Region_Selection', ws='dialogs', ptype='local',
+              hidden=True),
+        Bunch(module='Sv_Drive', ws='dialogs', ptype='local', hidden=True),
+        Bunch(module='FocusFit', ws='dialogs', ptype='local', hidden=True),
+        Bunch(module='CurveFit', ws='dialogs', ptype='local', hidden=True),
+        Bunch(module='MOIRCSFit', ws='dialogs', ptype='local', hidden=True),
+        Bunch(module='MESOffset', ws='dialogs', ptype='local', hidden=True),
+        Bunch(module='MoircsAlign', ws='dialogs', ptype='local', hidden=True),
+
+        ## Bunch(module='GView', tab='GView', ws='right', ptype='global',
+        ##       start=False, category='Subaru'),
+        Bunch(module='QL_CHARIS', ws='right', ptype='global', start=False,
+              category='Subaru'),
+        Bunch(module='QL_FOCAS', ws='right', ptype='global', start=False,
+              category='Subaru'),
+        Bunch(module='QL_IRCS', ws='in:toplevel', ptype='global', start=False,
+              category='Subaru'),
+        ]:
+        add_plugin_spec(spec)
+
+    # construct viewer builder
+    viewer = g_main.ReferenceViewer(layout=g_main.default_layout)
+    viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP'],
+                               except_local=['TVMark', 'TVMask',
+                                             'ChangeHistory', 'Mosaic'])
+    #viewer.add_separately_distributed_plugins()
+
+    # Parse command line options
+    from argparse import ArgumentParser
+
+    argprs = ArgumentParser()
+    viewer.add_default_options(argprs)
+
+    (options, args) = argprs.parse_known_args(sys.argv[1:])
+
+    if options.display:
+        os.environ['DISPLAY'] = options.display
+
+    # Are we debugging this?
+    if options.debug:
+        import pdb
+
+        pdb.run('viewer.main(options, args)')
+
+    # Are we profiling this?
+    elif options.profile:
+        import profile
+
+        print(("%s profile:" % sys_argv[0]))
+        profile.run('viewer.main(options, args)')
+
+    else:
+        viewer.main(options, args)
+
+# END

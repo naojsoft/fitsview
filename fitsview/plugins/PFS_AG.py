@@ -82,7 +82,7 @@ from ginga import GingaPlugin
 from g2cam.status.client import StatusClient
 
 # local
-import pfswcs
+from fitsview.util import pfswcs
 
 is_summit = True
 

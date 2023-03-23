@@ -25,7 +25,7 @@ from ginga.gw.Plot import PlotWidget
 from ginga import GingaPlugin
 
 import cfg.g2soss as g2soss
-from Gen2.fitsview.util import polynomial
+from fitsview.util import polynomial
 
 class MOIRCSFitError(Exception):
     pass

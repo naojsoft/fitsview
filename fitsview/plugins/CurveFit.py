@@ -8,11 +8,11 @@ import os.path
 
 import numpy
 
-import Gen2.fitsview.util.curve_fit as curvefit
-
 from ginga.gw import Plot, Widgets
 from ginga.util import plots
 from ginga import GingaPlugin
+
+import fitsview.util.curve_fit as curvefit
 
 class CurveFit(GingaPlugin.LocalPlugin):
 

@@ -9,7 +9,7 @@ from ginga.gw import Widgets
 from ginga import GingaPlugin
 
 # Local application imports
-from Gen2.fitsview.util import g2calc
+from fitsview.util import g2calc
 
 
 class Sv_Drive(GingaPlugin.LocalPlugin):

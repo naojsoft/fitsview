@@ -1,0 +1,21 @@
+# ignore some commonly problematic files
+
+# python compiled files
+*.pyc
+*.pyo
+__pycache__
+
+# testing stuff
+.pytest_cache
+
+# emacs backups
+*~
+\#*\#
+
+# Mac OSX
+.DS_Store
+
+# pip "in-place" build files and version.py file
+build
+*.egg-info
+fitsview/version.py

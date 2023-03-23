@@ -9,8 +9,8 @@
 from ginga.misc import Widgets
 from ginga.util import dp
 
-from Gen2.fitsview.util import hsc
-#from Gen2.fitsview.plugins import SPCAM
+from fitsview.util import hsc
+#from fitsview.plugins import SPCAM
 from . import SPCAM
 
 

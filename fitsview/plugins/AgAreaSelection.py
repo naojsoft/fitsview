@@ -10,7 +10,7 @@ from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
 
 # Local application imports
-from Gen2.fitsview.util import g2calc
+from fitsview.util import g2calc
 
 class AgAreaSelection(GingaPlugin.LocalPlugin):
 

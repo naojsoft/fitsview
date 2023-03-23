@@ -25,7 +25,7 @@ import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
 
 # Local application imports
-from Gen2.fitsview.util import AGCCDPositions, g2calc, fov_plot
+from fitsview.util import AGCCDPositions, g2calc, fov_plot
 
 class VGWError(Exception):
     pass
