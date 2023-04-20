@@ -64,6 +64,10 @@ if __name__ == "__main__":
               category='Subaru'),
         Bunch(module='QL_IRCS', ws='in:toplevel', ptype='global', start=False,
               category='Subaru'),
+        Bunch(module='QL_PFS', ws='dialogs', ptype='local',
+              category='Subaru'),
+        Bunch(module='MOIRCSTrend', ws='dialogs', ptype='local',
+              category='Subaru'),
         ]:
         add_plugin_spec(spec)
 

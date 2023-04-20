@@ -211,12 +211,12 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         """
         fr = Frame(frameid)
         if fr.inscode == 'PFS':
-            if fr.frametype == 'A':
+            if fr.frametype in ('A', 'B'):
                 digits = str(fr.number)
                 # PFS data model: spectrograph indicated by second digit from right,
                 # arm indicated by right-most digit
                 spg, arm = digits[-2], self.pfs_arm_dct[digits[-1]]
-                chname = f"PFSA_{spg}{arm}"
+                chname = f"PFS{fr.frametype}_{spg}{arm}"
             else:
                 chname = fr.inscode + fr.frametype
 
