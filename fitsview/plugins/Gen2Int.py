@@ -216,7 +216,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 # PFS data model: spectrograph indicated by second digit from right,
                 # arm indicated by right-most digit
                 spg, arm = digits[-2], self.pfs_arm_dct[digits[-1]]
-                chname = f"PFS{fr.frametype}_{spg}{arm}"
+                chname = f"PFS{fr.frametype}_{arm}{spg}"
             else:
                 chname = fr.inscode + fr.frametype
 
