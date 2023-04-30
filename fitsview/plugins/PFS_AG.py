@@ -115,6 +115,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.wsname = 'PFS_AG_CAMS'
         self.wstype = 'grid'
         self.inspace = 'channels' if not is_summit else 'sub1' # 'top_level'
+        self.fov_chname = 'PFS_FOV'
         self.fov_inspace = 'channels' if not is_summit else 'sub2'
 
         self._wd = 300
@@ -143,6 +144,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.tbl_do = None
         self.tbl_go = None
         self.tbl_io = None
+        self.img_dct = {}
 
         self.viewer = dict()
         self.dc = fv.get_draw_classes()
@@ -202,8 +204,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                 #viewer.add_callback('focus', self.focus_cb)
 
         # create "big picture" FOV channel
-        chname = 'PFS_FOV'
-        settings = prefs.create_category(f'channel_PFS_FOV')
+        chname = self.fov_chname
+        settings = prefs.create_category(f'channel_{chname}')
         settings.set(numImages=1, genthumb=False, raisenew=False)
         settings.load(onError='silent')
         channel = self.fv.add_channel(chname, settings=settings,
@@ -506,21 +508,28 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             mode = bd.get_mode_obj('rotate')
             mode._orient(viewer, righthand=False, msg=False)
 
-    def update_grid(self, images):
+    def update_grid(self, img_dct):
+        self.img_dct = img_dct
         # NOTE: assumes images come in the order CAM1 .. CAM6
         self.fv.assert_gui_thread()
-        for name, image in images:
-            image.set(tag=name)
-            channel = self.fv.get_channel(name)
-            viewer = channel.viewer
-            canvas = viewer.get_canvas()
-            #canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
-            #                             redraw=False)
-            #viewer.set_image(image)
-            channel.add_image(image)
-            self.orient(viewer)
+        for cam_num in (1, 2, 3, 4, 5, 6):
+            cam_id = 'CAM{}'.format(cam_num)
+            if self.fv.has_channel(cam_id):
+                channel = self.fv.get_channel(cam_id)
+                viewer = channel.viewer
+                if cam_id in img_dct:
+                    image = img_dct[cam_id]
+                    image.set(tag=cam_id)
+                    canvas = viewer.get_canvas()
+                    #canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
+                    #                             redraw=False)
+                    #viewer.set_image(image)
+                    channel.add_image(image)
+                    self.orient(viewer)
+                else:
+                    viewer.clear()
 
-            self.fv.update_pending()
+        self.fv.update_pending()
 
         if is_summit:
             # increment the guide count
@@ -530,13 +539,13 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                               'Gen2Int', 'store', [stat_d], {})
 
         if self.settings.get('plot_fov', False):
-            images_only = [image for cam_name, image in images]
-            #ref_image = self.get_center(images_only)
+            images = list(img_dct.values())
+            #ref_image = self.get_center(images)
             #ref_image.set(tag='CAM0')
-            ref_image = images_only[0]
+            ref_image = images[0]
             self.ref_image = ref_image
 
-            channel = self.fv.get_channel_on_demand('PFS_FOV')
+            channel = self.fv.get_channel_on_demand(self.fov_chname)
             viewer = channel.viewer
             canvas = viewer.get_canvas()
             ## canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('CAM'),
@@ -545,9 +554,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             ##                              redraw=False)
 
             self.mosaicer.reset()
-            self._images = images_only
             with viewer.suppress_redraw:
-                self.mosaicer.mosaic(viewer, self._images, canvas=canvas)
+                self.mosaicer.mosaic(viewer, images, canvas=canvas)
                 self.orient(viewer)
                 viewer.redraw(whence=0)
 
@@ -578,7 +586,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.tbl_go = None
         self.tbl_do = None
         self.tbl_io = None
-        images = []
+        img_dct = {}
         wcses = None
 
         fits_f = None
@@ -604,6 +612,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                        wcsclass=AstropyWCS)
                     image.load_hdu(hdu)
                     image.set(name=imname)
+                    data = image.get_data()
+                    if len(data) == 0:
+                        # <-- empty data area--possibly dead camera
+                        continue
 
                     self.logger.info(f'{fname}, {is_raw}')
                     # make a WCS for the image if it doesn't have one
@@ -625,7 +637,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     #image.set(path=f"{path}[{idx}]")
 
                     # update the image in the channel viewer
-                    images.append((name, image))
+                    img_dct[name] = image
 
                 elif hdu_name == 'detected_objects':
                     self.logger.info('reading do table')
@@ -653,7 +665,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             end_time = time.time()
             self.logger.info("file processing time %.4f sec" % (end_time - start_time))
 
-            self.fv.gui_do_oneshot('pfsag_update', self.update_grid, images)
+            self.fv.gui_do_oneshot('pfsag_update', self.update_grid, img_dct)
 
         except Exception as e:
             self.logger.error("Failed to process image: {}".format(e),
@@ -721,37 +733,34 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         if self.tbl_io is None:
             return
-        images = self._images
         mags = self.tbl_go['mag']
 
         # delete previously plotted objects
         for cam_num in (1, 2, 3, 4, 5, 6):
             cam_id = 'CAM{}'.format(cam_num)
-            channel = self.fv.get_channel(cam_id)
-            viewer = channel.viewer
-            canvas = viewer.get_canvas()
-            canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
-                                         redraw=False)
+            if self.fv.has_channel(cam_id):
+                channel = self.fv.get_channel(cam_id)
+                viewer = channel.viewer
+                canvas = viewer.get_canvas()
+                canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
+                                             redraw=False)
 
         # Update PFS_FOV channel
-        channel = self.fv.get_channel_on_demand('PFS_FOV')
-        viewer = channel.viewer
-        fov_canvas = viewer.get_canvas()
-        fov_canvas.delete_objects_by_tag(fov_canvas.get_tags_by_tag_pfx('_io'),
-                                         redraw=False)
+        if self.settings.get('plot_fov', False):
+            channel = self.fv.get_channel_on_demand(self.fov_chname)
+            viewer = channel.viewer
+            fov_canvas = viewer.get_canvas()
+            fov_canvas.delete_objects_by_tag(fov_canvas.get_tags_by_tag_pfx('_io'),
+                                             redraw=False)
         ref_image = self.ref_image
 
         # plot identified objects
         for io_idx, io_row in enumerate(self.tbl_io):
             do_row = self.tbl_do[io_row['detected_object_id']]
             cam_num = do_row['camera_id']
-            ctr_x, ctr_y = do_row['centroid_x'], do_row['centroid_y']
-
             # camera indexes are now 0-based, while HDUs are numbered from 1
             cam_id = 'CAM{}'.format(cam_num + 1)
-            channel = self.fv.get_channel(cam_id)
-            viewer = channel.viewer
-            canvas = viewer.get_canvas()
+            ctr_x, ctr_y = do_row['centroid_x'], do_row['centroid_y']
 
             _go_row_num = int(io_row['guide_object_id'])
             mag = mags[_go_row_num]
@@ -773,8 +782,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                   color=color, linewidth=2)
                 objs.extend([c, p])
 
+                image = self.img_dct[cam_id]
+
                 if self.settings.get('plot_fov', False):
-                    ra_ctr, dec_ctr = images[cam_num].pixtoradec(ctr_x, ctr_y)
+                    ra_ctr, dec_ctr = image.pixtoradec(ctr_x, ctr_y)
                     fov_ctr_x, fov_ctr_y = ref_image.radectopix(ra_ctr, dec_ctr)
 
                     c = self.dc.Circle(fov_ctr_x, fov_ctr_y, radius,
@@ -806,7 +817,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     objs.extend([c, l])
 
                     if self.settings.get('plot_fov', False):
-                        ra_gde, dec_gde = images[cam_num].pixtoradec(gde_x, gde_y)
+                        ra_gde, dec_gde = image.pixtoradec(gde_x, gde_y)
                         fov_gde_x, fov_gde_y = ref_image.radectopix(ra_gde, dec_gde)
                         ## ra_deg = self.tbl_go['ra'][_go_row_num]
                         ## dec_deg = self.tbl_go['dec'][_go_row_num]
@@ -826,22 +837,30 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                         fov_objs.extend([c, l])
 
             if len(objs) > 0:
-                canvas.add(self.dc.CompoundObject(*objs),
-                           tag=f'_io{io_idx}', redraw=False)
+                if self.fv.has_channel(cam_id):
+                    channel = self.fv.get_channel(cam_id)
+                    viewer = channel.viewer
+                    canvas = viewer.get_canvas()
 
-            if len(fov_objs) > 0:
-                fov_canvas.add(self.dc.CompoundObject(*fov_objs),
+                    canvas.add(self.dc.CompoundObject(*objs),
                                tag=f'_io{io_idx}', redraw=False)
 
+            if len(fov_objs) > 0 and self.settings.get('plot_fov', False):
+                if self.fv.has_channel(self.fov_chname):
+                    fov_canvas.add(self.dc.CompoundObject(*fov_objs),
+                                   tag=f'_io{io_idx}', redraw=False)
+
         # update all canvases
-        fov_canvas.update_canvas(whence=3)
+        if self.fv.has_channel(self.fov_chname):
+            fov_canvas.update_canvas(whence=3)
 
         for cam_num in (1, 2, 3, 4, 5, 6):
             cam_id = 'CAM{}'.format(cam_num)
-            channel = self.fv.get_channel(cam_id)
-            viewer = channel.viewer
-            canvas = viewer.get_canvas()
-            canvas.update_canvas(whence=3)
+            if self.fv.has_channel(cam_id):
+                channel = self.fv.get_channel(cam_id)
+                viewer = channel.viewer
+                canvas = viewer.get_canvas()
+                canvas.update_canvas(whence=3)
 
     def get_color(self, mag):
 
@@ -974,18 +993,18 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                             continue
                         self.last_image_time = start_time
 
-                        self.logger.info(f"new file detected: '{filename}'")
+                        self.logger.debug(f"new file detected: '{filename}'")
                         if self.pause_flag:
-                            self.logger.info("plugin is paused, skipping new file")
+                            self.logger.debug("plugin is paused, skipping new file")
                             continue
 
                         fits_tot.append(filename)
 
                         self.fv.nongui_do(self.process_file, filepath,
                                           set_1k=True)
-            self.logger.info("---------")
-            self.logger.info("{} files: {}".format(len(loop_tot), loop_tot))
-            self.logger.info("{} fits: {}".format(len(fits_tot), fits_tot))
+            self.logger.debug("---------")
+            self.logger.debug("{} files: {}".format(len(loop_tot), loop_tot))
+            self.logger.debug("{} fits: {}".format(len(fits_tot), fits_tot))
 
         i.remove_watch(data_dir)
 
@@ -1025,21 +1044,23 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.settings.set(auto_orient=tf)
         for cam_num in (1, 2, 3, 4, 5, 6):
             cam_id = 'CAM{}'.format(cam_num)
-            channel = self.fv.get_channel(cam_id)
+            if self.fv.has_channel(cam_id):
+                channel = self.fv.get_channel(cam_id)
+                viewer = channel.viewer
+                if tf:
+                    self.orient(viewer)
+                else:
+                    viewer.transform(False, False, False)
+                    viewer.rotate(0.0)
+
+        if self.fv.has_channel(self.fov_chname):
+            channel = self.fv.get_channel(self.fov_chname)
             viewer = channel.viewer
             if tf:
                 self.orient(viewer)
             else:
                 viewer.transform(False, False, False)
                 viewer.rotate(0.0)
-
-        channel = self.fv.get_channel('PFS_FOV')
-        viewer = channel.viewer
-        if tf:
-            self.orient(viewer)
-        else:
-            viewer.transform(False, False, False)
-            viewer.rotate(0.0)
 
     def set_rate_limit_cb(self, w, val):
         self.rate_limit = val
@@ -1049,13 +1070,20 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             self.mode = mode
 
     def pan_cam_cb(self, w, cam_num):
-        tup = self.mosaicer.image_list[cam_num - 1]
-        name, tag, ra, dec = tup
-        channel = self.fv.get_channel('PFS_FOV')
+        cam_id = 'CAM{}'.format(cam_num)
+        channel = self.fv.get_channel(self.fov_chname)
         viewer = channel.viewer
-        with viewer.suppress_redraw:
-            viewer.set_pan(ra, dec, coord='wcs')
-            #viewer.zoom_to(-2.0)
+        if cam_id not in self.img_dct:
+            viewer.onscreen_message(f"{cam_id} image not available",
+                                    delay=1.0)
+            return
+
+        for name, tag, ra, dec in self.mosaicer.image_list:
+            if name == cam_id:
+                with viewer.suppress_redraw:
+                    viewer.set_pan(ra, dec, coord='wcs')
+                    #viewer.zoom_to(-2.0)
+                return
 
     def set_collage_method_cb(self, w, idx):
         method = w.get_text()
