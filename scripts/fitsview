@@ -36,10 +36,6 @@ if __name__ == "__main__":
     spec.start = True
     spec.optray = False
 
-    spec = get_plugin_spec('header')
-    spec.start = True
-    spec.optray = False
-
     # Add Subaru-specific plugins
     for spec in [
         Bunch(module='Gen2Int', ptype='global', hidden=True, optray=False,
@@ -89,20 +85,4 @@ if __name__ == "__main__":
     if options.display:
         os.environ['DISPLAY'] = options.display
 
-    # Are we debugging this?
-    if options.debug:
-        import pdb
-
-        pdb.run('viewer.main(options, args)')
-
-    # Are we profiling this?
-    elif options.profile:
-        import profile
-
-        print(("%s profile:" % sys_argv[0]))
-        profile.run('viewer.main(options, args)')
-
-    else:
-        viewer.main(options, args)
-
-# END
+    viewer.main(options, args)

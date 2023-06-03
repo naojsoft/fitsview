@@ -30,9 +30,9 @@ from ginga.misc import Bunch, Future
 from ginga.util import dp, iohelper
 from ginga.gw import Widgets
 
+from g2base.astro.frame import Frame
 # You should install module "naojutils" to run this plugin.
 #   Get it here--> https://github.com/naojsoft/naojutils
-from naoj.frame import Frame
 from naoj.spcam import spcam_dr
 
 
