@@ -51,6 +51,7 @@ analysis the color will be red.  Selectors can only be dragged within their
 respective side of the image.
 
 """
+import math
 import time
 from collections import OrderedDict
 import numpy as np
@@ -62,6 +63,10 @@ from ginga import GingaPlugin
 from ginga.util import iqcalc
 
 from fitsview.util.polynomial import QuadraticFunction
+
+# pixel scale of the PFS guide cameras
+pfs_guider_px_scale_X_px_deg = 0.00003944
+pfs_guider_px_scale_Y_px_deg = 0.00003694
 
 
 class PFS_Focus(GingaPlugin.LocalPlugin):
@@ -122,6 +127,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
                         ('Z', 'z'),
                         ('L Size', 'lsize'),
                         ('R Size', 'rsize'),
+                        ('L-R Diff', 'lmrdiff'),
                         ]
         self.tree_dict = OrderedDict()
 
@@ -159,7 +165,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
                      'Delete', 'button', 'Clear Table', 'button',
                      'Auto', 'checkbox', 'Measure', 'button'),
                     ('Plot', 'button',
-                     'Debug', 'combobox',
+                     ### 'Debug', 'combobox', # Comment-out for now
                      ),
                     )
 
@@ -178,13 +184,13 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
                                    lambda w: self.clear_table())
         b.clear_table.set_tooltip("Clear the entire table")
         b.plot.add_callback('activated',
-                            lambda w: self.plot_curves())
+                            lambda w: self.plot_data())
         b.plot.set_tooltip("Plot the focus fitting curves from table")
         b.auto.set_tooltip("Automatically add measurements to table")
 
-        for i in range(0, 7):
-            b.debug.append_text(str(i))
-        b.debug.add_callback('activated', self._debug_set_table)
+        # for i in range(0, 8):
+        #     b.debug.append_text(str(i))
+        # b.debug.add_callback('activated', self._debug_set_table)
 
         vbox.add_widget(w, stretch=0)
         paned.add_widget(vbox)
@@ -194,9 +200,22 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         self.focus_plot.add_axis(facecolor='white')
         self.init_plot()
 
+        self.lmr_plot = plots.Plot(logger=self.logger,
+                                   width=400, height=400)
+        self.lmr_plot.add_axis(facecolor='white')
+        self.init_lmr_plot()
+
         self.w.plot_w = Plot.PlotWidget(self.focus_plot)
         self.w.plot_w.resize(400, 400)
-        paned.add_widget(self.w.plot_w)
+
+        self.w.lmr_plot_w = Plot.PlotWidget(self.lmr_plot)
+        self.w.lmr_plot_w.resize(400, 400)
+
+        self.tabWidget = Widgets.TabWidget()
+        self.tabWidget.add_widget(self.w.plot_w, title='Focus')
+        self.tabWidget.add_widget(self.w.lmr_plot_w, title='L-R')
+
+        paned.add_widget(self.tabWidget)
 
         top.add_widget(paned, stretch=1)
         #vbox.add_widget(Widgets.Label(''), stretch=1)
@@ -315,13 +334,15 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             rsize = None
         else:
             rsize = float(rsize)
+        lmrdiff = lsize - rsize if lsize is not None and rsize is not None else None
+
         z = self.w.z.get_text().strip()
         if len(z) == 0 or z.lower() == 'none':
             z = None
         else:
             z = float(z)
         bnch = Bunch.Bunch(imname=imname, z=z,
-                           lsize=lsize, rsize=rsize)
+                           lsize=lsize, rsize=rsize, lmrdiff=lmrdiff)
 
         # add to table
         self.tree_dict[imname] = bnch
@@ -370,6 +391,25 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         self.focus_plot.draw()
 
+    def init_lmr_plot(self):
+        # set up matplotlib axis here as needed
+        ax = self.lmr_plot.get_axis()
+        ax.cla()
+        ax.grid(True)
+        ax.set_title("PFS Focus L - R Diff",
+                     fontdict=dict(fontsize=14, fontweight='bold',
+                                   color='darkgreen'))
+        ax.set_xlabel("Z Position",
+                      fontdict=dict(fontsize=12, fontweight='bold'))
+        ax.set_ylabel("L - R",
+                      fontdict=dict(fontsize=12, fontweight='bold'))
+
+        self.lmr_plot.draw()
+
+    def plot_data(self):
+        self.plot_curves()
+        self.plot_lmr()
+
     def plot_curves(self):
         self.init_plot()
         values = [(val.z, val.lsize, val.rsize)
@@ -378,6 +418,9 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         values = np.array(values, dtype=float)
         x_points, lsize, rsize = values.T
         #print(f'x={x_points}, l={lsize}, r={rsize}')
+        self.logger.info(f'x_points {x_points}')
+        self.logger.info(f'lsize {lsize}')
+        self.logger.info(f'rsize {rsize}')
 
         lidx = np.isfinite(x_points) & np.isfinite(lsize)
         ridx = np.isfinite(x_points) & np.isfinite(rsize)
@@ -415,7 +458,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         try:
             self.qf_l.coefficient(x_points[lidx], lsize[lidx])
-            #print(f'qf_l coeffs={self.qf_l.coeffs}')
+            self.logger.info(f'qf_l coeffs={self.qf_l.coeffs}')
             qf_l_func = self.qf_l.quadratic()
             ax.plot(x_more_points, qf_l_func(x_more_points), 'y-', linewidth=2)
 
@@ -427,6 +470,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         try:
             self.qf_r.coefficient(x_points[ridx], rsize[ridx])
+            self.logger.info(f'qf_r coeffs={self.qf_r.coeffs}')
             qf_r_func = self.qf_r.quadratic()
             ax.plot(x_more_points, qf_r_func(x_more_points), 'b-', linewidth=2)
 
@@ -441,6 +485,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             y = 0
             msg = "L/R coefficient calc errors"
             err_msg(msg, x, y)
+            self.logger.error(f'{msg}')
 
         elif any(left in e for e in errors):
             x = r_min_x
@@ -450,6 +495,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             msg = "Left coefficient calc error"
             y = rsize[ridx][-1]
             err_msg(msg, x, y)
+            self.logger.error(f'{msg}')
 
         elif any(right in e for e in errors):
             x = l_min_x
@@ -459,6 +505,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             msg = "Right coefficient calc error"
             y = lsize[lidx][-1]
             err_msg(msg, x, y)
+            self.logger.error(f'{msg}')
 
         else:
             # determine best Z position as mean of left and right minimums
@@ -466,11 +513,80 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             x = (l_min_x + r_min_x) * 0.5
 
             vertex(x, y)
+            self.logger.info(f'l_min_x {l_min_x} l_min_y {l_min_y}')
+            self.logger.info(f'r_min_x {r_min_x} r_min_y {r_min_y}')
+            self.logger.info(f'x {x} y {y}')
 
         best_z = x
         self.w.best_z.set_text("Z = %.4f" % best_z)
+        self.logger.info(f'best_z {best_z}')
 
         self.focus_plot.draw()
+
+    def plot_lmr(self):
+        self.init_lmr_plot()
+        values = [(val.z, val.lmrdiff)
+                  for val in self.tree_dict.values()]
+
+        values = np.array(values, dtype=float)
+        x_points, lmrdiff = values.T
+        #print(f'x={x_points}, lmr={lmrdiff}')
+        self.logger.info(f'x_points {x_points}')
+        self.logger.info(f'lmrdiff {lmrdiff}')
+
+        lmridx = np.isfinite(x_points) & np.isfinite(lmrdiff)
+
+        # figure
+        fig = self.lmr_plot.get_figure()
+        ax = self.lmr_plot.get_axis()
+        # plot curves
+
+        ax.plot(x_points, lmrdiff, 'yo')
+
+        def zero_cross(zcross, x, y):
+            bbox_args = dict(boxstyle="round", fc="cyan", alpha=0.1)
+            ax.annotate('Zero Cross @ Z=%.2f'%(zcross), xy=(x,y), xytext=(x, y),
+                               size=20, color='g',
+                               bbox=bbox_args,
+                               ha='center',
+                               va='top')
+
+        def err_msg(msg, x, y):
+            bbox_args = dict(boxstyle="round", fc="red", alpha=0.6)
+            ax.annotate(msg, xy=(x, y), xytext=(x, y),
+                        size=20, color='g',
+                        bbox=bbox_args,
+                        ha='center',
+                        va='bottom')
+
+        xs = len(x_points) * 10 # 10 times more x points
+        x_more_points = np.linspace(x_points[0], x_points[-1], xs)
+
+        try:
+            coeffs = np.polyfit(x_points[lmridx], lmrdiff[lmridx], 1)
+            fit_fn = np.poly1d(coeffs)
+            self.logger.info(f'coeffs {coeffs}')
+            if math.isclose(coeffs[0], 0.0, abs_tol=0.001):
+                msg = 'Slope close to 0'
+                x = x_points.mean()
+                y = lmrdiff[lmridx][-1]
+                err_msg(msg, x, y)
+                self.logger.error(f'{msg}')
+            else:
+                zcross = -coeffs[1] / coeffs[0]
+                x = x_points.mean()
+                y = lmrdiff[lmridx][-1]
+                self.logger.info(f'zcross {zcross} y {y}')
+                zero_cross(zcross, x, y)
+            ax.plot(x_more_points, fit_fn(x_more_points), 'y-', linewidth=2)
+        except Exception as e:
+            msg = 'Error computing linear fit'
+            x = x_points.mean()
+            y = 0
+            err_msg(msg, x, y)
+            self.logger.error(f'{msg}: {str(e)}')
+
+        self.lmr_plot.draw()
 
     def _redo(self):
         # get image name
@@ -496,8 +612,11 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         # for testing/debugging
         #q.starsize += 2 ** np.random.random() * np.abs(z)
 
+        lsize = p.starsize
+        rsize = q.starsize
+        lmrdiff = lsize - rsize if lsize is not None and rsize is not None else None
         bnch = Bunch.Bunch(imname=imname, z=z,
-                           lsize=p.starsize, rsize=q.starsize)
+                           lsize=p.starsize, rsize=q.starsize, lmrdiff=lmrdiff)
 
         # add to table
         self.tree_dict[imname] = bnch
@@ -536,8 +655,19 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             header = image.get_header()
             rot, cdelt1, cdelt2 = wcs.get_rotation_and_scale(header)
             pscale_x, pscale_y = np.abs(cdelt1), np.abs(cdelt2)
+            self.logger.info(f"fwhm_x: {qs.fwhm_x}, fwhm_y: {qs.fwhm_y}")
+            self.logger.info(f"px scale measured from WCS ({pscale_x},{pscale_y})")
             starsize = self.iqcalc.starsize(qs.fwhm_x, pscale_x,
                                             qs.fwhm_y, pscale_y)
+            self.logger.info(f"WCS computed star size ({starsize})")
+            # TEMP: pixel scale encoded in PFS AG images is not correct
+            # Manually override with pixel scale provided by Kawanomoto-san
+            pscale_x = pfs_guider_px_scale_X_px_deg
+            pscale_y = pfs_guider_px_scale_Y_px_deg
+            self.logger.info(f"px scale override ({pscale_x},{pscale_y})")
+            starsize = self.iqcalc.starsize(qs.fwhm_x, pscale_x,
+                                            qs.fwhm_y, pscale_y)
+            self.logger.info(f"override computed star size ({starsize})")
 
             p.fwhm = qs.fwhm
             p.starsize = starsize
@@ -619,6 +749,10 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             # left/right side errors
             values = [(-3.0, None, None), (-3.0, None, None), (-2.0, None, None), (-2.0, None, None),  (-1.0, None, None),  (-1.0, None, None), (0.0, None, None), (0.0, None, None), (1.0, None, None), (1.0, None, None), (2.0, None, None), (2.0, None, None), (3.0, None, None), (3.0, None, None)]
 
+        elif idx == 7:
+            # Real data from HST 23 July 2023 23:24:41
+            values = [(2.95, 2.63596, 2.48303), (2.95, 2.5551, 3.041967), (2.95, 2.24997, 2.39144978), (3.05, 2.474475, 2.483757), (3.05, 1.4191977, 1.72046), (3.05, 1.54348, 1.9384089), (3.15, 2.31308, 1.733852796)]
+
         else:
             # single data per X point
             values = [(-3.0, 4.0, 3.0), (-2.0, 3.0, 2.0), (-1.0, 2.0, 1.0), (0.0, 1.5, 0.5), (1.0, 2.0, 1.0), (2.0, 3.0, 2.0), (3.0, 4.0, 3.0)]
@@ -627,9 +761,10 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         self.clear_table()
         for i, tup in enumerate(values):
             z, lsize, rsize = tup
+            lmrdiff = lsize - rsize if lsize is not None and rsize is not None else None
             imname = f"AG{i}"
             self.tree_dict[imname] = Bunch.Bunch(imname=imname, z=z,
-                                                 lsize=lsize, rsize=rsize)
+                                                 lsize=lsize, rsize=rsize, lmrdiff=lmrdiff)
         self.w.table.set_tree(self.tree_dict)
 
     def __str__(self):

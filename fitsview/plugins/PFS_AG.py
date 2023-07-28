@@ -714,13 +714,14 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         """Read a calibration file and store the slices in dictionary `dct`.
         """
         try:
-            with fits.open(path, 'readonly') as fits_f:
+            with FITS(path) as fits_f:
 
                 for idx, hdu in enumerate(fits_f):
                     hdu_name = hdu.get_extname()
                     if hdu_name.startswith('CAM'):
                         # load camera image
                         dct[hdu_name] = hdu.read()
+            self.logger.info("calibration file read successfully")
 
         except Exception as e:
             self.logger.error("Failed to open calib file '{}': {}".format(path, e),
