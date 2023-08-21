@@ -6,8 +6,8 @@
 from ginga.misc import Bunch
 from ginga.rv.plugins import Catalogs
 
-# $PYHOME imports
-import astro.radec as radec
+# g2cam imports
+import g2base.astro.radec as radec
 
 from fitsview.util import g2catalog
 

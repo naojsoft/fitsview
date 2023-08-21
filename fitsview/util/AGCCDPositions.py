@@ -7,11 +7,11 @@
 # Satoshi Kawanomoto (kawanomoto.satoshi@nao.ac.jp)
 #
 # Edited by
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
 #
 import numpy as np
-from astro.subaru import SUBARU_LATITUDE_DEG
+from g2base.astro.subaru import SUBARU_LATITUDE_DEG
 
 ### fixed parameters
 #latitude_d = 19.8   # Mauna Kea latitude in degree
@@ -23,9 +23,9 @@ class SCAGCCDPositions(object):
 
     def __init__(self):
         self.ccdpos = self.ccdpositions()
-        self.dither_ccdpos = self.dithering_ccdpositions() 
+        self.dither_ccdpos = self.dithering_ccdpositions()
         self.vignette_ccdpos = self.vignette_ccdpositions()
-        
+
     def ccdpositions(self):
         ccdpos = np.zeros((4,4,2))
 
@@ -75,12 +75,12 @@ class SCAGCCDPositions(object):
     def vignette_ccdpositions(self):
         ccdpos = np.zeros((4,4,2))
 
-        no_use = 2.2  # 12x6 arcmin ccd. 100pixel that is equivalent to 0.4 arcimin should not be used for guiding      
+        no_use = 2.2  # 12x6 arcmin ccd. 100pixel that is equivalent to 0.4 arcimin should not be used for guiding
 
-        # There are four guiding CCDs.  
-        # the positions of dithering area in pa0  
+        # There are four guiding CCDs.
+        # the positions of dithering area in pa0
         # 1 (AG201)
-        ccdpos[0,0,0] =   +1.105 + no_use  
+        ccdpos[0,0,0] =   +1.105 + no_use
         ccdpos[0,0,1] = -270.080 + no_use
         ccdpos[0,1,0] =   +1.105 + no_use
         ccdpos[0,1,1] = -270.080 +30.720 - no_use
@@ -125,12 +125,12 @@ class SCAGCCDPositions(object):
     def dithering_ccdpositions(self):
         ccdpos = np.zeros((4,4,2))
 
-        no_use = 2 * 5.3  # 12x6 arcmin ccd. extract 2 arcmin for dithering area     
+        no_use = 2 * 5.3  # 12x6 arcmin ccd. extract 2 arcmin for dithering area
 
-        # There are four guiding CCDs.  
-        # the positions of dithering area in pa0  
+        # There are four guiding CCDs.
+        # the positions of dithering area in pa0
         # 1 (AG201)
-        ccdpos[0,0,0] =   +1.105 + no_use  
+        ccdpos[0,0,0] =   +1.105 + no_use
         ccdpos[0,0,1] = -270.080 + no_use
         ccdpos[0,1,0] =   +1.105 + no_use
         ccdpos[0,1,1] = -270.080 +30.720 - no_use
@@ -240,7 +240,7 @@ class SCAGCCDPositions(object):
         lat  = np.deg2rad(lat_d)
         hr_d = lst_d - ra_d
         hr   = np.deg2rad(hr_d)
-        zd   = np.arccos(np.sin(lat)*np.sin(dec)+np.cos(lat)*np.cos(dec)*np.cos(hr)) 
+        zd   = np.arccos(np.sin(lat)*np.sin(dec)+np.cos(lat)*np.cos(dec)*np.cos(hr))
         pa   = np.arctan2(np.cos(lat)*np.sin(hr),np.sin(lat)*np.cos(dec)-np.cos(lat)*np.sin(dec)*np.cos(hr))
         zd_d = np.rad2deg(zd)
         pa_d = np.rad2deg(pa)
@@ -272,17 +272,17 @@ class SCAGCCDPositions(object):
         v_p = self.sp2vec(ra_p, dec_p)
         v_p_2000 = np.dot(pm.I,v_p)
         ra_p, dec_p = self.vec2sp(v_p_2000)
-        return ra_p, dec_p 
-        
+        return ra_p, dec_p
+
     def get_ccdpos(self, ra_deg, dec_deg, insrot_deg, lst, mjd):
         """
         Get the coordinates in WCS of the four corners of the HSC
         guiding CCDs.
-        
+
         Takes the telescope pointing ra/dec (in deg), the instrument
         rotation (in deg) and the local sidereal time and modified
         julian time.
-        
+
         Returns a list of lists of tuples, where each tuple is the
         (ra, dec) coordinates for a corner of one of the guiding CCDs.
         """
@@ -292,7 +292,7 @@ class SCAGCCDPositions(object):
             for j in range(4):
                 x = self.ccdpos[i, j, 0]
                 y = self.ccdpos[i, j, 1]
-    
+
                 ra, dec = self.xy2radec(x, y, ra_deg, dec_deg,
                                         insrot_deg, lst, mjd)
                 corners.append((ra, dec))
@@ -303,11 +303,11 @@ class SCAGCCDPositions(object):
         """
         Get the coordinates in WCS of the four corners of the HSC
         guiding CCDs for dithering area.
-        
+
         Takes the telescope pointing ra/dec (in deg), the instrument
         rotation (in deg) and the local sidereal time and modified
         julian time.
-        
+
         Returns a list of lists of tuples, where each tuple is the
         (ra, dec) coordinates for a corner of one of the guiding CCDs.
         """
@@ -317,7 +317,7 @@ class SCAGCCDPositions(object):
             for j in range(4):
                 x = self.dither_ccdpos[i, j, 0]
                 y = self.dither_ccdpos[i, j, 1]
-    
+
                 ra, dec = self.xy2radec(x, y, ra_deg, dec_deg,
                                         insrot_deg, lst, mjd)
                 corners.append((ra, dec))
@@ -328,11 +328,11 @@ class SCAGCCDPositions(object):
         """
         Get the coordinates in WCS of the four corners of the HSC
         guiding CCDs for non vignetting area.
-        
+
         Takes the telescope pointing ra/dec (in deg), the instrument
         rotation (in deg) and the local sidereal time and modified
         julian time.
-        
+
         Returns a list of lists of tuples, where each tuple is the
         (ra, dec) coordinates for a corner of one of the guiding CCDs.
         """
@@ -342,7 +342,7 @@ class SCAGCCDPositions(object):
             for j in range(4):
                 x = self.vignette_ccdpos[i, j, 0]
                 y = self.vignette_ccdpos[i, j, 1]
-    
+
                 ra, dec = self.xy2radec(x, y, ra_deg, dec_deg,
                                         insrot_deg, lst, mjd)
                 corners.append((ra, dec))
@@ -350,11 +350,11 @@ class SCAGCCDPositions(object):
         return res
 
 
-        
+
 #####
 if __name__ == "__main__":
     import pprint
-    
+
     hscobj = SCAGCCDPositions()
 
     mjd = 51545.0    # Modified JD
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     ##     for j in range(4):
     ##         x = ccdpos[i, j, 0]
     ##         y = ccdpos[i, j, 1]
-    
+
     ##         print func.xy2radec(x, y, ra, dec, inr, lst, mjd)
 
     coords = hscobj.get_ccdpos(ra, dec, inr, lst, mjd)

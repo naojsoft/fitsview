@@ -16,11 +16,9 @@ from ginga.util import wcs, dp
 
 # g2base imports
 from g2base.remoteObjects import remoteObjects as ro
-
-# $PYHOME imports
-import astro.radec as radec
+import g2base.astro.radec as radec
 # For HSC AG drawing
-import astro.wcs as astro_wcs
+import g2base.astro.wcs as astro_wcs
 import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
 

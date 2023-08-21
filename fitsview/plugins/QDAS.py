@@ -12,8 +12,8 @@ from ginga import GingaPlugin, AstroImage
 from ginga.misc import Future, Bunch
 from ginga.util import wcs
 
+import g2base.astro.radec as radec
 # $PYHOME imports
-import astro.radec as radec
 import cfg.g2soss as g2soss
 
 # Local application imports
