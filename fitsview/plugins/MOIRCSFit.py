@@ -24,7 +24,6 @@ from ginga.util import plots
 from ginga.gw.Plot import PlotWidget
 from ginga import GingaPlugin
 
-import cfg.g2soss as g2soss
 from fitsview.util import polynomial
 
 class MOIRCSFitError(Exception):
@@ -81,7 +80,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
         # Source Extractor configuration files
         self.sex_filepath = 'sex'
-        fitsview_confpath = os.path.join(g2soss.confhome, 'fitsview')
+        fitsview_confpath = os.path.join(os.environ['CONFHOME'], 'fitsview')
         self.param_filepath = os.path.join(fitsview_confpath, 'mcsfcs.param')
         self.config_filepath = os.path.join(fitsview_confpath, 'mcsfcs.sex')
         self.filter_filepath = os.path.join(fitsview_confpath, 'tophat_1.5_3x3.conv')

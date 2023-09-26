@@ -13,8 +13,6 @@ from ginga.misc import Future, Bunch
 from ginga.util import wcs
 
 import g2base.astro.radec as radec
-# $PYHOME imports
-import cfg.g2soss as g2soss
 
 # Local application imports
 from fitsview.util import g2calc
@@ -31,7 +29,7 @@ msg_auto_manual = """Manual mode selected:
 Please select a region manually."""
 
 # Where sounds are stored
-soundhome = os.path.join(g2soss.soundhome, 'ogg', 'en')
+soundhome = os.path.join(os.environ['CONFHOME'], 'Sounds', 'ogg', 'en')
 
 # Sounds
 snd_region_failure = os.path.join(soundhome, "auto_regionselect_failed4.ogg")

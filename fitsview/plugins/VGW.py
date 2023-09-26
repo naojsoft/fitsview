@@ -19,7 +19,6 @@ from g2base.remoteObjects import remoteObjects as ro
 import g2base.astro.radec as radec
 # For HSC AG drawing
 import g2base.astro.wcs as astro_wcs
-import cfg.g2soss as g2soss
 import SOSS.GuiderInt.ag_config as ag_config
 
 # Local application imports
@@ -37,7 +36,7 @@ msg_auto_manual = """Manual mode selected:
 Please select a guide star manually."""
 
 # Where sounds are stored
-soundhome = os.path.join(g2soss.soundhome, 'ogg', 'en')
+soundhome = os.path.join(os.environ['CONFHOME'], 'Sounds', 'ogg', 'en')
 
 # Sounds
 snd_auto_failure = os.path.join(soundhome, "auto_guide_star_sel_failed5.ogg")
