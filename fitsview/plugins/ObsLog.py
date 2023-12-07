@@ -32,6 +32,7 @@ Double-click on a log entry.
 """
 import os
 from datetime import datetime
+from dateutil import tz
 from collections import OrderedDict
 
 from ginga import GingaPlugin, AstroImage
@@ -143,7 +144,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         obs_log = self.settings.get('obslog_name', None)
         if obs_log is None:
-            now = datetime.utcnow()
+            now = datetime.now(tz=tz.UTC)
             obs_log = now.strftime("IRCS-obslog-%Y-%m-%d.csv")
         b.obslog_name.set_text(obs_log)
         b.obslog_name.set_tooltip('File name for observation log')
