@@ -6,14 +6,11 @@
 #
 """Do a quick look for PFS images.
 
-**Plugin Type: Local**
+**Plugin Type: Global**
 
-``QL_PFS`` is a local plugin, which means it is associated with a channel.
-An instance can be opened for each channel.
+``QL_PFS`` is a global plugin. Only one instance can be opened.
 
 **Usage**
-
-Open the QL
 
 """
 import os
@@ -28,11 +25,13 @@ from ginga.AstroImage import AstroImage
 
 from g2base.astro.frame import Frame
 
+workspaces = ['PFS_1', 'PFS_2', 'PFS_3', 'PFS_4']
+arms = ['R', 'B', 'N']
 
-class QL_PFS(GingaPlugin.LocalPlugin):
+class QL_PFS(GingaPlugin.GlobalPlugin):
 
-    def __init__(self, fv, fitsimage):
-        super().__init__(fv, fitsimage)
+    def __init__(self, fv):
+        super().__init__(fv)
 
         # prefs = self.fv.get_preferences()
         # self.settings = prefs.create_category('plugin_QL_PFS')
@@ -50,22 +49,37 @@ class QL_PFS(GingaPlugin.LocalPlugin):
         #self.gui_up = False
 
     def start(self):
-        self.redo()
+        prefs = self.fv.get_preferences()
+
+        # add a workspace for each spectrograph
+        for wsname in workspaces:
+            ws = self.fv.error_wrap(self.fv.add_workspace, wsname,
+                                    'tabs', use_toolbar=True, inSpace='channels')
+            # add a channel for each arm in each workspace
+            for arm in arms:
+                spg_num = wsname[-1]
+                if arm == 'N':
+                    chname = f'PFSB_{arm}{spg_num}'
+                else:
+                    chname = f'PFSA_{arm}{spg_num}'
+                # create channel settings
+                settings = prefs.create_category(f'channel_{chname}')
+                settings.set(numImages=1, raisenew=False, focus_indicator=False)
+                channel = self.fv.add_channel(chname, settings=settings,
+                                              workspace=wsname)
 
     def stop(self):
         #self.gui_up = False
         pass
 
     def close(self):
-        chname = self.fv.get_channel_name(self.fitsimage)
-        self.fv.stop_local_plugin(chname, str(self))
+        self.fv.stop_global_plugin(str(self))
         return True
 
-    def redo(self):
+    def redo(self, channel, image):
         # if not self.gui_up:
         #     return
 
-        image = self.fitsimage.get_image()
         if image is None:
             return
         path = image.get('path', None)
@@ -80,14 +94,11 @@ class QL_PFS(GingaPlugin.LocalPlugin):
 
         if fr.frametype == 'B':
             #a_img = self._reduce_ql(path)
-            self.fv.nongui_do(self._reduce_ql, path)
+            self.fv.nongui_do(self._reduce_ql, channel, path)
         else:
             self.logger.debug("Not a PFS 'B' file--nothing to do")
 
-    def display_image(self, a_img):
-        myname = self.channel.name
-        out_chname = f"{myname}_QL"
-        channel = self.fv.get_channel_on_demand(out_chname)
+    def display_image(self, channel, a_img):
         channel.add_image(a_img)
 
     # spun off into a different function so we can run it in a different
@@ -99,7 +110,7 @@ class QL_PFS(GingaPlugin.LocalPlugin):
     # read1 =  hdulist[f'IMAGE_1'].astype('f4') - hdulist[f'REF_1']
     # rampCdsImage = readN - read1
     #
-    def _reduce_ql(self, path):
+    def _reduce_ql(self, channel, path):
         p = pathlib.Path(path)
 
         a_img = AstroImage(logger=self.logger)
@@ -113,7 +124,7 @@ class QL_PFS(GingaPlugin.LocalPlugin):
             if impath.exists():
                 a_img.load_file(str(impath))
                 a_img.set(name=imname)
-                self.fv.gui_do(self.display_image, a_img)
+                self.fv.gui_do(self.display_image, channel, a_img)
                 return
 
         a_img.set(name=imname, path=str(impath))
@@ -149,8 +160,7 @@ class QL_PFS(GingaPlugin.LocalPlugin):
                     self.logger.warning(f"couldn't save {imname} as {impath}: {e}")
                     a_img.set(path=None)
 
-        #return a_img
-        self.fv.gui_do(self.display_image, a_img)
+        self.fv.gui_do(self.display_image, channel, a_img)
 
     def __str__(self):
         return 'ql_pfs'
