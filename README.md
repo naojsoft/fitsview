@@ -19,15 +19,15 @@ REQUIRED PACKAGES
 -----------------
 
 - pyqt
-- ginga
-- g2cam
-- g2client
+- g2cam (pip install git+https://github.com/naojsoft/g2cam)
+- g2client (pip install git+https://github.com/naojsoft/g2client)
 
 Packages that will be installed by the installer if not already
 installed:
 
 - pyyaml
 - matplotlib
+- ginga
 
 INSTALLATION
 ------------
