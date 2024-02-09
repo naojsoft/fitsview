@@ -18,7 +18,10 @@ add --stderr if you want to see logging output to the terminal as well.
 REQUIRED PACKAGES
 -----------------
 
-- pyqt
+- pyqt5
+- eclipse (qualsize)
+- esolib (iqe)
+- inotify
 - g2cam (pip install git+https://github.com/naojsoft/g2cam)
 - g2client (pip install git+https://github.com/naojsoft/g2client)
 

@@ -1,9 +1,8 @@
 #
 # g2calc.py -- Gen2 image quality calculations on FITS data
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 #
-# Copyright (c) Eric R. Jeschke.  All rights reserved.
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
 #
@@ -12,12 +11,12 @@ import math
 import time
 
 import numpy
-    
+
 from ginga.misc import Bunch
 from ginga.util import iqcalc
 
 # special for fitsview & guideview
-import qualsize
+from eclipse import qualsize
 
 
 class IQCalc(iqcalc.IQCalc):
@@ -33,7 +32,7 @@ class IQCalc(iqcalc.IQCalc):
         qs = Bunch.Bunch(x=x, y=y, fwhm=fwhm, brightness=brightness,
                          skylevel=skylevel, objx=objx, objy=objy)
         elapsed = time.time() - start_time
-        
+
         # Add back in offsets into image to get correct values with respect
         # to the entire image
         qs.x += x1
@@ -44,5 +43,5 @@ class IQCalc(iqcalc.IQCalc):
             qs.objx, qs.objy, qs.fwhm, qs.skylevel, qs.brightness, elapsed))
 
         return qs
-     
+
 #END
