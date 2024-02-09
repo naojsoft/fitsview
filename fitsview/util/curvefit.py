@@ -8,9 +8,9 @@
 
 import math
 import os
-from fitsview.util import g2calc
 
-import iqe
+from fitsview.util import g2calc
+from esolib import iqe
 
 from ginga import AstroImage
 from ginga.util import wcs
