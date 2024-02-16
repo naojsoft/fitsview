@@ -4,6 +4,8 @@
 #
 import sys
 import os
+from argparse import ArgumentParser
+
 # NOTE: need to set here so that ginga.util.paths picks it up first
 os.environ['GINGA_HOME'] = os.path.join(os.environ['CONFHOME'], 'guideview')
 
@@ -99,20 +101,22 @@ if __name__ == "__main__":
     # Subaru-specific plugins
     for spec in [
         Bunch(module='Gen2Int', ptype='global', hidden=True, optray=False,
-              start=True),
+              start=True, enabled=True),
         Bunch(module='VGW', hidden=True, ptype='global', optray=False,
-              start=True),
+              start=True, enabled=True),
 
         Bunch(module='Region_Selection', ws='dialogs', ptype='local',
-              hidden=True),
-        Bunch(module='Sv_Drive', ws='dialogs', ptype='local', hidden=True),
-        Bunch(module='AgAutoSelect', ws='dialogs', ptype='local', hidden=True),
+              hidden=True, enabled=True),
+        Bunch(module='Sv_Drive', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
+        Bunch(module='AgAutoSelect', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
         Bunch(module='AgAreaSelection', ws='dialogs', ptype='local',
-              hidden=True),
+              hidden=True, enabled=True),
         Bunch(module='PFS_AG', ws='dialogs', ptype='global', start=False,
-              category='Subaru'),
+              category='Subaru', enabled=True),
         Bunch(module='PFS_Focus', ws='sub2', ptype='local',
-              category='Subaru'),
+              category='Subaru', enabled=True),
         ]:
         add_plugin_spec(spec)
 
@@ -131,9 +135,6 @@ if __name__ == "__main__":
     #viewer.add_separately_distributed_plugins()
     viewer.channels = default_channels
 
-    # Parse command line options
-    from argparse import ArgumentParser
-
     argprs = ArgumentParser()
     viewer.add_default_options(argprs)
 
@@ -142,20 +143,4 @@ if __name__ == "__main__":
     if options.display:
         os.environ['DISPLAY'] = options.display
 
-    # Are we debugging this?
-    if options.debug:
-        import pdb
-
-        pdb.run('viewer.main(options, args)')
-
-    # Are we profiling this?
-    elif options.profile:
-        import profile
-
-        print(("%s profile:" % sys_argv[0]))
-        profile.run('viewer.main(options, args)')
-
-    else:
-        viewer.main(options, args)
-
-# END
+    viewer.main(options, args)

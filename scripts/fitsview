@@ -4,6 +4,8 @@
 #
 import sys
 import os
+from argparse import ArgumentParser
+
 # NOTE: need to set here so that ginga.util.paths picks it up first
 os.environ['GINGA_HOME'] = os.path.join(os.environ['CONFHOME'], 'fitsview')
 
@@ -39,31 +41,37 @@ if __name__ == "__main__":
     # Add Subaru-specific plugins
     for spec in [
         Bunch(module='Gen2Int', ptype='global', hidden=True, optray=False,
-              start=True),
+              start=True, enabled=True),
         Bunch(module='QDAS', hidden=True, ptype='global', optray=False,
-              start=True),
+              start=True, enabled=True),
 
         Bunch(module='Region_Selection', ws='dialogs', ptype='local',
-              hidden=True),
-        Bunch(module='Sv_Drive', ws='dialogs', ptype='local', hidden=True),
-        Bunch(module='FocusFit', ws='dialogs', ptype='local', hidden=True),
-        Bunch(module='CurveFit', ws='dialogs', ptype='local', hidden=True),
-        Bunch(module='MOIRCSFit', ws='dialogs', ptype='local', hidden=True),
-        Bunch(module='MESOffset', ws='dialogs', ptype='local', hidden=True),
-        Bunch(module='MoircsAlign', ws='dialogs', ptype='local', hidden=True),
+              hidden=True, enabled=True),
+        Bunch(module='Sv_Drive', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
+        Bunch(module='FocusFit', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
+        Bunch(module='CurveFit', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
+        Bunch(module='MOIRCSFit', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
+        Bunch(module='MESOffset', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
+        Bunch(module='MoircsAlign', ws='dialogs', ptype='local', hidden=True,
+              enabled=True),
 
         ## Bunch(module='GView', tab='GView', ws='right', ptype='global',
-        ##       start=False, category='Subaru'),
+        ##       start=False, category='Subaru', enabled=True),
         Bunch(module='QL_CHARIS', ws='right', ptype='global', start=False,
-              category='Subaru'),
+              category='Subaru', enabled=True),
         Bunch(module='QL_FOCAS', ws='right', ptype='global', start=False,
-              category='Subaru'),
+              category='Subaru', enabled=True),
         Bunch(module='QL_IRCS', ws='in:toplevel', ptype='global', start=False,
-              category='Subaru'),
+              category='Subaru', enabled=True),
         Bunch(module='QL_PFS', ws='dialogs', ptype='global', start=False,
-              category='Subaru'),
+              category='Subaru', enabled=True),
         Bunch(module='MOIRCSTrend', ws='dialogs', ptype='local',
-              category='Subaru'),
+              category='Subaru', enabled=True),
         ]:
         add_plugin_spec(spec)
 
@@ -73,9 +81,6 @@ if __name__ == "__main__":
                                except_local=['TVMark', 'TVMask',
                                              'ChangeHistory', 'Mosaic'])
     #viewer.add_separately_distributed_plugins()
-
-    # Parse command line options
-    from argparse import ArgumentParser
 
     argprs = ArgumentParser()
     viewer.add_default_options(argprs)
