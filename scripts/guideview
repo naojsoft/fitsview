@@ -105,17 +105,17 @@ if __name__ == "__main__":
         Bunch(module='VGW', hidden=True, ptype='global', optray=False,
               start=True, enabled=True),
 
-        Bunch(module='Region_Selection', ws='dialogs', ptype='local',
+        Bunch(module='Region_Selection', workspace='dialogs', ptype='local',
               hidden=True, enabled=True),
-        Bunch(module='Sv_Drive', ws='dialogs', ptype='local', hidden=True,
+        Bunch(module='Sv_Drive', workspace='dialogs', ptype='local', hidden=True,
               enabled=True),
-        Bunch(module='AgAutoSelect', ws='dialogs', ptype='local', hidden=True,
+        Bunch(module='AgAutoSelect', workspace='dialogs', ptype='local', hidden=True,
               enabled=True),
-        Bunch(module='AgAreaSelection', ws='dialogs', ptype='local',
+        Bunch(module='AgAreaSelection', workspace='dialogs', ptype='local',
               hidden=True, enabled=True),
-        Bunch(module='PFS_AG', ws='dialogs', ptype='global', start=False,
+        Bunch(module='PFS_AG', workspace='dialogs', ptype='global', start=False,
               category='Subaru', enabled=True),
-        Bunch(module='PFS_Focus', ws='sub2', ptype='local',
+        Bunch(module='PFS_Focus', workspace='sub2', ptype='local',
               category='Subaru', enabled=True),
         ]:
         add_plugin_spec(spec)
