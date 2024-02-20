@@ -264,12 +264,12 @@ class MOIRCSfov(TELESCOPEfov):
                                     color='white'))
         obj.add_object(cvtypes.Text(self.c2x, self.c2y, "Chip2",
                                     color='white'))
-        obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+        obj.rotate_deg([self.theta], (self.p.ctr_x, self.p.ctr_y))
 
         # MOIRCS is offset by 45 deg wrt cassegrain flange.  Standard
         # vignette map needs to be rotated to be properly aligned
         vig_rot = 2.0 * self.theta - 45.0
-        self.vig_obj.rotate(vig_rot, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+        self.vig_obj.rotate_deg([vig_rot], (self.p.ctr_x, self.p.ctr_y))
 
 
 class SPCAMfov(object):
@@ -378,7 +378,7 @@ class SPCAMfov(object):
         obj.add_object(self.prb_area)
 
         # Rotate according to PA
-        obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+        obj.rotate_deg([self.theta], (self.p.ctr_x, self.p.ctr_y))
 
     def filter_results(self, starlist):
         return self.pluginObj.filter_results(starlist, self.prb_area)
@@ -568,13 +568,13 @@ class MIMIZUKUfov(TELESCOPEfov):
         #                             color='white'))
         # obj.add_object(cvtypes.Text(self.c2x, self.c2y, "Chip2",
         #                             color='white'))
-        obj.rotate(self.theta, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+        obj.rotate_deg([self.theta], (self.p.ctr_x, self.p.ctr_y))
 
         # MIMIZUKU is offset wrt cassegrain flange.  Standard
         # vignette map needs to be rotated to be properly aligned
         #vig_rot = 2.0 * self.theta - self.mmz_offset
         vig_rot = self.p.ag_pa
-        self.vig_obj.rotate(vig_rot, xoff=self.p.ctr_x, yoff=self.p.ctr_y)
+        self.vig_obj.rotate_deg([vig_rot], (self.p.ctr_x, self.p.ctr_y))
 
     def filter_results(self, starlist):
         prohibited = self.pluginObj.filter_results(starlist, self.dith_obj)
