@@ -78,6 +78,10 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.col_widths = []
         self.memo_txt = ''
 
+        self.col_info = self.settings.get('column_info', [])
+        # this will set rpt_columns and col_widths
+        self.process_columns(self.col_info)
+
         self.fv.add_callback('add-image', self.incoming_data_cb)
         self.gui_up = False
 
@@ -103,10 +107,6 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         tv.add_callback('activated', self.dblclick_cb)
         tv.add_callback('selected', self.select_cb)
-
-        self.col_info = self.settings.get('column_info', [])
-        # this will set rpt_columns and col_widths
-        self.process_columns(self.col_info)
 
         tv.setup_table(self.rpt_columns, 1, 'FRAMEID')
 
@@ -145,7 +145,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         obs_log = self.settings.get('obslog_name', None)
         if obs_log is None:
             now = datetime.now(tz=tz.UTC)
-            obs_log = now.strftime("IRCS-obslog-%Y-%m-%d.csv")
+            obs_log = now.strftime("obslog-%Y-%m-%d.csv")
         b.obslog_name.set_text(obs_log)
         b.obslog_name.set_tooltip('File name for observation log')
         #b.obslog_name.add_callback('activated', self.save_obslog_cb)

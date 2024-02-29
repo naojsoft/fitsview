@@ -66,8 +66,10 @@ if __name__ == "__main__":
               category='Subaru', enabled=True),
         Bunch(module='QL_FOCAS', workspace='right', ptype='global', start=False,
               category='Subaru', enabled=True),
-        Bunch(module='QL_IRCS', workspace='in:toplevel', ptype='global', start=False,
-              category='Subaru', enabled=True),
+        Bunch(module='QL_IRCS', workspace='in:toplevel', ptype='global',
+              start=False, category='Subaru', enabled=True),
+        Bunch(module='QL_MOIRCS', workspace='in:toplevel', ptype='global',
+              start=False, category='Subaru', enabled=True),
         Bunch(module='QL_PFS', workspace='dialogs', ptype='global', start=False,
               category='Subaru', enabled=True),
         Bunch(module='MOIRCSTrend', workspace='dialogs', ptype='local',
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     viewer = g_main.ReferenceViewer(layout=g_main.default_layout)
     viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP'],
                                except_local=['TVMark', 'TVMask',
-                                             'ChangeHistory', 'Mosaic'])
+                                             'ChangeHistory'])
     #viewer.add_separately_distributed_plugins()
 
     argprs = ArgumentParser()

@@ -106,6 +106,9 @@ class QL_IRCS(ObsLog.ObsLog):
                           cache_normalized_images=True)
         self.settings.load(onError='silent')
 
+        self.col_info = self.settings.get('column_info', [])
+        # this will set rpt_columns and col_widths
+        self.process_columns(self.col_info)
 
     def build_gui(self, container):
         super(QL_IRCS, self).build_gui(container)
