@@ -137,6 +137,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.rate_limit = self.settings.get('rate_limit', 5.0)
         self.error_scale = 10
         self.save_dir = self.settings.get('save_directory', '/tmp')
+        self.last_raw = None
+        self.last_processed = None
         self.mode = 'processed'
         self.guide_count = 0
 
@@ -636,7 +638,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     image = self.quick_data_reduce(image, name)
                     #image.set(path=f"{path}[{idx}]")
 
-                    # update the image in the channel viewer
+                    # for later updating the images in the grid of viewers
                     img_dct[name] = image
 
                 elif hdu_name == 'detected_objects':
@@ -665,6 +667,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             end_time = time.time()
             self.logger.info("file processing time %.4f sec" % (end_time - start_time))
 
+            # update the grid of all viewers with new images
             self.fv.gui_do_oneshot('pfsag_update', self.update_grid, img_dct)
 
         except Exception as e:
@@ -981,16 +984,20 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                         if not filename.endswith('.fits'):
                             continue
 
-                        # TEMP: choose which type to accept
-                        if self.mode == 'processed' and filename.startswith('_'):
-                            continue
-                        if self.mode == 'raw' and not filename.startswith('_'):
-                            continue
+                        # save filepath for last received one of each type
+                        if filename.startswith('_'):
+                            self.last_raw = filepath
+                            if self.mode == 'processed':
+                                continue
+                        else:
+                            self.last_processed = filepath
+                            if self.mode == 'raw':
+                                continue
 
                         start_time = time.time()
                         if start_time < self.last_image_time + self.rate_limit:
                             self.logger.info(f"skipping file '{filename}' for rate limit")
-                            self.remove_file(filepath)
+                            #self.remove_file(filepath)
                             continue
                         self.last_image_time = start_time
 
@@ -1067,8 +1074,18 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.rate_limit = val
 
     def set_mode_cb(self, w, tf, mode):
-        if tf:
-            self.mode = mode
+        if not tf:
+            return
+        old_mode = self.mode
+        self.mode = mode
+
+        if old_mode != mode:
+            # process the last known received file of the kind we are
+            # switching to
+            filepath = self.last_raw if mode == 'raw' else self.last_processed
+            if filepath is None or not os.path.exists(filepath):
+                return
+            self.fv.nongui_do(self.process_file, filepath, set_1k=True)
 
     def pan_cam_cb(self, w, cam_num):
         cam_id = 'CAM{}'.format(cam_num)

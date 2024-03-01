@@ -80,10 +80,11 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
             self.logger.debug("Not a PFS 'B' file--nothing to do")
 
     def display_image(self, channel, a_img):
-        #channel.add_image(a_img)
-        chname = channel.name + '_QL'
-        self.fv.gui_do(self.fv.add_image, a_img.get('name'), a_img,
-                       chname=chname)
+        channel.add_image(a_img)
+        # TODO: create the channel in the same workspace
+        # chname = channel.name + '_QL'
+        # self.fv.gui_do(self.fv.add_image, a_img.get('name'), a_img,
+        #                chname=chname)
 
     # spun off into a different function so we can run it in a different
     # thread or process if needed
