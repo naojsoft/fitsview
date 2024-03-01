@@ -222,6 +222,30 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         return chname
 
+    def get_workspace_on_demand(self, chname):
+        """Determine the workspace from the CHNAME.
+        """
+        wsname = 'channels'     # the default
+        if chname.startswith('PFS'):
+            if chname[3] in ('A', 'B'):
+                # spectrograph indicated by last character of channel name
+                spg = chname[-1]
+                wsname = f"PFS_{spg}"
+
+                # create this workspace if it does not exist
+                if not self.fv.ds.has_ws(wsname):
+                    self.fv.gui_call(self.fv.add_workspace, wsname, 'tabs',
+                                     inSpace='channels', use_toolbar=True)
+                    # create the channel in this workspace
+                    prefs = self.fv.get_preferences()
+                    settings = prefs.create_category(f'channel_{chname}')
+                    settings.set(numImages=1, raisenew=False,
+                                 focus_indicator=False)
+                    self.fv.gui_call(self.fv.add_channel, chname,
+                                     settings=settings, workspace=wsname)
+
+        return wsname
+
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
                   image_loader=None, display_image=True):
 
@@ -289,6 +313,9 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             channel = self.get_chname(frameid, header, chname)
 
         image.set(name=name, chname=channel)
+
+        if display_image:
+            self.get_workspace_on_demand(channel)
 
         # Display image.  If the wait parameter is False then don't wait
         # for the image to load into the viewer

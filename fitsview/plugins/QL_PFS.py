@@ -25,8 +25,6 @@ from ginga.AstroImage import AstroImage
 
 from g2base.astro.frame import Frame
 
-workspaces = ['PFS_1', 'PFS_2', 'PFS_3', 'PFS_4']
-arms = ['R', 'B', 'N']
 
 class QL_PFS(GingaPlugin.GlobalPlugin):
 
@@ -49,24 +47,7 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
         #self.gui_up = False
 
     def start(self):
-        prefs = self.fv.get_preferences()
-
-        # add a workspace for each spectrograph
-        for wsname in workspaces:
-            ws = self.fv.error_wrap(self.fv.add_workspace, wsname,
-                                    'tabs', use_toolbar=True, inSpace='channels')
-            # add a channel for each arm in each workspace
-            for arm in arms:
-                spg_num = wsname[-1]
-                if arm == 'N':
-                    chname = f'PFSB_{arm}{spg_num}'
-                else:
-                    chname = f'PFSA_{arm}{spg_num}'
-                # create channel settings
-                settings = prefs.create_category(f'channel_{chname}')
-                settings.set(numImages=1, raisenew=False, focus_indicator=False)
-                channel = self.fv.add_channel(chname, settings=settings,
-                                              workspace=wsname)
+        pass
 
     def stop(self):
         #self.gui_up = False
@@ -99,7 +80,10 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
             self.logger.debug("Not a PFS 'B' file--nothing to do")
 
     def display_image(self, channel, a_img):
-        channel.add_image(a_img)
+        #channel.add_image(a_img)
+        chname = channel.name + '_QL'
+        self.fv.gui_do(self.fv.add_image, a_img.get('name'), a_img,
+                       chname=chname)
 
     # spun off into a different function so we can run it in a different
     # thread or process if needed
