@@ -72,7 +72,7 @@ import yaml
 from ginga import trcalc, cmap, imap
 from ginga.gw import ColorBar, Widgets, Viewers
 from ginga.AstroImage import AstroImage
-from ginga.util.io_fits import FitsioFileHandler
+from ginga.util.io.io_fits import FitsioFileHandler
 from ginga.util.wcsmod.wcs_astropy import AstropyWCS
 from ginga.util import wcs, dp
 from ginga.util.mosaic import CanvasMosaicer
@@ -83,8 +83,6 @@ from g2cam.status.client import StatusClient
 
 # local
 from fitsview.util import pfswcs
-
-is_summit = True
 
 
 class PFS_AG(GingaPlugin.GlobalPlugin):
@@ -108,7 +106,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                    rate_limit=5.0,
                                    data_directory='.',
                                    save_directory=tempfile.gettempdir(),
-                                   auto_orient=False)
+                                   auto_orient=False,
+                                   in_gen2=True)
         self.settings.load(onError='silent')
 
         self.chname = self.settings.get('channel_name')
@@ -120,6 +119,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         self._wd = 300
         self._ht = 300
+        self._in_gen2 = self.settings.get('in_gen2', True)
         self.mag_max = 20.0
         self.mag_min = 12.0
         self.current_file = None
@@ -157,7 +157,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         t_.set(annotate_images=True, match_bg=False,
                center_image=False, collage_method=collage_method)
 
-        if not is_summit:
+        if not self._in_gen2:
             self.fv.add_callback('add-image', self.incoming_data_cb)
 
         self.sc = None
@@ -435,7 +435,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
     def start(self):
         self.ev_quit.clear()
-        if is_summit:
+        if self._in_gen2:
             self.fv.nongui_do(self.watch_loop, self.ev_quit)
 
         self.connect_status()
@@ -464,19 +464,19 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
     def quick_data_reduce(self, image, name):
         data = image.get_data()
         wd, ht = image.get_size()[:2]
+        # overscans - 24 pixels at the beginning and end of each row (X)
+        # and first 9 rows (Y).
         ovsc_x, ovsc_y = 24, 9
 
         if self.settings.get('subtract_bias', False):
-            # overscans - 24 pixels at the beginning and end of each row (x)
-            # and first 9 rows (y).
-            overscan = np.concatenate([np.ravel(data[0:ovsc_x, 0:ht]),
-                                       np.ravel(data[wd - ovsc_x:wd, 0:ht]),
-                                       np.ravel(data[ovsc_x:wd - ovsc_x, 0:ovsc_y])])
-            med = np.nanmedian(overscan)
-            data = data - med
+            rows, columns = data.shape[:2]
+            overscan = data[0:ovsc_y + 1, :]
+            medians = np.nanmedian(overscan, axis=0).reshape((1, columns))
+            subtrahend = np.repeat(medians, rows, axis=0)
+            data = data - subtrahend
 
         if self.settings.get('subtract_background', False):
-            med = np.nanmedian(data[ovsc_x:wd - ovsc_x, ovsc_y:ht])
+            med = np.nanmedian(data[ovsc_y:ht, ovsc_x:wd - ovsc_x])
             data = data - med
 
         if self.settings.get('subtract_dark', False):
@@ -533,7 +533,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         self.fv.update_pending()
 
-        if is_summit:
+        if self._in_gen2:
             # increment the guide count
             self.guide_count += 1
             stat_d = {'VGW.PFS.AG.COUNT': self.guide_count}
@@ -621,8 +621,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                     self.logger.info(f'{fname}, {is_raw}')
                     # make a WCS for the image if it doesn't have one
-                    if (is_summit and (is_raw or image.wcs is None or
-                                       image.wcs.wcs is None)):
+                    if (self._in_gen2 and (is_raw or image.wcs is None or
+                                           image.wcs.wcs is None)):
                         # create wcses from Kawanomoto-san's module
                         if wcses is None:
                             wcses = self.make_WCSes()
