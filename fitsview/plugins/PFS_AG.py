@@ -113,13 +113,13 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.chname = self.settings.get('channel_name')
         self.wsname = 'PFS_AG_CAMS'
         self.wstype = 'grid'
-        self.inspace = 'channels' if not is_summit else 'sub1' # 'top_level'
+        self._in_gen2 = self.settings.get('in_gen2', True)
+        self.inspace = 'channels' if not self._in_gen2 else 'sub1' # 'top_level'
         self.fov_chname = 'PFS_FOV'
-        self.fov_inspace = 'channels' if not is_summit else 'sub2'
+        self.fov_inspace = 'channels' if not self._in_gen2 else 'sub2'
 
         self._wd = 300
         self._ht = 300
-        self._in_gen2 = self.settings.get('in_gen2', True)
         self.mag_max = 20.0
         self.mag_min = 12.0
         self.current_file = None
