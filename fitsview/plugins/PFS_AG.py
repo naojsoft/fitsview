@@ -76,6 +76,7 @@ from ginga.util.io.io_fits import FitsioFileHandler
 from ginga.util.wcsmod.wcs_astropy import AstropyWCS
 from ginga.util import wcs, dp
 from ginga.util.mosaic import CanvasMosaicer
+from ginga.misc import Bunch
 from ginga import GingaPlugin
 
 # g2cam
@@ -114,15 +115,16 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.wsname = 'PFS_AG_CAMS'
         self.wstype = 'grid'
         self._in_gen2 = self.settings.get('in_gen2', True)
-        self.inspace = 'channels' if not self._in_gen2 else 'sub1' # 'top_level'
+        self.inspace = 'sub1'
         self.fov_chname = 'PFS_FOV'
-        self.fov_inspace = 'channels' if not self._in_gen2 else 'sub2'
+        self.fov_inspace = 'sub2'
 
         self._wd = 300
         self._ht = 300
         self.mag_max = 20.0
         self.mag_min = 12.0
         self.current_file = None
+        self.current_time = ''
         self.ev_quit = threading.Event()
         self.dark = dict()
         self.flat = dict()
@@ -132,13 +134,13 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.imap = imap.get_imap(self.settings.get('intensity_map'))
         self.field_names = ['mag']
         self.field = 'mag'
-        self.last_image_time = time.time()
         self.pause_flag = False
         self.rate_limit = self.settings.get('rate_limit', 5.0)
         self.error_scale = 10
         self.save_dir = self.settings.get('save_directory', '/tmp')
-        self.last_raw = None
-        self.last_processed = None
+        self.last = Bunch.Bunch(image_time=time.time(),
+                                raw=None, time_raw=None,
+                                processed=None, time_processed=None)
         self.mode = 'processed'
         self.guide_count = 0
 
@@ -331,6 +333,12 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         fr.set_widget(hbox)
         top.add_widget(fr, stretch=0)
 
+        hbox = Widgets.HBox()
+        hbox.add_widget(Widgets.Label("Received at:"), stretch=0)
+        self.w.last_time = Widgets.Label('')
+        hbox.add_widget(self.w.last_time, stretch=1)
+        top.add_widget(hbox, stretch=0)
+
         # add CAM pan buttons
         hbox = Widgets.HBox()
         for i in range(1, 7):
@@ -454,12 +462,25 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         if chname != 'Image':
             return
 
-        #header = image.get_header()
+        #self.fv.nongui_do(self.process_image, image)
 
-        # add image to obslog
-        #self.fv.gui_do(self.add_to_obslog, header, image)
+        path = image.get('path', None)
+        if path is not None:
+            self.incoming_file(path)
 
-        self.fv.nongui_do(self.process_image, image)
+    def incoming_file(self, filepath):
+        filedir, filename = os.path.split(filepath)
+        # save filepath for last received one of each type
+        if filename.startswith('_'):
+            self.last.setvals(raw=filepath, time_raw=time.time())
+            if self.mode == 'processed':
+                return
+        else:
+            self.last.setvals(processed=filepath, time_processed=time.time())
+            if self.mode == 'raw':
+                return
+
+        self.fv.nongui_do(self.process_file, filepath, set_1k=True)
 
     def quick_data_reduce(self, image, name):
         data = image.get_data()
@@ -497,12 +518,12 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         #new_img.set(name='PFS' + str(time.time()), nothumb=True)
         return new_img
 
-    def process_image(self, image):
-        path = image.get('path', None)
-        if path is None:
-            return
+    # def process_image(self, image):
+    #     path = image.get('path', None)
+    #     if path is None:
+    #         return
 
-        self.process_file(path, set_1k=True)
+    #     self.process_file(path, set_1k=True)
 
     def orient(self, viewer):
         if self.settings.get('auto_orient', False):
@@ -511,8 +532,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             mode._orient(viewer, righthand=False, msg=False)
 
     def update_grid(self, img_dct):
+        self.fv.assert_gui_thread()
+
         self.img_dct = img_dct
-        # NOTE: assumes images come in the order CAM1 .. CAM6
         self.fv.assert_gui_thread()
         for cam_num in (1, 2, 3, 4, 5, 6):
             cam_id = 'CAM{}'.format(cam_num)
@@ -530,6 +552,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     self.orient(viewer)
                 else:
                     viewer.clear()
+
+        # show when this file was received
+        self.w.last_time.set_text(self.current_time)
 
         self.fv.update_pending()
 
@@ -563,12 +588,17 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         if self.tbl_go is not None:
             self.plot_stars()
+        else:
+            self.clear_stars(redraw=True)
 
     def set_1k(self, image):
         self.fv.assert_gui_thread()
 
-        channel = self.fv.get_channel_on_demand(self.chname)
-        channel.add_image(image)
+        try:
+            channel = self.fv.get_channel_on_demand(self.chname)
+            channel.add_image(image)
+        except Exception as e:
+            self.logger.error(f"error setting 1K image: {e}", exc_info=True)
 
     def process_file(self, path, set_1k=False):
         self.fv.assert_nongui_thread()
@@ -584,6 +614,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         _dir, fname = os.path.split(path)
         fname, ext = os.path.splitext(fname)
         is_raw = fname.startswith('_')
+        self.logger.info(f"processing '{fname}', raw={is_raw} ...")
+        _t = self.last.time_raw if is_raw else self.last.time_processed
+        if _t is not None:
+            self.current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(_t))
 
         self.tbl_go = None
         self.tbl_do = None
@@ -619,7 +653,6 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                         # <-- empty data area--possibly dead camera
                         continue
 
-                    self.logger.info(f'{fname}, {is_raw}')
                     # make a WCS for the image if it doesn't have one
                     if (self._in_gen2 and (is_raw or image.wcs is None or
                                            image.wcs.wcs is None)):
@@ -732,13 +765,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         finally:
             fits_f = None
 
-    def plot_stars(self):
-        self.cbar.set_range(self.mag_min, self.mag_max)
-
-        if self.tbl_io is None:
-            return
-        mags = self.tbl_go['mag']
-
+    def clear_stars(self, redraw=True):
         # delete previously plotted objects
         for cam_num in (1, 2, 3, 4, 5, 6):
             cam_id = 'CAM{}'.format(cam_num)
@@ -747,7 +774,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                 viewer = channel.viewer
                 canvas = viewer.get_canvas()
                 canvas.delete_objects_by_tag(canvas.get_tags_by_tag_pfx('_io'),
-                                             redraw=False)
+                                             redraw=redraw)
 
         # Update PFS_FOV channel
         if self.settings.get('plot_fov', False):
@@ -755,7 +782,25 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             viewer = channel.viewer
             fov_canvas = viewer.get_canvas()
             fov_canvas.delete_objects_by_tag(fov_canvas.get_tags_by_tag_pfx('_io'),
-                                             redraw=False)
+                                             redraw=redraw)
+
+    def plot_stars(self):
+        try:
+            self.clear_stars(redraw=False)
+        except Exception as e:
+            self.logger.error("Error clearing stars: {e}", exc_info=True)
+
+        if self.settings.get('plot_fov', False):
+            channel = self.fv.get_channel_on_demand(self.fov_chname)
+            viewer = channel.viewer
+            fov_canvas = viewer.get_canvas()
+
+        self.cbar.set_range(self.mag_min, self.mag_max)
+
+        if self.tbl_io is None:
+            return
+        mags = self.tbl_go['mag']
+
         ref_image = self.ref_image
 
         # plot identified objects
@@ -986,21 +1031,23 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                         # save filepath for last received one of each type
                         if filename.startswith('_'):
-                            self.last_raw = filepath
+                            self.last.setvals(raw=filepath,
+                                              time_raw=time.time())
                             if self.mode == 'processed':
                                 continue
                         else:
-                            self.last_processed = filepath
+                            self.last.setvals(processed=filepath,
+                                              time_processed=time.time())
                             if self.mode == 'raw':
                                 continue
 
                         start_time = time.time()
-                        if start_time < self.last_image_time + self.rate_limit:
+                        if start_time < self.last.image_time + self.rate_limit:
                             self.logger.info(f"skipping file '{filename}' for rate limit")
                             #self.remove_file(filepath)
                             continue
-                        self.last_image_time = start_time
 
+                        self.last.image_time = start_time
                         self.logger.debug(f"new file detected: '{filename}'")
                         if self.pause_flag:
                             self.logger.debug("plugin is paused, skipping new file")
@@ -1010,6 +1057,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                         self.fv.nongui_do(self.process_file, filepath,
                                           set_1k=True)
+
             self.logger.debug("---------")
             self.logger.debug("{} files: {}".format(len(loop_tot), loop_tot))
             self.logger.debug("{} fits: {}".format(len(fits_tot), fits_tot))
@@ -1082,7 +1130,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         if old_mode != mode:
             # process the last known received file of the kind we are
             # switching to
-            filepath = self.last_raw if mode == 'raw' else self.last_processed
+            filepath = self.last.raw if mode == 'raw' else self.last.processed
             if filepath is None or not os.path.exists(filepath):
                 return
             self.fv.nongui_do(self.process_file, filepath, set_1k=True)

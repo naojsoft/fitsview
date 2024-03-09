@@ -84,6 +84,7 @@ default_channels = [('AG', 'channels'), ('SV', 'sub1'), ('HSCSCAG', 'sub1'),
                     ('HSCSHAG', 'channels'), ('HSCSH', 'channels'),
                     ('PFS', 'channels'),
                     ]
+# default_channels = []
 
 
 if __name__ == "__main__":
@@ -123,8 +124,8 @@ if __name__ == "__main__":
     # construct viewer builder
     viewer = g_main.ReferenceViewer(layout=default_layout)
     viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP',
-                                              'Thumbs', 'Contents', 'Blink',
-                                              #'FBrowser'
+                                              'Thumbs', 'Blink',
+                                              #'Contents', 'FBrowser'
                                              ],
                                except_local=['TVMark', 'TVMask',
                                              'ChangeHistory', 'Mosaic',

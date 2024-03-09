@@ -244,6 +244,10 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                     self.fv.gui_call(self.fv.add_channel, chname,
                                      settings=settings, workspace=wsname)
 
+        # elif chname in ['SV', 'HSCSCAG']:
+        #     wsname = 'sub1'
+        # elif chname in ['QDAS_VGW', 'DSS', 'PFS_FOV']:
+        #     wsname = 'sub2'
         return wsname
 
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
