@@ -8,6 +8,8 @@ import re
 import time
 import traceback
 from io import BytesIO
+import threading
+import queue as Queue
 
 from astropy.io import fits as pyfits
 import numpy as np
@@ -15,7 +17,7 @@ import numpy as np
 from ginga import GingaPlugin
 from ginga import AstroImage, BaseImage
 from ginga.util import loader, iohelper
-from ginga.misc import Future, Bunch
+from ginga.misc import Future, Bunch, Task
 
 # g2cam imports
 from g2base.remoteObjects import remoteObjects as ro
@@ -63,6 +65,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         self.host = ro.get_myhost(short=True)
         #self.host = 'localhost'
+        self.ev_quit = threading.Event()
+        self.queue = Queue.Queue()
 
         # monitor channels we are interested in
         self.channels = ['fits', 'sessions']
@@ -101,6 +105,10 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
     def start(self):
         self.logger.info("Gen2 plugin starting up...")
+        threadPool = self.fv.get_threadPool()
+        task = Task.FuncTask2(self.load_images_loop)
+        threadPool.addTask(task)
+
         # Startup monitor threadpool
         self.monitor.start(wait=True)
 
@@ -147,6 +155,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
     def stop(self):
         self.logger.info("Gen2 plugin shutting down...")
+        self.ev_quit.set()
         self.viewsvc.ro_stop(wait=True)
         self.monitor.stop_server(wait=True)
         self.monitor.stop(wait=True)
@@ -222,7 +231,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         return chname
 
-    def get_workspace_on_demand(self, chname):
+    def get_wsname(self, chname):
         """Determine the workspace from the CHNAME.
         """
         wsname = 'channels'     # the default
@@ -232,22 +241,6 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 spg = chname[-1]
                 wsname = f"PFS_{spg}"
 
-                # create this workspace if it does not exist
-                if not self.fv.ds.has_ws(wsname):
-                    self.fv.gui_call(self.fv.add_workspace, wsname, 'tabs',
-                                     inSpace='channels', use_toolbar=True)
-                    # create the channel in this workspace
-                    prefs = self.fv.get_preferences()
-                    settings = prefs.create_category(f'channel_{chname}')
-                    settings.set(numImages=1, raisenew=False,
-                                 focus_indicator=False)
-                    self.fv.gui_call(self.fv.add_channel, chname,
-                                     settings=settings, workspace=wsname)
-
-        # elif chname in ['SV', 'HSCSCAG']:
-        #     wsname = 'sub1'
-        # elif chname in ['QDAS_VGW', 'DSS', 'PFS_FOV']:
-        #     wsname = 'sub2'
         return wsname
 
     def open_fits(self, filepath, frameid=None, channel=None, wait=False,
@@ -318,15 +311,15 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         image.set(name=name, chname=channel)
 
-        if display_image:
-            self.get_workspace_on_demand(channel)
+        wsname = self.get_wsname(channel)
 
         # Display image.  If the wait parameter is False then don't wait
         # for the image to load into the viewer
-        if wait:
-            self.fv.gui_call(self.fv.add_image, name, image, chname=channel)
+        if not wait:
+            self.queue.put(Bunch.Bunch(chname=channel, wsname=wsname,
+                                       imname=name, image=image))
         else:
-            self.fv.gui_do(self.fv.add_image, name, image, chname=channel)
+            self.fv.gui_call(self.fv.add_image, name, image, chname=channel)
 
         return image
 
@@ -336,6 +329,43 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
     ##     initialdir = os.environ['DATAHOME']
 
     ##     self.fv.gui_load_file(initialdir=initialdir)
+
+    def load_images_loop(self):
+        self.logger.info("load images loop starting up...")
+        self.fv.assert_nongui_thread()
+
+        while not self.ev_quit.is_set():
+            try:
+                bnch = self.queue.get(block=True, timeout=0.1)
+
+                # create this workspace if it does not exist
+                wsname = bnch.wsname
+                if not self.fv.ds.has_ws(wsname):
+                    self.fv.gui_call(self.fv.add_workspace, wsname, 'tabs',
+                                     inSpace='channels', use_toolbar=True)
+
+                # create this channel if it does not exist
+                chname = bnch.chname
+                if not self.fv.has_channel(chname):
+                    # create the channel in this workspace
+                    prefs = self.fv.get_preferences()
+                    settings = prefs.create_category(f'channel_{chname}')
+                    settings.set(numImages=1, raisenew=False,
+                                 focus_indicator=False)
+                    self.fv.gui_call(self.fv.add_channel, chname,
+                                 settings=settings, workspace=wsname)
+
+                self.fv.gui_do(self.fv.add_image, bnch.imname, bnch.image,
+                               chname=chname)
+
+            except Queue.Empty:
+                continue
+
+            except Exception as e:
+                self.logger.error(f"Error displaying image '{bnch.imname}': {e}",
+                                  exc_info=True)
+
+        self.logger.info("load images loop terminating...")
 
 
     #############################################################
@@ -570,7 +600,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         try:
             self.logger.debug("Attempting to display '%s'" % (fitspath))
-            image = self.open_fits(fitspath, frameid=frameid)
+            image = self.open_fits(fitspath, frameid=frameid, wait=False)
 
         except IOError as e:
             self.logger.error("Error opening FITS file '%s': %s" % (
@@ -593,8 +623,6 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         frameid = str(frame)
 
         try:
-            #with self._rlock:
-            #self.fv.nongui_do(self.display_fitsfile, filepath, frameid=frameid)
             self.display_fitsfile(filepath, frameid=frameid)
 
         except Exception as e:

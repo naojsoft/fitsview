@@ -16,7 +16,8 @@ import fitsview.plugins
 
 default_layout = ['seq', {},
                    ['vbox', dict(name='top', width=1900, height=1300),
-                    ['hbox', dict(name='menu', stretch=0)],
+                    ['ws', dict(wstype='stack', stretch=0, name='menubar',
+                                group=99)],
                     ['hpanel', dict(stretch=1),
                      ['ws', dict(name='left', width=300, stretch=0),
                       # (tabname, layout), ...
