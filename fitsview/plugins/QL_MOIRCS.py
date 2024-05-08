@@ -61,6 +61,8 @@ class QL_MOIRCS(ObsLog.ObsLog):
                        #dict(col_title="Obs Mod", fits_kwd='OBS-MOD'),
                        #dict(col_title="Datatype", fits_kwd='DATA-TYP'),
                        dict(col_title=self.sort_hdr, fits_kwd='FRAMEID'),
+                       dict(col_title="Date(UT)", fits_kwd='DATE-OBS'),
+                       dict(col_title="Time(HST)", fits_kwd='HST-STR'),
                        #dict(col_title="PropId", fits_kwd='PROP-ID'),
                        dict(col_title="Object", fits_kwd='OBJECT'),
                        dict(col_title="Exp Time", fits_kwd='EXPTIME'),
@@ -71,9 +73,8 @@ class QL_MOIRCS(ObsLog.ObsLog):
                        dict(col_title="Filter02", fits_kwd='FILTER02'),
                        dict(col_title="Filter03", fits_kwd='FILTER03'),
                        dict(col_title="Air Mass", fits_kwd='AIRMASS'),
+                       dict(col_title="SLIT", fits_kwd='SLIT'),
                        #dict(col_title="UT", fits_kwd='UT'),
-                       dict(col_title="Time(HST)", fits_kwd='HST-STR'),
-                       dict(col_title="Date(UT)", fits_kwd='DATE-OBS'),
                        #dict(col_title="Pos Ang", fits_kwd='INST-PA'),
                        #dict(col_title="Ins Rot", fits_kwd='INSROT'),
                        #dict(col_title="Foc Val", fits_kwd='FOC-VAL'),
@@ -99,6 +100,11 @@ class QL_MOIRCS(ObsLog.ObsLog):
         super().build_gui(container)
 
         self.w.obslog_dir.set_text("{}/Procedure/MOIRCS".format(os.environ['HOME']))
+
+    def replace_kwds(self, header):
+        d = super().replace_kwds(header)
+        d['SLIT'] = d.get('SLIT', '---').strip()
+        return d
 
     def process_image(self, chname, header, image):
         if chname != 'MOIRCS' or not self.gui_up:
