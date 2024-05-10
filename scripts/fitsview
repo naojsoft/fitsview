@@ -78,7 +78,8 @@ if __name__ == "__main__":
         add_plugin_spec(spec)
 
     # construct viewer builder
-    viewer = g_main.ReferenceViewer(layout=g_main.default_layout)
+    viewer = g_main.ReferenceViewer(layout=g_main.default_layout,
+                                    appname="Fitsview")
     viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP'],
                                except_local=['TVMark', 'TVMask',
                                              'ChangeHistory'])

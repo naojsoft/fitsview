@@ -123,7 +123,8 @@ if __name__ == "__main__":
         add_plugin_spec(spec)
 
     # construct viewer builder
-    viewer = g_main.ReferenceViewer(layout=default_layout)
+    viewer = g_main.ReferenceViewer(layout=default_layout,
+                                    appname="Guideview")
     viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP',
                                               'Thumbs', 'Blink',
                                               #'Contents', 'FBrowser'
