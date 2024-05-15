@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     # construct viewer builder
     viewer = g_main.ReferenceViewer(layout=g_main.default_layout,
-                                    appname="Fitsview")
+                                    appname="fitsview")
     viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP'],
                                except_local=['TVMark', 'TVMask',
                                              'ChangeHistory'])
