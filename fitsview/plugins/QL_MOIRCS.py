@@ -101,6 +101,8 @@ class QL_MOIRCS(ObsLog.ObsLog):
 
         self.w.obslog_dir.set_text("{}/Procedure/MOIRCS".format(os.environ['HOME']))
 
+        self.w.auto_save.set_state(True)
+
     def replace_kwds(self, header):
         d = super().replace_kwds(header)
         d['SLIT'] = d.get('SLIT', '---').strip()
