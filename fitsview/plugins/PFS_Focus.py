@@ -353,9 +353,9 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
     def edit_table_cb(self, widget, selection):
         bnch = list(selection.values())[0]
         self.w.imname.set_text(bnch.imname)
-        self.w.z.set_text(str(bnch.z))
-        self.w.lsize.set_text(str(bnch.lsize))
-        self.w.rsize.set_text(str(bnch.rsize))
+        self.w.z.set_text("{z:.4f}".format(z=bnch.z))
+        self.w.lsize.set_text("{lsize:.4f}".format(lsize=bnch.lsize))
+        self.w.rsize.set_text("{rsize:.4f}".format(rsize=bnch.rsize))
 
     def delete_entries(self):
         """Delete the selected entries from the table."""
@@ -518,7 +518,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.logger.info(f'x {x} y {y}')
 
         best_z = x
-        self.w.best_z.set_text("Z = %.4f" % best_z)
+        self.w.best_z.set_text(f"Z = {best_z:.4f}")
         self.logger.info(f'best_z {best_z}')
 
         self.focus_plot.draw()
@@ -705,7 +705,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.left.obj.objects[1].y = obj.y
 
             p = self.setup_side(obj, self.left.obj, self.left.bbox)
-            self.w.lsize.set_text(str(p.starsize))
+            self.w.lsize.set_text("{lsize:.4f}".format(lsize=p.starsize))
 
         elif obj is self.right.obj.objects[0]:
             x1, y1, x2, y2 = self.right.bbox.get_llur()
@@ -717,7 +717,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.right.obj.objects[1].y = obj.y
 
             q = self.setup_side(obj, self.right.obj, self.right.bbox)
-            self.w.rsize.set_text(str(q.starsize))
+            self.w.rsize.set_text("{rsize:.4f}".format(rsize=q.starsize))
 
         #self.redo()
 
