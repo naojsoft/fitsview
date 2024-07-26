@@ -1,8 +1,6 @@
 #
 # PFS_Focus.py -- Region selection plugin for fits viewer
 #
-# E. Jeschke
-#
 """Do a focus fitting for PFS images.
 
 **Plugin Type: Local**
@@ -637,6 +635,8 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         point = obj.objects[1]
         try:
             image = self.fitsimage.get_image()
+            if image is None:
+                raise ValueError("No image is present in viewer")
 
             qualsize = self.iqcalc.qualsize
             qs = qualsize(image, x1, y1, x2, y2,

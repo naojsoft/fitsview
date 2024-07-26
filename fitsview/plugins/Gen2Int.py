@@ -64,7 +64,6 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         self.disp_cache = self.settings.get('disp_cache')
 
         self.host = ro.get_myhost(short=True)
-        #self.host = 'localhost'
         self.ev_quit = threading.Event()
         self.queue = Queue.Queue()
 
@@ -72,6 +71,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         self.channels = ['fits', 'sessions']
         self.insnames = []
         self.inscodes = []
+        self.propid = None
 
         ro.init([self.host])
 
@@ -291,6 +291,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             image.set(path=filepath)
 
         header = image.get_header()
+        propid = header.get('PROP-ID', 'xxxxx').strip()
 
         try:
             if frameid:
@@ -312,16 +313,19 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         image.set(name=name, chname=channel)
 
         wsname = self.get_wsname(channel)
+        bnch = Bunch.Bunch(filepath=filepath,
+                           chname=channel, wsname=wsname,
+                           imname=name, image=image)
 
         # Display image.  If the wait parameter is False then don't wait
         # for the image to load into the viewer
-        if not wait:
-            self.queue.put(Bunch.Bunch(chname=channel, wsname=wsname,
-                                       imname=name, image=image))
-        else:
-            self.fv.gui_call(self.fv.add_image, name, image, chname=channel)
+        if display_image:
+            if not wait:
+                self.queue.put(bnch)
+            else:
+                self.fv.gui_call(self.fv.add_image, name, image, chname=channel)
 
-        return image
+        return bnch
 
     ## def gui_load_file(self):
     ##     """Runs dialog to read in a command file into the command window.
@@ -330,13 +334,59 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
     ##     self.fv.gui_load_file(initialdir=initialdir)
 
+    def _check_frameid(self, frameid):
+        # check if this frame is from an instrument allocated to our session;
+        # if not, don't display it
+        fr = Frame(frameid)
+        if fr.inscode not in self.inscodes:
+            insname = self.insconfig.getNameByCode(fr.inscode)
+            self.logger.info("frame {} for instrument '{}', not in allocated instruments: {}--skipping".format(frameid, insname, self.insnames))
+            return False
+
+        return True
+
+    def _check_propid(self, propid):
+        # check if this frame is from a PROP-ID allocated to our session;
+        # if not, don't display it
+        if propid != self.propid:
+            self.logger.info("PROP-ID '{}' doesn't match session PROP-ID: {}--skipping".format(propid, self.propid))
+            return False
+
+        return True
+
     def load_images_loop(self):
         self.logger.info("load images loop starting up...")
         self.fv.assert_nongui_thread()
 
+        filepath = None
         while not self.ev_quit.is_set():
             try:
                 bnch = self.queue.get(block=True, timeout=0.1)
+
+                if 'frameid' in bnch and not self._check_frameid(bnch.frameid):
+                    # we know the frameid beforehand and can check it against
+                    # the current instrument
+                    continue
+
+                if 'propid' in bnch and not self._check_propid(bnch.propid):
+                    # we know the frameid beforehand and can check it against
+                    # the current session propid
+                    continue
+
+                if bnch.get('image', None) is None:
+                    # need to open the image here
+                    filepath = bnch.get('filepath', None)
+                    assert filepath is not None
+
+                    bnch = self.open_fits(filepath, display_image=False)
+
+                    if 'frameid' in bnch and not self._check_frameid(bnch.frameid):
+                        # we didn't know the frameid beforehand
+                        continue
+
+                    if 'propid' in bnch and not self._check_propid(bnch.propid):
+                        # we didn't know the propid beforehand
+                        continue
 
                 # create this workspace if it does not exist
                 wsname = bnch.wsname
@@ -362,7 +412,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 continue
 
             except Exception as e:
-                self.logger.error(f"Error displaying image '{bnch.imname}': {e}",
+                self.logger.error(f"Error displaying image '{filepath}': {e}",
                                   exc_info=True)
 
         self.logger.info("load images loop terminating...")
@@ -587,6 +637,11 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                          for name in self.insnames]
         self.logger.info("allocated inscodes: {}".format(str(self.inscodes)))
 
+        # PROP-ID we should pay attention to
+        propid = info.get('propid', None)
+        self.logger.info(f"PROP-ID in session is: {propid}")
+        self.propid = propid
+
 
     #############################################################
     # Methods called when we are notified via monitor of a new
@@ -600,7 +655,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         try:
             self.logger.debug("Attempting to display '%s'" % (fitspath))
-            image = self.open_fits(fitspath, frameid=frameid, wait=False)
+            image = self.open_fits(fitspath, frameid=frameid,
+                                   display_image=True, wait=False)
 
         except IOError as e:
             self.logger.error("Error opening FITS file '%s': %s" % (
@@ -609,25 +665,43 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         return ro.OK
 
-    def file_notify(self, filepath):
+    def file_notify(self, bnch):
         """
         This gets called when we are being notified of a new file.
         """
-        self.logger.info("Notified of new file: %s" % (filepath))
-        frame = Frame(path=filepath)
+        monpath = bnch.path
 
-        if frame.inscode in ('HSC', 'SUP'):
-            # Don't display raw HSC frames; mosaic plugin will display them
+        # Find out the source of this information by examining the path
+        match = regex_frame.match(monpath)
+        if not match:
             return
 
-        frameid = str(frame)
+        frameid = match.group(1)
+        vals = bnch.value
 
-        try:
-            self.display_fitsfile(filepath, frameid=frameid)
+        if 'fitspath' not in vals:
+            return
+        filepath = vals['fitspath']
+        self.logger.info(f"Notified of new file: {filepath}")
 
-        except Exception as e:
-            self.logger.error("Error displaying '%s': %s" % (
-                filepath, str(e)))
+        # check if this frame is from an instrument allocated to our session;
+        # if not, don't display it
+        if not self._check_frameid(frameid):
+            return
+
+        fr = Frame(frameid)
+        if fr.inscode in ('HSC', 'SUP'):
+            # Don't display raw HSC frames
+            return
+
+        # check if this frame is from a PROP-ID allocated to our session;
+        # if not, don't display it
+        propid = vals.get('PROP-ID', 'xxxxx')
+        if not self._check_propid(propid):
+            return
+
+        bnch = Bunch.Bunch(filepath=filepath, propid=propid, frameid=frameid)
+        self.queue.put(bnch)
 
     def arr_fitsinfo(self, payload, name, channels):
         """Called via the monitor if new information becomes available
@@ -643,28 +717,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 str(payload), str(e)))
             return
 
-        # Find out the source of this information by examining the path
-        match = regex_frame.match(bnch.path)
-        if match:
-            frameid = match.group(1)
-            vals = bnch.value
-
-            try:
-                fitspath = vals['fitspath']
-            except KeyError:
-                return
-
-            # check if this frame is from an instrument allocated to our
-            # session; if not, don't display it
-            fr = Frame(frameid)
-            if fr.inscode not in self.inscodes:
-                insname = self.insconfig.getNameByCode(fr.inscode)
-                self.logger.info("frame {} for instrument '{}', not in allocated instruments: {}--skipping".format(frameid, insname, self.insnames))
-                return
-
-            self.fv.nongui_do(self.file_notify, fitspath)
-            #self.fv.gui_do(self.file_notify, fitspath)
-
+        #self.file_notify(bnch)
+        self.fv.nongui_do(self.file_notify, bnch)
 
     def arr_taskinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
