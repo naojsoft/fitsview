@@ -72,7 +72,7 @@ if __name__ == "__main__":
               start=False, category='Subaru', enabled=True),
         Bunch(module='QL_PFS', workspace='dialogs', ptype='global', start=False,
               category='Subaru', enabled=True),
-        Bunch(module='MOIRCSTrend', workspace='dialogs', ptype='local',
+        Bunch(module='MOIRCSTrend', workspace='dialogs', ptype='global',
               category='Subaru', enabled=True),
         ]:
         add_plugin_spec(spec)

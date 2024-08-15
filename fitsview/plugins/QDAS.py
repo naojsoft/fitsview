@@ -53,6 +53,14 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # For image FWHM type calculations
         self.iqcalc = g2calc.IQCalc(self.logger)
 
+        # For instruments that want special multi-channel setups
+        # (e.g. a channel for each detector)
+        self.ins_chmap = {
+            #'FOCAS': ['FOCAS_2', 'FOCAS_1'],
+            'MOIRCS': ['MOIRCS_2', 'MOIRCS_1'],
+            'SUKA': ['SUKA_2', 'SUKA_1'],
+            }
+
     #############################################################
     #    Here come the QDAS commands
     #############################################################
@@ -151,8 +159,6 @@ class QDAS(GingaPlugin.GlobalPlugin):
                 errmsg = "Automatic region selection failed: %s" % str(e)
                 self.logger.error(errmsg)
                 self.play_soundfile(snd_region_failure, priority=19)
-
-        #elif select_mode in ('manual', ):
 
         # Invoke the operation manually
         chinfo.opmon.start_plugin_future(chname, pluginName,
@@ -680,30 +686,27 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
         self.fv.assert_gui_thread()
 
-        instrument_name = instrument_name.upper()
-
-        chname1 = instrument_name
-        ch1_exists = self.fv.has_channel(chname1)
-
-        chname2 = '%s_Online' % (instrument_name)
-        ch2_exists = self.fv.has_channel(chname2)
+        insname = instrument_name.upper()
+        src_chnames = self.ins_chmap.get(insname, [insname])
+        chname2 = '%s_Online' % (insname)
 
         p = future.get_data()
 
         if motor == 'ON':
-            # Create these channels if they does not exist
-            if not ch1_exists:
-                self.fv.add_channel(chname1)
-            if not ch2_exists:
+            # Create these channels if they do not exist
+            for chname in src_chnames:
+                if not self.fv.has_channel(chname):
+                    self.fv.add_channel(chname)
+            if not self.fv.has_channel(chname2):
                 self.fv.add_channel(chname2)
 
         elif motor == 'OFF':
             # Delete these channels if they exists
-            if ch1_exists:
-                self.fv.delete_channel(chname1)
-            if ch2_exists:
+            for chname in src_chnames:
+                if self.fv.has_channel(chname):
+                    self.fv.delete_channel(chname)
+            if self.fv.has_channel(chname2):
                 self.fv.delete_channel(chname2)
-
 
         p.setvals(result='ok')
         future.resolve(0)
@@ -726,7 +729,6 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
     def _get_framepath(self, frameid, instrument_name):
 
-        #if frameid != 'DEFAULT':
         DATAHOME = os.environ['DATAHOME']
         path = os.path.join(DATAHOME, instrument_name,
                             '%s.fits' % frameid)
@@ -758,22 +760,27 @@ class QDAS(GingaPlugin.GlobalPlugin):
             raise QDASError(errmsg)
 
 
-    def load_frame(self, src_chname, imagename, dst_chname):
-        """Load image named (imagename) from channel named (chname1) into
-        channel named (chname2).
+    def load_frame(self, insname, imagename, dst_chname):
+        """Load image named (imagename) from instrument named (insname) into
+        channel named (dst_chname).
         """
         image = None
-        if self.fv.has_channel(src_chname):
-            chinfo1 = self.fv.get_channel(src_chname)
-            try:
-                image = chinfo1.get_loaded_image(imagename)
-            except KeyError:
-                # image must have gotten bumped out, or never was loaded
-                pass
+        # default is for a single channel named after the instrument
+        src_chnames = self.ins_chmap.get(insname, [insname])
+        for src_chname in src_chnames:
+            if self.fv.has_channel(src_chname):
+                chinfo1 = self.fv.get_channel(src_chname)
+                try:
+                    image = chinfo1.get_loaded_image(imagename)
+                except KeyError:
+                    # image must have gotten bumped out, or never was loaded
+                    pass
+            if image is not None:
+                break
 
         try:
             if image is None:
-                path = self._get_framepath(imagename, src_chname)
+                path = self._get_framepath(imagename, insname)
                 self.logger.info("Image '%s' is no longer in memory; attempting to load from '%s'" % (
                     imagename, path))
 
@@ -797,13 +804,6 @@ class QDAS(GingaPlugin.GlobalPlugin):
             self.logger.error(errmsg)
             raise QDASError(errmsg)
 
-
-    ## def add_image(self, viewer, chname, image):
-    ##     chinfo = self.fv.get_channel(chname)
-
-    ##     data = image.get_data()
-    ##     # Get metadata for mouse-over tooltip
-    ##     header = image.get_header()
 
     def _mark(self, chname, canvas, x, y, mode, mark, size, color):
         # mode is CLEAR | DRAW

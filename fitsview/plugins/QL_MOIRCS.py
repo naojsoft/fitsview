@@ -52,8 +52,7 @@ class QL_MOIRCS(ObsLog.ObsLog):
     def __init__(self, fv):
         super().__init__(fv)
 
-        self.chname = 'MOIRCS'
-        self.chnames = ['MOIRCS_Norm_Cam', 'MOIRCS_Norm_Spg']
+        self.chnames = ['MOIRCS_1', 'MOIRCS_2']
         self.file_prefixes = ['MCSA']
 
         # columns to be shown in the table

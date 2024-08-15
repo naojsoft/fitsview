@@ -229,6 +229,10 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             else:
                 chname = fr.inscode + fr.frametype
 
+        elif fr.inscode in ['MCS', 'SUK']:
+            det_id = int(header['DET-ID'])
+            chname = chname + f'_{det_id}'
+
         return chname
 
     def get_wsname(self, chname):
@@ -240,6 +244,13 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 # spectrograph indicated by last character of channel name
                 spg = chname[-1]
                 wsname = f"PFS_{spg}"
+
+        #elif chname.startswith('FOCAS'):
+        #    wsname = 'FOCAS'
+        elif chname.startswith('MOIRCS'):
+            wsname = 'MOIRCS'
+        elif chname.startswith('SUKA'):
+            wsname = 'SUKA'
 
         return wsname
 
@@ -324,7 +335,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             if not wait:
                 self.queue.put(bnch)
             else:
-                self.fv.gui_call(self.fv.add_image, name, image, chname=channel)
+                self.fv.gui_call(self.fv.add_image, name, image,
+                                 chname=channel, wsname=wsname)
 
         return bnch
 
@@ -388,12 +400,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                             continue
 
                 # <-- ok to display this file and image is opened
-
-                # create this workspace if it does not exist
                 wsname = bnch.wsname
-                if not self.fv.ds.has_ws(wsname):
-                    self.fv.gui_call(self.fv.add_workspace, wsname, 'tabs',
-                                     inSpace='channels', use_toolbar=True)
 
                 # create this channel if it does not exist
                 chname = bnch.chname

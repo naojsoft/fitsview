@@ -203,9 +203,6 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                 lbl.crdmap = viewer.get_coordmap('window')
                 canvas = viewer.get_canvas()
                 canvas.add(lbl, redraw=False)
-                settings = viewer.get_settings()
-                settings.set(enter_focus=True) #, channel_follows_focus=True)
-                #viewer.add_callback('focus', self.focus_cb)
 
         # create "big picture" FOV channel
         chname = self.fov_chname

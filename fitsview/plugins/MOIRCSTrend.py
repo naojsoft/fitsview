@@ -3,10 +3,10 @@
 """
 A plugin for generating a plot of the values along a line or path.
 
-**Plugin Type: Local**
+**Plugin Type: Global**
 
-``MOIRCSTrend`` is a local plugin, which means it is associated with a
-channel.  An instance can be opened for each channel.
+``MOIRCSTrend`` is a global plugin, which means only one instance can
+be opened.
 
 **Usage**
 
@@ -38,10 +38,10 @@ from g2base.astro.frame import Frame
 __all__ = ['MOIRCSTrend']
 
 
-class MOIRCSTrend(GingaPlugin.LocalPlugin):
+class MOIRCSTrend(GingaPlugin.GlobalPlugin):
 
-    def __init__(self, fv, fitsimage):
-        super().__init__(fv, fitsimage)
+    def __init__(self, fv):
+        super().__init__(fv)
 
         self._split_sizes = [400, 500]
         self._data = dict(det1=SimpleNamespace(color='green', points={}),
@@ -113,7 +113,7 @@ class MOIRCSTrend(GingaPlugin.LocalPlugin):
         self.gui_up = True
 
     def close(self):
-        self.fv.stop_local_plugin(self.chname, str(self))
+        self.fv.stop_global_plugin(str(self))
         return True
 
     def start(self):
@@ -135,11 +135,10 @@ class MOIRCSTrend(GingaPlugin.LocalPlugin):
         # remove the canvas from the image
         self.fv.show_status("")
 
-    def redo(self):
+    def redo(self, channel, image):
         """This is called when a new image arrives or the data in the
         existing image changes.
         """
-        image = self.fitsimage.get_image()
         path = image.get('path', None)
         if path is None:
             return

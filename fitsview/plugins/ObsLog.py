@@ -38,6 +38,8 @@ from collections import OrderedDict
 from ginga import GingaPlugin, AstroImage
 from ginga.gw import Widgets
 
+from g2cam.INS import INSdata
+
 __all__ = ['ObsLog']
 
 
@@ -46,7 +48,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
     def __init__(self, fv):
         super(ObsLog, self).__init__(fv)
 
-        self.chname = None
+        self.chnames = []
         self.file_prefixes = []
         self.auto_scroll = True
         self.sort_hdr = 'FrameID'
@@ -77,6 +79,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.rpt_columns = []
         self.col_widths = []
         self.memo_txt = ''
+        self.insconfig = INSdata()
 
         self.col_info = self.settings.get('column_info', [])
         # this will set rpt_columns and col_widths
@@ -226,7 +229,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         pass
 
     def incoming_data_cb(self, fv, chname, image, info):
-        if chname != self.chname:
+        if chname not in self.chnames:
             return
 
         imname = image.get('name', None)
@@ -366,20 +369,32 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.view_image(frameid, info)
 
     def view_image(self, frameid, info):
-        chname = self.chname
-        channel = self.fv.get_current_channel()
-        if channel.name != chname:
-            channel = self.fv.get_channel_on_demand(chname)
-            self.fv.change_channel(chname)
+        chname = None
+        # search for this frame in our channels; if we find it
+        # switch to that image
+        for _chname in self.chnames:
+            if self.fv.has_channel(_chname):
+                channel = self.fv.get_channel(_chname)
+                if frameid in channel:
+                    chname = _chname
+                    channel.switch_name(frameid)
+                    break
 
-        if frameid in channel:
-            channel.switch_name(frameid)
-        else:
-            # TODO: record the absolute path to the file
-            filepath = os.path.join('/gen2', 'share', 'data', chname,
+        if chname is None:
+            # <-- we've apparently never loaded this file
+            insname = self.insconfig.getNameByFrameId(frameid)
+            filepath = os.path.join('/gen2', 'share', 'data', insname,
                                     frameid + '.fits')
-            self.logger.info(f"attempting to load '{filepath}'...")
-            self.fv.load_file(filepath, chname=chname)
+            self.logger.info(f"attempting to load '{filepath}' via Gen2Int")
+            pl_obj = self.fv.gpmon.get_plugin('Gen2Int')
+            bnch = pl_obj.open_fits(filepath, frameid=frameid,
+                                    display_image=True, wait=True)
+            chname = bnch.chname
+
+        # switch channels if we are not showing the desired one
+        _channel = self.fv.get_current_channel()
+        if _channel.name != chname:
+            self.fv.change_channel(chname)
 
     def select_cb(self, widget, d):
         res = self.get_selected()

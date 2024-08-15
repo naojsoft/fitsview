@@ -50,8 +50,8 @@ class QL_IRCS(ObsLog.ObsLog):
     def __init__(self, fv):
         super(QL_IRCS, self).__init__(fv)
 
-        self.chname = 'IRCS'
-        self.chnames = ['IRCS_Norm_Cam', 'IRCS_Norm_Spg']
+        self.chnames = ['IRCS']
+        self.norm_chnames = ['IRCS_Norm_Cam', 'IRCS_Norm_Spg']
         self.file_prefixes = ['IRCA']
 
         # columns to be shown in the table
@@ -168,7 +168,7 @@ class QL_IRCS(ObsLog.ObsLog):
         except Exception as e:
             self.logger.error("Error getting DET-ID: {}".format(e))
             det_id = 0
-        chname = self.chnames[det_id]
+        chname = self.norm_chnames[det_id]
 
         channel = self.fv.get_channel_on_demand(chname)
 
@@ -214,7 +214,7 @@ class QL_IRCS(ObsLog.ObsLog):
         return new_image
 
     def view_image(self, frameid, info):
-        chname = self.chnames[0] if info['DET-ID'] == 'CAM' else self.chnames[1]
+        chname = self.norm_chnames[0 if info['DET-ID'] == 'CAM' else 1]
         channel = self.fv.get_current_channel()
         if channel.name != chname:
             channel = self.fv.get_channel_on_demand(chname)
