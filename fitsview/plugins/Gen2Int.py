@@ -298,7 +298,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 name = frameid
             else:
                 (name, ext) = os.path.splitext(filename)
-                frameid = header['FRAMEID'].strip()
+                frameid = header.get('FRAMEID', 'N/A').strip()
 
             chname = self.insconfig.getNameByFrameId(frameid)
 
@@ -314,6 +314,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
         wsname = self.get_wsname(channel)
         bnch = Bunch.Bunch(filepath=filepath,
+                           frameid=frameid, propid=propid,
                            chname=channel, wsname=wsname,
                            imname=name, image=image)
 
@@ -326,13 +327,6 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 self.fv.gui_call(self.fv.add_image, name, image, chname=channel)
 
         return bnch
-
-    ## def gui_load_file(self):
-    ##     """Runs dialog to read in a command file into the command window.
-    ##     """
-    ##     initialdir = os.environ['DATAHOME']
-
-    ##     self.fv.gui_load_file(initialdir=initialdir)
 
     def _check_frameid(self, frameid):
         # check if this frame is from an instrument allocated to our session;
@@ -362,31 +356,38 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         while not self.ev_quit.is_set():
             try:
                 bnch = self.queue.get(block=True, timeout=0.1)
+                filepath = bnch.get('filepath', None)
+                assert filepath is not None
 
                 if 'frameid' in bnch and not self._check_frameid(bnch.frameid):
                     # we know the frameid beforehand and can check it against
-                    # the current instrument
+                    # the current instrument allocations
                     continue
 
-                if 'propid' in bnch and not self._check_propid(bnch.propid):
-                    # we know the frameid beforehand and can check it against
-                    # the current session propid
-                    continue
+                # if 'propid' in bnch and not self._check_propid(bnch.propid):
+                #     # we know the propid beforehand and can check it against
+                #     # the current session propid allocation
+                #     continue
 
                 if bnch.get('image', None) is None:
-                    # need to open the image here
+                    # need to open the file and create the image here
                     filepath = bnch.get('filepath', None)
                     assert filepath is not None
 
                     bnch = self.open_fits(filepath, display_image=False)
 
                     if 'frameid' in bnch and not self._check_frameid(bnch.frameid):
-                        # we didn't know the frameid beforehand
+                        # we didn't know the frameid before opening the file;
+                        # check against the current instrument allocations
                         continue
 
-                    if 'propid' in bnch and not self._check_propid(bnch.propid):
-                        # we didn't know the propid beforehand
-                        continue
+                    if bnch.chname not in ['AO188']:
+                        if 'propid' in bnch and not self._check_propid(bnch.propid):
+                            # we didn't know the propid before opening the file;
+                            # check against the current session propid allocation
+                            continue
+
+                # <-- ok to display this file and image is opened
 
                 # create this workspace if it does not exist
                 wsname = bnch.wsname
@@ -403,8 +404,9 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                     settings.set(numImages=1, raisenew=False,
                                  focus_indicator=False)
                     self.fv.gui_call(self.fv.add_channel, chname,
-                                 settings=settings, workspace=wsname)
+                                     settings=settings, workspace=wsname)
 
+                # add our image to the channel
                 self.fv.gui_do(self.fv.add_image, bnch.imname, bnch.image,
                                chname=chname)
 
@@ -512,6 +514,9 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         return ro.OK
 
     def callGlobalPlugin(self, tag, pluginName, methodName, args, kwdargs):
+        """Called from Gen2 service 'g2ag' for operations in the
+        'guideview' viewer, mostly VGW type operations.
+        """
 
         self.logger.debug("Command received: plugin=%s method=%s args=%s kwdargs=%s tag=%s" % (
                 pluginName, methodName, str(args), str(kwdargs), tag))
@@ -525,17 +530,12 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 methodName, pluginName))
         method = getattr(obj, methodName)
 
-        ## # Make a future that will be resolved by the GUI thread
-        ## future = Future.Future(data=Bunch.Bunch(tag=tag))
-        ## future.freeze(method, *args, **kwdargs)
-        ## self.fv.gui_do_future(future)
-
-        ## # Wait for result
-        ## return future.wait()
-        #return self.fv.gui_call(method, *args, **kwdargs)
         return method(*args, **kwdargs)
 
     def callGlobalPlugin2(self, tag, pluginName, methodName, args, kwdargs):
+        """Called from various Gen2 task files for operations in the
+        'fitsview' viewer, mostly QDAS type operations.
+        """
 
         self.logger.debug("Command received: plugin=%s method=%s args=%s kwdargs=%s tag=%s" % (
                 pluginName, methodName, str(args), str(kwdargs), tag))
@@ -552,7 +552,6 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         # Make a future that will be resolved by the GUI thread
         p = Bunch.Bunch()
         future = Future.Future(data=p)
-        #future.freeze(method, *args, **kwdargs)
         newargs = [tag, future]
         newargs.extend(list(args))
         future.add_callback('resolved',
@@ -694,13 +693,16 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             # Don't display raw HSC frames
             return
 
+        bnch = Bunch.Bunch(filepath=filepath, frameid=frameid)
+
         # check if this frame is from a PROP-ID allocated to our session;
         # if not, don't display it
-        propid = vals.get('PROP-ID', 'xxxxx')
-        if not self._check_propid(propid):
-            return
+        propid = vals.get('PROP-ID', None)
+        if propid is not None:
+            bnch.propid = propid
+            if not self._check_propid(propid):
+                return
 
-        bnch = Bunch.Bunch(filepath=filepath, propid=propid, frameid=frameid)
         self.queue.put(bnch)
 
     def arr_fitsinfo(self, payload, name, channels):
