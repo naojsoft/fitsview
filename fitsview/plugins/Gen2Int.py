@@ -309,7 +309,9 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 name = frameid
             else:
                 (name, ext) = os.path.splitext(filename)
-                frameid = header.get('FRAMEID', 'N/A').strip()
+                #frameid = header.get('FRAMEID', 'N/A').strip()
+                fr = Frame(filename)
+                frameid = fr.frameid
 
             chname = self.insconfig.getNameByFrameId(frameid)
 
@@ -393,11 +395,12 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                         # check against the current instrument allocations
                         continue
 
-                    if bnch.chname not in ['AO188']:
-                        if 'propid' in bnch and not self._check_propid(bnch.propid):
-                            # we didn't know the propid before opening the file;
-                            # check against the current session propid allocation
-                            continue
+                    # TODO: PFS has issues with no PROP-ID in the primary header
+                    # if bnch.chname not in ['AO188']:
+                    #     if 'propid' in bnch and not self._check_propid(bnch.propid):
+                    #         # we didn't know the propid before opening the file;
+                    #         # check against the current session propid allocation
+                    #         continue
 
                 # <-- ok to display this file and image is opened
                 wsname = bnch.wsname

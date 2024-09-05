@@ -23,8 +23,6 @@ from astropy.io import fits
 from ginga import GingaPlugin
 from ginga.AstroImage import AstroImage
 
-from g2base.astro.frame import Frame
-
 
 class QL_PFS(GingaPlugin.GlobalPlugin):
 
@@ -68,16 +66,20 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
             self.logger.info("No path set for image--skipping")
             return
 
-        fr = Frame(path)
-        if fr.inscode != 'PFS':
+        name = image.get('name', None)
+        if name is None:
+            self.logger.info("No name set for image--skipping")
+            return
+
+        if not name.startswith('PFS'):
             self.logger.debug("Not a PFS file--skipping")
             return
 
-        if fr.frametype == 'B':
+        if name.startswith('PFSB') and not '_QL' in name:
             #a_img = self._reduce_ql(path)
             self.fv.nongui_do(self._reduce_ql, channel, path)
         else:
-            self.logger.debug("Not a PFS 'B' file--nothing to do")
+            self.logger.debug("Not a raw PFS 'B' file--nothing to do")
 
     def display_image(self, channel, a_img):
         channel.add_image(a_img)

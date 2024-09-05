@@ -64,11 +64,7 @@ class MOIRCSTrend(GingaPlugin.GlobalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        # Make the cuts plot
-        box, sw, orientation = Widgets.get_oriented_box(container,
-                                                        orientation=self.settings.get('orientation', None))
-        box.set_margins(4, 4, 4, 4)
-        box.set_spacing(2)
+        orientation = self.settings.get('orientation', 'vertical')
 
         paned = Widgets.Splitter(orientation=orientation)
         self.w.splitter = paned
@@ -77,22 +73,34 @@ class MOIRCSTrend(GingaPlugin.GlobalPlugin):
         nb = Widgets.TabWidget(tabpos='top')
         paned.add_widget(Widgets.hadjust(nb, orientation))
 
+        vbox = Widgets.VBox()
+        vbox.set_border_width(4)
+        vbox.set_spacing(2)
+
+        # Make the trend plot
         self.trend_plot = plots.Plot(logger=self.logger,
                                      width=400, height=400)
-        self.plot = Plot.PlotWidget(self.trend_plot)
-        self.plot.resize(400, 400)
+        pw = Plot.PlotWidget(self.trend_plot)
+        pw.resize(400, 400)
         ax = self.trend_plot.add_axis()
         ax.grid(True)
 
-        paned.add_widget(sw)
+        vbox.add_widget(pw, stretch=1)
+
+        captions = (("Reset trend", 'button'),
+                    )
+        w, b = Widgets.build_info(captions, orientation=orientation)
+        self.w.update(b)
+        b.reset_trend.add_callback('activated', self.reset_trend_cb)
+        b.reset_trend.set_tooltip("Start plot over with new data only")
+        vbox.add_widget(w, stretch=0)
+
+        nb.add_widget(vbox, title="Trend")
+
+        paned.add_widget(Widgets.Label(''))
         paned.set_sizes(self._split_sizes)
 
         top.add_widget(paned, stretch=5)
-
-        # Add plot to its tab
-        vbox_trend = Widgets.VBox()
-        vbox_trend.add_widget(self.plot, stretch=1)
-        nb.add_widget(vbox_trend, title="Trend")
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -228,6 +236,11 @@ class MOIRCSTrend(GingaPlugin.GlobalPlugin):
             self.add_legend()
 
         self.trend_plot.draw()
+
+    def reset_trend_cb(self, w):
+        self._data = dict(det1=SimpleNamespace(color='green', points={}),
+                          det2=SimpleNamespace(color='purple', points={}))
+        self.replot_all()
 
     def __str__(self):
         return 'moircstrend'
