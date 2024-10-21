@@ -56,7 +56,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         # For instruments that want special multi-channel setups
         # (e.g. a channel for each detector)
         self.ins_chmap = {
-            #'FOCAS': ['FOCAS_2', 'FOCAS_1'],
+            'FOCAS': ['FOCAS_2', 'FOCAS_1'],
             'MOIRCS': ['MOIRCS_2', 'MOIRCS_1'],
             'SUKA': ['SUKA_2', 'SUKA_1'],
             }

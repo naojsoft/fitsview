@@ -103,9 +103,10 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
         a_img = AstroImage(logger=self.logger)
         imname = f"{p.stem}_QL"
         if self.cache_dir is None:
-            impath = None
+            impath, no_thumb = None, True
         else:
             impath = self.cache_dir / (imname + '.fits')
+            no_thumb = False
             # check if we have reduced this before--if so, just load
             # up our cached version
             if impath.exists():
@@ -113,8 +114,6 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
                 a_img.set(name=imname)
                 self.fv.gui_do(self.display_image, channel, a_img)
                 return
-
-        a_img.set(name=imname, path=str(impath))
 
         # use astropy.io.fits because we can explicitly set memmap and
         # lazy loading of HDUs
@@ -134,6 +133,8 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
                 # what header should we use for this?
                 a_img.update_keywords(pfsb_f[f'IMAGE_{nreads}'].header)
 
+            a_img.set(name=imname)
+
             # force close so no lingering
             try:
                 pfsb_f.close()
@@ -143,9 +144,10 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
             if impath is not None and not impath.exists():
                 try:
                     a_img.save_as_file(impath)
+                    a_img.set(path=str(impath), nothumb=False)
                 except Exception as e:
                     self.logger.warning(f"couldn't save {imname} as {impath}: {e}")
-                    a_img.set(path=None)
+                    a_img.set(path=None, nothumb=True)
 
         self.fv.gui_do(self.display_image, channel, a_img)
 

@@ -229,7 +229,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             else:
                 chname = fr.inscode + fr.frametype
 
-        elif fr.inscode in ['MCS', 'SUK']:
+        elif fr.inscode in ['MCS', 'FCS', 'SUK']:
             det_id = int(header['DET-ID'])
             chname = chname + f'_{det_id}'
 
@@ -245,8 +245,8 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 spg = chname[-1]
                 wsname = f"PFS_{spg}"
 
-        #elif chname.startswith('FOCAS'):
-        #    wsname = 'FOCAS'
+        elif chname.startswith('FOCAS'):
+            wsname = 'FOCAS'
         elif chname.startswith('MOIRCS'):
             wsname = 'MOIRCS'
         elif chname.startswith('SUKA'):

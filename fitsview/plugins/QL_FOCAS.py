@@ -5,13 +5,16 @@
 # Please see the file LICENSE.txt for details.
 #
 import os
+import pathlib
+import threading
 
 from ginga import GingaPlugin
+from ginga.misc import Bunch
 from ginga.gw import Widgets, Viewers
 from ginga.AstroImage import AstroImage
 
 try:
-    from naoj.focas import biassub, reconstruct_image as recon
+    from naoj.focas import biassub
 except ImportError:
     raise ImportError("Please install naojutils with the 'focas' bits")
 
@@ -20,124 +23,116 @@ from g2base.astro.frame import Frame
 __all__ = ['QL_FOCAS']
 
 
-class QL_FOCAS(GingaPlugin.GlobalPlugin):
+import ObsLog
+
+class QL_FOCAS(ObsLog.ObsLog):
     """
     QL_FOCAS
-    ======
+    ========
     FOCAS Gen2 quick look plugin.
-
-    Usage
-    -----
     """
 
     def __init__(self, fv):
-        # superclass defines some variables for us, like logger
-        super(QL_FOCAS, self).__init__(fv)
+        super().__init__(fv)
 
-        self._wd = 300
-        self._ht = 300
-        self.q_image = None
-        self.fitsimage = None
+        self.chnames = ['FOCAS_1', 'FOCAS_2']
+        self.file_prefixes = ['FCSA']
+        #self.sort_hdr = 'ExpID'
+
+        # columns to be shown in the table
+        column_info = [dict(col_title=self.sort_hdr, fits_kwd='FRAMEID'),
+                       dict(col_title="Obs Mod", fits_kwd='OBS-MOD'),
+                       dict(col_title="Datatype", fits_kwd='DATA-TYP'),
+                       dict(col_title="Object", fits_kwd='OBJECT'),
+                       dict(col_title="Date(UT)", fits_kwd='DATE-OBS'),
+                       dict(col_title="Time(HST)", fits_kwd='HST-STR'),
+                       #dict(col_title="PropId", fits_kwd='PROP-ID'),
+                       dict(col_title="Exp Time", fits_kwd='EXPTIME'),
+                       dict(col_title="Disperser", fits_kwd='DISPERSR'),
+                       dict(col_title="Slit", fits_kwd='SLIT'),
+                       dict(col_title="Bin Spatial", fits_kwd='BIN-FCT1'),
+                       dict(col_title="Bin Spectrum", fits_kwd='BIN-FCT2'),
+                       dict(col_title="Filter01", fits_kwd='FILTER01'),
+                       dict(col_title="Filter02", fits_kwd='FILTER02'),
+                       dict(col_title="Filter03", fits_kwd='FILTER03'),
+                       dict(col_title="Air Mass", fits_kwd='AIRMASS'),
+                       #dict(col_title="UT", fits_kwd='UT'),
+                       dict(col_title="Pos Ang", fits_kwd='INST-PA'),
+                       #dict(col_title="Ins Rot", fits_kwd='INSROT'),
+                       #dict(col_title="Foc Val", fits_kwd='FOC-VAL'),
+                       #dict(col_title="RA", fits_kwd='RA'),
+                       #dict(col_title="DEC", fits_kwd='DEC'),
+                       #dict(col_title="EQUINOX", fits_kwd='EQUINOX'),
+                       dict(col_title="Memo", fits_kwd='G_MEMO'),
+                       ]
 
         # Load preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_QL_FOCAS')
-        self.settings.set_defaults(region_file=None)
+        self.settings.set_defaults(sortable=True,
+                                   color_alternate_rows=True,
+                                   column_info=column_info)
         self.settings.load(onError='silent')
 
-        self.region_file = self.settings.get('region_file', None)
+        self.col_info = self.settings.get('column_info', [])
+        # this will set rpt_columns and col_widths
+        self.process_columns(self.col_info)
+
+        # construct path to where we are going to cache our quick look
+        # result
+        imdir = pathlib.Path(os.environ['GEN2COMMON']) / 'data_cache' / 'FOCAS'
+        if not imdir.is_dir():
+            imdir = None
+        self.cache_dir = imdir
+
+        # keeps track of exposures and their files
+        self.exp_dct = dict()
+        self.lock = threading.RLock()
 
     def build_gui(self, container):
-        # Users sometimes don't open the plugin on the correct channel.
-        # Force the correct channel to be used.
-        chinfo = self.fv.get_channel_on_demand('FOCAS')
-        self.fitsimage = chinfo.fitsimage
+        super().build_gui(container)
 
-        top = Widgets.VBox()
-        top.set_border_width(4)
-        top.set_spacing(2)
+        self.w.obslog_dir.set_text("{}/Procedure/FOCAS".format(os.environ['HOME']))
 
-        vbox1 = Widgets.VBox()
+        self.w.auto_save.set_state(True)
 
-        # Uncomment to debug; passing parent logger generates too
-        # much noise in the main logger
-        #zi = Viewers.CanvasView(logger=self.logger)
-        zi = Viewers.CanvasView(logger=None)
-        zi.set_desired_size(self._wd, self._ht)
-        zi.enable_autozoom('override')
-        zi.enable_autocuts('override')
-        zi.set_autocenter('on')
-        #zi.set_zoom_algorithm('step')
-        zi.set_zoom_algorithm('rate')
-        zi.set_zoomrate(1.62)
-        zi.show_mode_indicator(True)
-        zi.show_color_bar(True)
-        settings = zi.get_settings()
-        zi.set_bg(0.4, 0.4, 0.4)
-        zi.set_color_map('gray')
-        zi.set_color_map('gray')
-        zi.set_intensity_map('ramp')
-        # for debugging
-        zi.set_name('focas_qimage')
-        zi.add_callback('cursor-changed', self.motion_cb)
-        self.q_image = zi
+    def replace_kwds(self, header):
+        d = super().replace_kwds(header)
 
-        # add a canvas for drawing the slices
-        canvas = zi.get_canvas()
-        DrawingCanvas = canvas.get_draw_class('drawingcanvas')
-        self.canvas = DrawingCanvas()
-        canvas.add(self.canvas)
+        #d['FRAMEID'] = d['EXP-ID']
+        return d
 
-        bd = zi.get_bindings()
-        bd.enable_all(True)
+    def process_image(self, chname, header, image):
+        if chname not in self.chnames:
+            return
 
-        iw = Viewers.GingaViewerWidget(zi)
-        iw.resize(self._wd, self._ht)
-        vbox1.add_widget(iw, stretch=1)
+        imname = image.get('name', None)
+        if imname is None:
+            return
 
-        fr = Widgets.Frame("Reduced")
-        fr.set_widget(vbox1)
-        top.add_widget(fr, stretch=1)
+        # skip pre-baked "quicklook" (Q) frames
+        if imname.startswith('FCSQ') or imname.endswith("_QL"):
+            return
 
-        fr = Widgets.Frame("FOCAS")
+        path = image.get('path', None)
+        if path is None:
+            return
 
-        captions = (('Exposure:', 'label', 'Exposure', 'entry'),
-                    ('Bias Subtract', 'button',
-                     'Mark slices', 'button',
-                     'IFU Quick Look', 'button',
-                     'Insert Image', 'button'),
-                    )
-        w, b = Widgets.build_info(captions, orientation='vertical')
-        self.w = b
+        header = image.get_header()
+        exp_id, ch1_fits, ch2_fits = self.get_frames(path, header)
+        if None in [exp_id, ch1_fits, ch2_fits]:
+            # one of the frames has not arrived yet
+            return
 
-        b.bias_subtract.add_callback('activated', self.bias_subtract_cb)
-        b.bias_subtract.set_tooltip("Bias subtract and combine this exposure")
-        b.mark_slices.add_callback('activated', self.mark_slices_cb)
-        b.mark_slices.set_tooltip("Mark the slices on the image")
-        b.ifu_quick_look.add_callback('activated', self.ifu_quick_look_cb)
-        b.ifu_quick_look.set_tooltip("IFU quick look this exposure")
-        b.insert_image.add_callback('activated', self.insert_image_cb)
-        b.insert_image.set_tooltip("Add image to FOCAS_QL channel")
+        if not self.gui_up:
+            return
+        self.reduce_ql(exp_id, ch1_fits, ch2_fits)
 
-        fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+    def add_to_obslog(self, header, image):
+        # if int(header.get('DET-ID', '')) != 1:
+        #     return
 
-        #spacer = Widgets.Label('')
-        #top.add_widget(spacer, stretch=1)
-
-        btns = Widgets.HBox()
-        btns.set_spacing(3)
-
-        btn = Widgets.Button("Close")
-        btn.add_callback('activated', lambda w: self.close())
-        btns.add_widget(btn, stretch=0)
-        ## btn = Widgets.Button("Help")
-        ## btn.add_callback('activated', lambda w: self.help())
-        ## btns.add_widget(btn, stretch=0)
-        btns.add_widget(Widgets.Label(''), stretch=1)
-        top.add_widget(btns, stretch=0)
-
-        container.add_widget(top, stretch=1)
+        super().add_to_obslog(header, image)
 
     def close(self):
         self.fv.stop_global_plugin(str(self))
@@ -147,135 +142,81 @@ class QL_FOCAS(GingaPlugin.GlobalPlugin):
         #self.redo()
         pass
 
-    def pause(self):
-        pass
-
-    def resume(self):
-        pass
-
-    def stop(self):
-        self.pause()
-
-    def get_frames(self):
-        exp = self.w.exposure.get_text().strip()
-        if len(exp) == 0:
-            image = self.fitsimage.get_image()
-
-            if image is None:
-                # Nothing to do
-                self.fv.show_error("No image to quick reduce!")
-                return
-
-            path = image.get('path', None)
-            if path is None:
-                self.fv.show_error("No path in image!")
-                return
-        else:
-            fr = Frame('FCSA%08d.fits' % int(exp))
-            fr.directory = os.environ['DATAHOME']
-            path = fr.path
-
-        fr = Frame(path)
-        exp_num = fr.number - (fr.number % 2)
-
-        fr.number = exp_num
-        ch1_fits = fr.path
-
-        fr.number = exp_num + 1
-        ch2_fits = fr.path
-        return (ch1_fits, ch2_fits)
-
-    def bias_subtract_cb(self, w):
-        self.canvas.delete_all_objects()
-
-        ch1_fits, ch2_fits = self.get_frames()
-        fr = Frame(ch1_fits)
-        name = str(fr) + '_QL'
-
-        self.q_image.onscreen_message("Working ...")
-
-        try:
-            hdulist = biassub.bias_subtraction(ch1_fits, ch2_fits)
-
-            # create a new image
-            new_img = AstroImage(logger=self.logger)
-            new_img.load_hdu(hdulist[0])
-
-            # no thumbnails presently
-            new_img.set(nothumb=True, path=None, name=name)
-
-            self.q_image.set_image(new_img)
-
-        except Exception as e:
-            self.fv.show_error("Bias subtraction failed: %s" % (str(e)))
-
-        finally:
-            self.q_image.onscreen_message(None)
-
-    def ifu_quick_look_cb(self, w):
-        self.canvas.delete_all_objects()
-
-        ch1_fits, ch2_fits = self.get_frames()
-        fr = Frame(ch1_fits)
-        name = str(fr) + '_IFU'
-
-        self.q_image.onscreen_message("Working ...")
-
-        try:
-            reg_data = recon.read_region_file(self.region_file)
-
-            hdulist = recon.reconstruct_image(ch1_fits, ch2_fits,
-                                              reg_data)
-
-            # create a new image
-            new_img = AstroImage(logger=self.logger)
-            new_img.load_hdu(hdulist[0])
-
-            # no thumbnails presently
-            new_img.set(nothumb=True, path=None, name=name)
-
-            self.q_image.set_image(new_img)
-
-        except Exception as e:
-            self.fv.show_error("IFU quick look failed: %s" % (str(e)))
-
-        finally:
-            self.q_image.onscreen_message(None)
-
-
-    def insert_image_cb(self, w):
-        channel = self.fv.get_channel_on_demand('FOCAS_QL')
-        img = self.q_image.get_image()
-        channel.add_image(img)
-
-    def mark_slices_cb(self, w):
-        self.canvas.delete_all_objects()
-
-        Box = self.canvas.get_draw_class('box')
-        Text = self.canvas.get_draw_class('text')
-
-        reg_data = recon.read_region_file(self.region_file)
-
-        for i in range(len(reg_data)):
-            x, y, wd, ht = reg_data[i]
-            x, y, xr, yr = x - 1, y - 1, wd / 2.0, ht / 2.0
-            self.canvas.add(Box(x, y, xr, yr, color='green'),
-                            redraw=False)
-            num = len(reg_data) - i
-            self.canvas.add(Text(x, y+yr+6, str(num), color='green'),
-                            redraw=False)
-        self.canvas.update_canvas(whence=3)
-
     ## def redo(self):
     ##     #self.bias_subtract_cb()
     ##     pass
 
-    def motion_cb(self, viewer, button, data_x, data_y):
-        self.fv.showxy(viewer, data_x, data_y)
-        return True
+    def stop(self):
+        self.gui_up = False
+
+    def reduce_ql(self, imname, ch1_fits, ch2_fits):
+        # create a new image
+        new_img = AstroImage(logger=self.logger)
+        if self.cache_dir is None:
+            impath = None
+        else:
+            impath = self.cache_dir / (imname + '.fits')
+            # check if we have reduced this before--if so, just load
+            # up our cached version
+            if impath.exists():
+                new_img.load_file(str(impath))
+                new_img.set(name=imname)
+                self.fv.gui_do(self.display_image, new_img)
+                return
+
+        try:
+            hdulist = biassub.biassub(ch1_fits, ch2_fits)
+            new_img.load_hdu(hdulist[0])
+
+        except Exception as e:
+            self.fv.show_error("Bias subtraction failed: %s" % (str(e)))
+            return
+
+        if impath is not None and not impath.exists():
+            try:
+                new_img.save_as_file(impath)
+                new_img.set(path=str(impath), nothumb=False)
+            except Exception as e:
+                self.logger.warning(f"couldn't save {imname} as {impath}: {e}")
+                new_img.set(path=None, nothumb=True)
+        else:
+            new_img.set(path=None, nothumb=True)
+
+        new_img.set(name=imname)
+
+        self.fv.gui_do(self.display_image, new_img)
+
+    def get_frames(self, path, header):
+        with self.lock:
+            exp_id = header.get('EXP-ID', None)
+            det_id = header.get('DET-ID', None)
+            frame_id = header.get('FRAMEID', None)
+            if None in [exp_id, det_id, frame_id]:
+                return (exp_id, None, None)
+
+            exp_id = exp_id.strip()
+            det_id = str(int(det_id))
+            frame_id = frame_id.strip()
+
+            exp_bnch = self.exp_dct.get(exp_id, None)
+            if exp_bnch is None:
+                exp_bnch = Bunch.Bunch()
+                self.exp_dct[exp_id] = exp_bnch
+
+            det_bnch = exp_bnch.get(det_id, None)
+            if det_bnch is None:
+                det_bnch = Bunch.Bunch(path=path, frame_id=frame_id)
+                exp_bnch[det_id] = det_bnch
+
+            det1_bnch = exp_bnch.get('1', None)
+            ch1_fits = None if det1_bnch is None else det1_bnch.path
+            det2_bnch = exp_bnch.get('2', None)
+            ch2_fits = None if det2_bnch is None else det2_bnch.path
+            return (exp_id, ch1_fits, ch2_fits)
+
+    def display_image(self, new_img):
+        ch = self.fv.get_channel_on_demand("FOCAS_QL")
+        ch.add_image(new_img)
 
     def __str__(self):
         return 'ql_focas'
-
-
-#END
