@@ -80,7 +80,7 @@ class QL_FOCAS(ObsLog.ObsLog):
 
         # construct path to where we are going to cache our quick look
         # result
-        imdir = pathlib.Path(os.environ['GEN2COMMON']) / 'data_cache' / 'FOCAS'
+        imdir = pathlib.Path(os.environ['GEN2COMMON']) / 'data_cache' / 'fitsview' / 'FOCAS'
         if not imdir.is_dir():
             imdir = None
         self.cache_dir = imdir

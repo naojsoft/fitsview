@@ -203,7 +203,7 @@ class QL_IRCS(ObsLog.ObsLog):
             # write out a cached copy so we can reload as necessary
             try:
                 prefix = os.path.join(os.environ['GEN2COMMON'],
-                                      'data_cache', 'IRCS')
+                                      'data_cache', 'fitsview', 'IRCS')
             except KeyError:
                 prefix = '/tmp'
             cached_path = os.path.join(prefix, newname + '.fits')
