@@ -95,16 +95,15 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.settings.add_defaults(plot_fov=True,
                                    plot_identified_stars=True,
                                    plot_detected_not_identified=True,
-                                   plot_guide_not_identified=True,
+                                   plot_guide_stars=True,
                                    detected_color='yellow',
                                    guide_color='cyan',
                                    identified_color='orangered',
-                                   #collage_method='simple',
                                    plot_offsets=False,
                                    subtract_bias=False,
                                    subtract_background=False,
-                                   color_map='Greens',
-                                   intensity_map='ramp',
+                                   #color_map='Greens',
+                                   #intensity_map='ramp',
                                    channel_name='PFS_1K',
                                    rate_limit=5.0,
                                    data_directory='.',
@@ -138,7 +137,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         # self.field = 'mag'
         self.pause_flag = False
         self.rate_limit = self.settings.get('rate_limit', 5.0)
-        self.error_scale = 10
+        self.error_scale = 1
         self.save_dir = self.settings.get('save_directory', '/tmp')
         self.last = Bunch.Bunch(image_time=time.time(),
                                 raw=None, time_raw=None,
@@ -149,6 +148,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         # hold tables of detected objs, guide objs and identified objs
         self.tbl_do = None
         self.tbl_go = None
+        self.tbl_go_aux = dict()
         self.tbl_io = None
         self.img_dct = {}
         self._fov_coords = dict()
@@ -225,7 +225,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     ('Plot identified stars', 'checkbutton',
                      'Plot offsets', 'checkbutton',
                      'Auto orient', 'checkbutton'),
-                    ('Plot NI guide stars', 'checkbutton',
+                    ('Plot guide stars', 'checkbutton',
                      'Plot NI detected stars', 'checkbutton'),
                     ('Subtract bias', 'checkbutton'),
                     # ('Subtract dark', 'checkbutton', 'Darks:', 'llabel',
@@ -259,11 +259,11 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         b.auto_orient.set_tooltip("Auto rotate images to orient by N")
         b.auto_orient.add_callback('activated', self.auto_orient_cb)
 
-        tf = self.settings.get('plot_guide_not_identified', False)
-        b.plot_ni_guide_stars.set_state(tf)
-        b.plot_ni_guide_stars.set_tooltip("Plot the guide stars that were not identified")
-        b.plot_ni_guide_stars.add_callback('activated',
-                                           self.toggle_plot_ni_guide_stars_cb)
+        tf = self.settings.get('plot_guide_stars', False)
+        b.plot_guide_stars.set_state(tf)
+        b.plot_guide_stars.set_tooltip("Plot all guide stars")
+        b.plot_guide_stars.add_callback('activated',
+                                           self.toggle_plot_guide_stars_cb)
 
         tf = self.settings.get('plot_detected_not_identified', False)
         b.plot_ni_detected_stars.set_state(tf)
@@ -682,6 +682,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             self.current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(_t))
 
         self.tbl_go = None
+        self.tbl_go_aux.clear()
         self.tbl_do = None
         self.tbl_io = None
         img_dct = {}
@@ -757,6 +758,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                 mags = self.tbl_go['mag']
                 #self.mag_max = np.max(mags)
                 #self.mag_min = np.min(mags)
+                self.build_guide_star_location_info(img_dct)
 
             self.logger.info('determined minmax')
             end_time = time.time()
@@ -771,6 +773,30 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         finally:
             fits_f = None
+
+    def build_guide_star_location_info(self, img_dct):
+        """NOTE: here we have to do a very hacky thing:
+           Because we do not have the pixel positions of the guide
+           stars in the guide star table, AND we don't have the
+           camera id in there either, we have to iterate
+           through the camera images and use WCS to calculate the
+           guide star location and test which plot it belongs to
+           IF the WCS is not accurate then our guide stars will not
+           line up exactly with the image.
+        """
+        self.tbl_go_aux.clear()
+        for go_idx in range(0, len(self.tbl_go)):
+            go_row = self.tbl_go[go_idx]
+            ra_deg, dec_deg = go_row['ra'], go_row['dec']
+            for cam_num in [1, 2, 3, 4, 5, 6]:
+                cam_id = 'CAM{}'.format(cam_num)
+                if cam_id in img_dct:
+                    image = img_dct[cam_id]
+                    pos_x, pos_y = image.radectopix(ra_deg, dec_deg)
+                    wd, ht = image.get_size()
+                    if (0 < pos_x < wd) and (0 < pos_y < ht):
+                        self.tbl_go_aux[go_idx] = (cam_num, pos_x, pos_y)
+                        break
 
     def make_WCSes(self):
         self.logger.info('fetching status ...')
@@ -852,40 +878,27 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         do_used = set(self.tbl_io['detected_object_id'])
         go_used = set(self.tbl_io['guide_object_id'])
-        go_not_used = set(range(0, len(self.tbl_go))) - go_used
+        #go_not_used = set(range(0, len(self.tbl_go))) - go_used
+        go_not_used = set(range(0, len(self.tbl_go)))
         do_not_used = set(range(0, len(self.tbl_do))) - do_used
 
         radius = 15
 
-        if self.settings.get('plot_guide_not_identified', False):
+        if self.settings.get('plot_guide_stars', False):
             # plot guide objects that are not identified
             color = self.settings.get('guide_color', 'cyan')
             for go_idx in go_not_used:
-                go_row = self.tbl_go[go_idx]
-                ra_deg, dec_deg = go_row['ra'], go_row['dec']
-                # NOTE: here we have to do a very hacky thing:
-                # Because we do not have the pixel positions of the guide
-                # stars in the guide star table, AND we don't have the
-                # camera id in there either, we have to iterate
-                # through the camera images and use WCS to calculate the
-                # guide star location and test which plot it belongs to
-                # IF the WCS is not accurate then our guide stars will not
-                # line up exactly with the image
-                for cam_num in [1, 2, 3, 4, 5, 6]:
+                if go_idx in self.tbl_go_aux:
+                    cam_num, pos_x, pos_y = self.tbl_go_aux[go_idx]
                     cam_id = 'CAM{}'.format(cam_num)
                     if self.fv.has_channel(cam_id):
-                        image = self.img_dct[cam_id]
-                        pos_x, pos_y = image.radectopix(ra_deg, dec_deg)
-                        wd, ht = image.get_size()
-                        if (0 < pos_x < wd) and (0 < pos_y < ht):
-                            p = self.dc.Point(pos_x, pos_y, radius=radius,
-                                              style='uptriangle',
-                                              color=color, linewidth=2)
-                            channel = self.fv.get_channel(cam_id)
-                            viewer = channel.fitsimage
-                            canvas = viewer.get_canvas()
-                            canvas.add(p, tag=f'_go{go_idx}', redraw=False)
-                            break
+                        p = self.dc.Point(pos_x, pos_y, radius=radius,
+                                          style='uptriangle',
+                                          color=color, linewidth=2)
+                        channel = self.fv.get_channel(cam_id)
+                        viewer = channel.fitsimage
+                        canvas = viewer.get_canvas()
+                        canvas.add(p, tag=f'_go{go_idx}', redraw=False)
 
         if self.settings.get('plot_detected_not_identified', False):
             # plot detected objects that are not identified
@@ -945,8 +958,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                 if self.settings.get('plot_offsets', False):
 
-                    gde_x, gde_y = (io_row['guide_object_xdet'],
-                                    io_row['guide_object_ydet'])
+                    # gde_x, gde_y = (io_row['guide_object_xdet'],
+                    #                 io_row['guide_object_ydet'])
+                    gde_x, gde_y = self.tbl_go_aux[_go_row_num][1:]
 
                     error = np.sqrt((gde_y - ctr_y) ** 2 + (gde_x - ctr_x) ** 2)
                     # scale the error for better visibility
@@ -1047,8 +1061,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.settings.set(plot_offsets=tf)
         self.plot_stars()
 
-    def toggle_plot_ni_guide_stars_cb(self, w, tf):
-        self.settings.set(plot_guide_not_identified=tf)
+    def toggle_plot_guide_stars_cb(self, w, tf):
+        self.settings.set(plot_guide_stars=tf)
         self.plot_stars()
 
     def toggle_plot_ni_detected_stars_cb(self, w, tf):
