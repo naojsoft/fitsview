@@ -960,40 +960,41 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                     # gde_x, gde_y = (io_row['guide_object_xdet'],
                     #                 io_row['guide_object_ydet'])
-                    gde_x, gde_y = self.tbl_go_aux[_go_row_num][1:]
+                    if _go_row_num in self.tbl_go_aux:
+                        gde_x, gde_y = self.tbl_go_aux[_go_row_num][1:]
 
-                    error = np.sqrt((gde_y - ctr_y) ** 2 + (gde_x - ctr_x) ** 2)
-                    # scale the error for better visibility
-                    err_long = error * self.error_scale
+                        error = np.sqrt((gde_y - ctr_y) ** 2 + (gde_x - ctr_x) ** 2)
+                        # scale the error for better visibility
+                        err_long = error * self.error_scale
 
-                    theta_rad = np.arctan2(gde_y - ctr_y, gde_x - ctr_x)
-                    long_x, long_y = (ctr_x + err_long * np.cos(theta_rad),
-                                      ctr_y + err_long * np.sin(theta_rad))
+                        theta_rad = np.arctan2(gde_y - ctr_y, gde_x - ctr_x)
+                        long_x, long_y = (ctr_x + err_long * np.cos(theta_rad),
+                                          ctr_y + err_long * np.sin(theta_rad))
 
-                    c = self.dc.Circle(gde_x, gde_y, radius,
-                                       color=color, linestyle='dash',
-                                       linewidth=2)
-                    #l = self.dc.Line(ctr_x, ctr_y, gde_x, gde_y,
-                    l = self.dc.Line(ctr_x, ctr_y, long_x, long_y,
-                                     color=color, linestyle='solid',
-                                     linewidth=2, arrow='end')
-                    objs.extend([c, l])
-
-                    if self.settings.get('plot_fov', False):
-                        fov_gde_x, fov_gde_y = self.get_fov_xy(cam_num, gde_x, gde_y)
-
-                        theta_rad = np.arctan2(fov_gde_y - fov_ctr_y, fov_gde_x - fov_ctr_x)
-                        fov_long_x, fov_long_y = (fov_ctr_x + err_long * np.cos(theta_rad),
-                                                  fov_ctr_y + err_long * np.sin(theta_rad))
-
-                        c = self.dc.Circle(fov_gde_x, fov_gde_y, radius,
+                        c = self.dc.Circle(gde_x, gde_y, radius,
                                            color=color, linestyle='dash',
                                            linewidth=2)
-                        #l = self.dc.Line(fov_ctr_x, fov_ctr_y, fov_gde_x, fov_gde_y,
-                        l = self.dc.Line(fov_ctr_x, fov_ctr_y, fov_long_x, fov_long_y,
+                        #l = self.dc.Line(ctr_x, ctr_y, gde_x, gde_y,
+                        l = self.dc.Line(ctr_x, ctr_y, long_x, long_y,
                                          color=color, linestyle='solid',
                                          linewidth=2, arrow='end')
-                        fov_objs.extend([c, l])
+                        objs.extend([c, l])
+
+                        if self.settings.get('plot_fov', False):
+                            fov_gde_x, fov_gde_y = self.get_fov_xy(cam_num, gde_x, gde_y)
+
+                            theta_rad = np.arctan2(fov_gde_y - fov_ctr_y, fov_gde_x - fov_ctr_x)
+                            fov_long_x, fov_long_y = (fov_ctr_x + err_long * np.cos(theta_rad),
+                                                      fov_ctr_y + err_long * np.sin(theta_rad))
+
+                            c = self.dc.Circle(fov_gde_x, fov_gde_y, radius,
+                                               color=color, linestyle='dash',
+                                               linewidth=2)
+                            #l = self.dc.Line(fov_ctr_x, fov_ctr_y, fov_gde_x, fov_gde_y,
+                            l = self.dc.Line(fov_ctr_x, fov_ctr_y, fov_long_x, fov_long_y,
+                                             color=color, linestyle='solid',
+                                             linewidth=2, arrow='end')
+                            fov_objs.extend([c, l])
 
             if len(objs) > 0:
                 if self.fv.has_channel(cam_id):
