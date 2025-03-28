@@ -136,6 +136,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         self._update_session(info)
 
         # Create our remote service object
+
         threadPool = self.fv.get_threadPool()
         # methods that can be called from outside via our service
         method_list = ['callGlobalPlugin', 'callGlobalPlugin2',
@@ -249,8 +250,6 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
             wsname = 'FOCAS'
         elif chname.startswith('MOIRCS'):
             wsname = 'MOIRCS'
-        elif chname.startswith('SUKA'):
-            wsname = 'SUKA'
 
         return wsname
 
@@ -372,16 +371,12 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                 bnch = self.queue.get(block=True, timeout=0.1)
                 filepath = bnch.get('filepath', None)
                 assert filepath is not None
+                insname = bnch.insname
 
                 if 'frameid' in bnch and not self._check_frameid(bnch.frameid):
                     # we know the frameid beforehand and can check it against
                     # the current instrument allocations
                     continue
-
-                # if 'propid' in bnch and not self._check_propid(bnch.propid):
-                #     # we know the propid beforehand and can check it against
-                #     # the current session propid allocation
-                #     continue
 
                 if bnch.get('image', None) is None:
                     # need to open the file and create the image here
@@ -395,12 +390,14 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
                         # check against the current instrument allocations
                         continue
 
-                    # TODO: PFS has issues with no PROP-ID in the primary header
-                    # if bnch.chname not in ['AO188']:
-                    #     if 'propid' in bnch and not self._check_propid(bnch.propid):
-                    #         # we didn't know the propid before opening the file;
-                    #         # check against the current session propid allocation
-                    #         continue
+                    # NOTE: disable check for certain instruments that don't
+                    # include PROP-ID in prihdr
+                    # NOTE: we are not getting the primary header for PFS
+                    if insname not in ['AO188', 'PFS']:
+                        if 'propid' in bnch and not self._check_propid(bnch.propid):
+                            # we didn't know the propid before opening the file;
+                            # check against the current session propid allocation
+                            continue
 
                 # <-- ok to display this file and image is opened
                 wsname = bnch.wsname
@@ -698,21 +695,26 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         if not self._check_frameid(frameid):
             return
 
-        fr = Frame(frameid)
-        if fr.inscode in ('HSC', 'SUP'):
-            # Don't display raw HSC frames
+        insname = self.insconfig.getNameByFrameId(frameid)
+        # Certain instruments for which we don't want to display raw frames
+        if insname in ['HSC', 'SPCAM']:
             return
 
-        bnch = Bunch.Bunch(filepath=filepath, frameid=frameid)
+        bnch = Bunch.Bunch(filepath=filepath, frameid=frameid, insname=insname)
 
         # check if this frame is from a PROP-ID allocated to our session;
         # if not, don't display it
         propid = vals.get('PROP-ID', None)
+        self.logger.info("values are: {}".format(str(vals)))
         if propid is not None:
             bnch.propid = propid
-            if not self._check_propid(propid):
-                return
+            # NOTE: disable check for certain instruments that don't
+            # include PROP-ID in prihdr
+            if insname not in ['AO188']:
+                if not self._check_propid(propid):
+                    return
 
+        # file will be loaded in load_images_loop()
         self.queue.put(bnch)
 
     def arr_fitsinfo(self, payload, name, channels):

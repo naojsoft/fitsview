@@ -454,6 +454,20 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
     def stop(self):
         self.ev_quit.set()
+
+        # delete channels created by this plugin
+        for idx in range(0, 6):
+            chname = 'CAM{}'.format(idx + 1)
+            self.fv.delete_channel(chname)
+        self.fv.delete_channel(self.fov_chname)
+
+        # delete the workspace
+        try:
+            ws = self.fv.ds.get_ws(self.wsname)
+            self.fv.delete_workspace(ws)
+        except KeyError:
+            pass
+
         self.gui_up = False
 
     def focus_cb(self, viewer, tf):
@@ -464,6 +478,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
     def incoming_data_cb(self, fv, chname, image, info):
         if chname != 'PFS':
+            return
+        # TEMP: until we remove PFS_AG_NEW
+        if not self.gui_up:
             return
 
         #self.fv.nongui_do(self.process_image, image)
@@ -586,7 +603,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
     def get_fov_xy(self, cam_num, x, y):
         base_x, base_y, sub_x, sub_y = self._fov_coords[cam_num]
-        x, y = x - sub_x, y - sub_y
+        # NOTE: invert Y
+        x, y = x - sub_x, ((sub_y * 2) - y) - sub_y
         rot_ang_deg = -self.rot_angles[cam_num]
         x, y = trcalc.rotate_pt(x, y, rot_ang_deg)
         #pos_x, pos_y = np.asarray(base_x + x).astype(int), np.asarray(base_y + y).astype(int)
@@ -621,6 +639,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     continue
                 image = self.img_dct[cam_id]
                 data_np = image.get_data()
+                # NOTE: invert Y side of image for correct orientation
+                data_np = np.flipud(data_np)
                 _wd, _ht = image.get_size()
                 # add alpha layer
                 mn, mx = trcalc.get_minmax_dtype(dtype)
@@ -638,7 +658,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                 dst_arr[pos_y:pos_y+ht, pos_x:pos_x+wd, :] += rot_data_np[:, :, :]
                 # mark center of each camera
                 base_x, base_y = ctr_x + off_x, ctr_y + off_y
-                self._fov_coords[cam_num] = (base_x, base_y, _wd * 0.5, _ht * 0.5)
+                self._fov_coords[cam_num] = (base_x, base_y,
+                                             _wd * 0.5, _ht * 0.5)
                 canvas.add(self.dc.Point(base_x, base_y, radius=20,
                                          color='green',
                                          style='plus', linewidth=1),
@@ -1272,4 +1293,4 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.sc.connect()
 
     def __str__(self):
-        return 'PFS_AG'
+        return 'pfs_ag'
