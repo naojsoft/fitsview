@@ -92,7 +92,11 @@ class QL_FOCAS(ObsLog.ObsLog):
     def build_gui(self, container):
         super().build_gui(container)
 
-        self.w.obslog_dir.set_text("{}/Procedure/FOCAS".format(os.environ['HOME']))
+        proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
+        proc_dir_focas = os.path.join(proc_dir, 'FOCAS')
+        if os.path.isdir(proc_dir_focas):
+            proc_dir = proc_dir_focas
+        self.w.obslog_dir.set_text(proc_dir)
 
         self.w.auto_save.set_state(True)
 

@@ -113,7 +113,13 @@ class QL_IRCS(ObsLog.ObsLog):
     def build_gui(self, container):
         super(QL_IRCS, self).build_gui(container)
 
-        self.w.obslog_dir.set_text("{}/Procedure/IRCS".format(os.environ['HOME']))
+        proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
+        proc_dir_ircs = os.path.join(proc_dir, 'IRCS')
+        if os.path.isdir(proc_dir_ircs):
+            proc_dir = proc_dir_ircs
+        self.w.obslog_dir.set_text(proc_dir)
+
+        self.w.auto_save.set_state(True)
 
     def replace_kwds(self, header):
         d = super(QL_IRCS, self).replace_kwds(header)

@@ -98,7 +98,11 @@ class QL_MOIRCS(ObsLog.ObsLog):
     def build_gui(self, container):
         super().build_gui(container)
 
-        self.w.obslog_dir.set_text("{}/Procedure/MOIRCS".format(os.environ['HOME']))
+        proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
+        proc_dir_moircs = os.path.join(proc_dir, 'MOIRCS')
+        if os.path.isdir(proc_dir_moircs):
+            proc_dir = proc_dir_moircs
+        self.w.obslog_dir.set_text(proc_dir)
 
         self.w.auto_save.set_state(True)
 
