@@ -705,7 +705,10 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.left.obj.objects[1].y = obj.y
 
             p = self.setup_side(obj, self.left.obj, self.left.bbox)
-            self.w.lsize.set_text("{lsize:.4f}".format(lsize=p.starsize))
+            if p.starsize is None:
+                self.w.lsize.set_text("Error")
+            else:
+                self.w.lsize.set_text("{lsize:.4f}".format(lsize=p.starsize))
 
         elif obj is self.right.obj.objects[0]:
             x1, y1, x2, y2 = self.right.bbox.get_llur()
@@ -717,7 +720,10 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.right.obj.objects[1].y = obj.y
 
             q = self.setup_side(obj, self.right.obj, self.right.bbox)
-            self.w.rsize.set_text("{rsize:.4f}".format(rsize=q.starsize))
+            if q.starsize is None:
+                self.w.rsize.set_text("Error")
+            else:
+                self.w.rsize.set_text("{rsize:.4f}".format(rsize=q.starsize))
 
         #self.redo()
 
