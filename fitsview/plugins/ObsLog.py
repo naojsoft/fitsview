@@ -221,6 +221,15 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
         self.update_obslog()
 
+    def start(self):
+        super().start()
+
+        # see if an obslog with the default name is present, and if so, load it
+        obslog_path = os.path.join(self.w.obslog_dir.get_text().strip(),
+                                   self.w.obslog_name.get_text().strip())
+        if os.path.exists(obslog_path):
+            self.load_obslog(obslog_path, merge=False)
+
     def stop(self):
         self.gui_up = False
 
