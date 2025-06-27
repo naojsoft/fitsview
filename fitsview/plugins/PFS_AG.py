@@ -56,6 +56,7 @@
 # stdlib
 import sys
 import os
+import re
 import time
 import threading
 import tempfile
@@ -83,6 +84,10 @@ from g2cam.status.client import StatusClient
 from fitsview.util import pfswcs
 
 
+# guide star filter flags
+flag_galaxy = 4096
+
+
 class PFS_AG(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
@@ -105,6 +110,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                    #color_map='Greens',
                                    #intensity_map='ramp',
                                    channel_name='PFS_1K',
+                                   mode='processed',
                                    rate_limit=5.0,
                                    data_directory='.',
                                    save_directory=tempfile.gettempdir(),
@@ -125,7 +131,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         # self.mag_max = 20.0
         # self.mag_min = 12.0
         self.current_file = None
-        self.current_time = ''
+        self.visit_id = ''
+        self.exp_id = ''
+        self.recv_time = ''
         self.ev_quit = threading.Event()
         # self.dark = dict()
         # self.flat = dict()
@@ -141,8 +149,11 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.save_dir = self.settings.get('save_directory', '/tmp')
         self.last = Bunch.Bunch(image_time=time.time(),
                                 raw=None, time_raw=None,
-                                processed=None, time_processed=None)
-        self.mode = 'processed'
+                                processed=None, time_processed=None,
+                                visit_raw='', exp_raw='',
+                                visit_processed='', exp_processed='')
+        self.regex_fname = re.compile(r'^[\_]?agcc\_(\d+)\_(\d+)$')
+        self.mode = self.settings.get('mode', 'processed')
         self.guide_count = 0
 
         # hold tables of detected objs, guide objs and identified objs
@@ -254,7 +265,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         tf = self.settings.get('plot_offsets', False)
         b.plot_offsets.set_state(tf)
-        b.plot_offsets.set_tooltip("Plot the offsets from the identified guide stars")
+        b.plot_offsets.set_tooltip("Plot the error offsets from the identified guide stars")
         b.plot_offsets.add_callback('activated', self.toggle_plot_offsets_cb)
 
         tf = self.settings.get('auto_orient', False)
@@ -264,7 +275,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         tf = self.settings.get('plot_guide_stars', False)
         b.plot_guide_stars.set_state(tf)
-        b.plot_guide_stars.set_tooltip("Plot all guide stars")
+        b.plot_guide_stars.set_tooltip("Plot potential (not actual) guiding stars")
         b.plot_guide_stars.add_callback('activated',
                                            self.toggle_plot_guide_stars_cb)
 
@@ -337,9 +348,15 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         top.add_widget(fr, stretch=0)
 
         hbox = Widgets.HBox()
-        hbox.add_widget(Widgets.Label("Received at:"), stretch=0)
-        self.w.last_time = Widgets.Label('')
-        hbox.add_widget(self.w.last_time, stretch=1)
+        self.w.visit_id = Widgets.Label('')
+        hbox.add_widget(self.w.visit_id, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        self.w.exp_id = Widgets.Label('')
+        hbox.add_widget(self.w.exp_id, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        self.w.recv_time = Widgets.Label('')
+        hbox.add_widget(self.w.recv_time, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
         top.add_widget(hbox, stretch=0)
 
         # add CAM pan buttons
@@ -575,8 +592,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         self.auto_orient()
 
-        # show when this file was received
-        self.w.last_time.set_text(self.current_time)
+        # show info about this file
+        self.w.visit_id.set_text(self.visit_id)
+        self.w.exp_id.set_text(self.exp_id)
+        self.w.recv_time.set_text(self.recv_time)
 
         self.fv.update_pending()
 
@@ -700,9 +719,20 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         fname, ext = os.path.splitext(fname)
         is_raw = fname.startswith('_')
         self.logger.info(f"processing '{fname}', raw={is_raw} ...")
+        match = self.regex_fname.match(fname)
+        if match:
+            visit_id, exp_id = match.groups()
+        else:
+            visit_id, exp_id = '', ''
+        self.visit_id = f"Visit: {visit_id}"
+        self.exp_id = f"Exp Id: {exp_id}"
+
         _t = self.last.time_raw if is_raw else self.last.time_processed
         if _t is not None:
-            self.current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(_t))
+            recv_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(_t))
+        else:
+            recv_time = 'N/A'
+        self.recv_time = f"Received: {recv_time}"
 
         self.tbl_go = None
         self.tbl_do = None
@@ -888,12 +918,19 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             for go_idx in go_not_used:
                 go_row = self.tbl_go[go_idx]
                 cam_num = go_row['camera_id']
+                flags = go_row['filter_flag']
+                if flags & 0x1000:
+                    style = 'cross'
+                elif flags != 0:
+                    style = 'plus'
+                else:
+                    style = 'circle'
                 pos_x, pos_y = (go_row['guide_object_xdet'],
 		                go_row['guide_object_ydet'])
                 cam_id = 'CAM{}'.format(cam_num + 1)
                 if self.fv.has_channel(cam_id):
                     p = self.dc.Point(pos_x, pos_y, radius=radius,
-                                      style='diamond',
+                                      style=style,
                                       color=color, linewidth=2)
                     channel = self.fv.get_channel(cam_id)
                     viewer = channel.fitsimage
