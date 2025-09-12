@@ -100,7 +100,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.settings.add_defaults(plot_fov=True,
                                    plot_identified_stars=True,
                                    plot_detected_not_identified=True,
-                                   plot_guide_stars=True,
+                                   plot_catalog_stars=True,
                                    detected_color='yellow',
                                    guide_color='cyan',
                                    identified_color='orangered',
@@ -236,10 +236,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         captions = [('Plot FOV', 'checkbutton'),
                      # "Method:", 'label', 'method', 'combobox'),
-                    ('Plot identified stars', 'checkbutton',
+                    ('Plot identified guide stars', 'checkbutton',
                      'Plot offsets', 'checkbutton',
                      'Auto orient', 'checkbutton'),
-                    ('Plot guide stars', 'checkbutton',
+                    ('Plot catalog stars', 'checkbutton',
                      'Plot NI detected stars', 'checkbutton'),
                     ('Subtract bias', 'checkbutton'),
                     # ('Subtract dark', 'checkbutton', 'Darks:', 'llabel',
@@ -259,9 +259,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         b.plot_fov.add_callback('activated', self.toggle_plot_fov_cb)
 
         tf = self.settings.get('plot_identified_stars', False)
-        b.plot_identified_stars.set_state(tf)
-        b.plot_identified_stars.set_tooltip("Plot the identified guide stars")
-        b.plot_identified_stars.add_callback('activated', self.toggle_plot_identified_stars_cb)
+        b.plot_identified_guide_stars.set_state(tf)
+        b.plot_identified_guide_stars.set_tooltip("Plot the identified guide stars")
+        b.plot_identified_guide_stars.add_callback('activated',
+                                                   self.toggle_plot_identified_stars_cb)
 
         tf = self.settings.get('plot_offsets', False)
         b.plot_offsets.set_state(tf)
@@ -273,11 +274,11 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         b.auto_orient.set_tooltip("Rotate images to match FOV plot")
         b.auto_orient.add_callback('activated', self.auto_orient_cb)
 
-        tf = self.settings.get('plot_guide_stars', False)
-        b.plot_guide_stars.set_state(tf)
-        b.plot_guide_stars.set_tooltip("Plot potential (not actual) guiding stars")
-        b.plot_guide_stars.add_callback('activated',
-                                           self.toggle_plot_guide_stars_cb)
+        tf = self.settings.get('plot_catalog_stars', False)
+        b.plot_catalog_stars.set_state(tf)
+        b.plot_catalog_stars.set_tooltip("Plot potential (not actual) guiding stars")
+        b.plot_catalog_stars.add_callback('activated',
+                                           self.toggle_plot_catalog_stars_cb)
 
         tf = self.settings.get('plot_detected_not_identified', False)
         b.plot_ni_detected_stars.set_state(tf)
@@ -912,7 +913,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         radius = 15
 
-        if self.settings.get('plot_guide_stars', False):
+        if self.settings.get('plot_catalog_stars', False):
             # plot guide objects that are not identified
             color = self.settings.get('guide_color', 'cyan')
             for go_idx in go_not_used:
@@ -1100,8 +1101,8 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         self.settings.set(plot_offsets=tf)
         self.plot_stars()
 
-    def toggle_plot_guide_stars_cb(self, w, tf):
-        self.settings.set(plot_guide_stars=tf)
+    def toggle_plot_catalog_stars_cb(self, w, tf):
+        self.settings.set(plot_catalog_stars=tf)
         self.plot_stars()
 
     def toggle_plot_ni_detected_stars_cb(self, w, tf):
