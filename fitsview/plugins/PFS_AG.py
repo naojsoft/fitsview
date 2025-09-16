@@ -919,6 +919,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             for go_idx in go_not_used:
                 go_row = self.tbl_go[go_idx]
                 cam_num = go_row['camera_id']
+                #flags = go_row['filter_flags']
                 flags = go_row['filter_flag']
                 if flags & 0x1000:
                     style = 'cross'
@@ -926,8 +927,9 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     style = 'plus'
                 else:
                     style = 'circle'
-                pos_x, pos_y = (go_row['guide_object_xdet'],
-		                go_row['guide_object_ydet'])
+                # pos_x, pos_y = (go_row['guide_object_xdet'],
+                #                 go_row['guide_object_ydet'])
+                pos_x, pos_y = (go_row['x'], go_row['y'])
                 cam_id = 'CAM{}'.format(cam_num + 1)
                 if self.fv.has_channel(cam_id):
                     p = self.dc.Point(pos_x, pos_y, radius=radius,
@@ -941,12 +943,16 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         if self.settings.get('plot_detected_not_identified', False):
             # plot detected objects that are not identified
             color = self.settings.get('detected_color', 'yellow')
-            for do_idx in do_not_used:
-                do_row = self.tbl_do[do_idx]
-                cam_num = do_row['camera_id']
+            for io_idx, io_row in enumerate(self.tbl_io):
+                if io_row['matched'] > 0:
+                    # <== this is an identified object
+                    continue
+
+                cam_num = io_row['camera_id']
                 # camera indexes are now 0-based, while HDUs are numbered from 1
                 cam_id = 'CAM{}'.format(cam_num + 1)
-                ctr_x, ctr_y = do_row['centroid_x'], do_row['centroid_y']
+                ctr_x, ctr_y = (io_row['detected_object_x_pix'],
+                                io_row['detected_object_y_pix'])
                 p = self.dc.Point(ctr_x, ctr_y, radius=radius, style='hexagon',
                                   color=color, linewidth=2)
 
@@ -954,18 +960,23 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                     channel = self.fv.get_channel(cam_id)
                     viewer = channel.fitsimage
                     canvas = viewer.get_canvas()
-                    canvas.add(p, tag=f'_do{do_idx}', redraw=False)
+                    canvas.add(p, tag=f'_do{io_idx}', redraw=False)
 
         # plot identified objects
         for io_idx, io_row in enumerate(self.tbl_io):
-            do_row = self.tbl_do[io_row['detected_object_id']]
-            cam_num = do_row['camera_id']
+            if io_row['matched'] == 0:
+                # skip detected but not identified objects here
+                continue
+
+            cam_num = io_row['camera_id']
             # camera indexes are now 0-based, while HDUs are numbered from 1
             cam_id = 'CAM{}'.format(cam_num + 1)
-            ctr_x, ctr_y = do_row['centroid_x'], do_row['centroid_y']
 
-            _go_row_num = int(io_row['guide_object_id'])
-            mag = mags[_go_row_num]
+            ctr_x, ctr_y = (io_row['detected_object_x_pix'],
+                            io_row['detected_object_y_pix'])
+
+            #_go_row_num = int(io_row['guide_object_id'])
+            #mag = mags[_go_row_num]
 
             # skip stars that fall outside the selected area
             # if not (self.mag_min <= mag <= self.mag_max):
@@ -996,8 +1007,10 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
                 if self.settings.get('plot_offsets', False):
 
-                    gde_x, gde_y = (io_row['guide_object_xdet'],
-                                    io_row['guide_object_ydet'])
+                    #gde_x, gde_y = (io_row['guide_object_xdet'],
+                    #                io_row['guide_object_ydet'])
+                    gde_x, gde_y = (io_row['guide_object_x_pix'],
+                                    io_row['guide_object_y_pix'])
                     # go_row = self.tbl_go[_go_row_num]
                     # gde_x, gde_y = (go_row['guide_object_xdet'],
 		    #                 go_row['guide_object_ydet'])

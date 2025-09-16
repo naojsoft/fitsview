@@ -115,8 +115,8 @@ if __name__ == "__main__":
               enabled=True),
         Bunch(module='AgAreaSelection', workspace='dialogs', ptype='local',
               hidden=True, enabled=True),
-        Bunch(module='PFS_AG', workspace='dialogs', ptype='global', start=False,
-              category='Subaru', enabled=True),
+        Bunch(module='PFS_AG', workspace='dialogs', ptype='global',
+              start=False, category='Subaru', enabled=True),
         Bunch(module='PFS_Focus', workspace='sub2', ptype='local',
               category='Subaru', enabled=True),
         ]:
