@@ -1509,8 +1509,9 @@ class VGW(GingaPlugin.GlobalPlugin):
         # Temporarily coerce numpy type  TODO: fix
         try:
             na_type = np.float32
-            data = np.fromstring(data, dtype=na_type)
-            data.byteswap(True)
+            data = np.frombuffer(data, dtype=na_type)
+            # trying to byteswap in-place fails on python 3.13
+            data = data.byteswap(inplace=False)
             data = data.reshape((height, width))
             #print(data)
 

@@ -25,7 +25,7 @@ class QuadraticFunction(object):
     def coefficient(self, x_points, y_points, degree=2):
 
         try:
-            self.coeffs = scipy.polyfit(x_points, y_points, degree)
+            self.coeffs = np.polyfit(x_points, y_points, degree)
 
         except Exception as e:
             self.logger.error('error: failed to calculate coefficient. %s" %e')
@@ -98,7 +98,7 @@ class QuadraticFunction(object):
 
     def quadratic(self):
         try:
-            f = scipy.poly1d(self.coeffs)
+            f = np.poly1d(self.coeffs)
 
         except Exception as e:
             self.logger.error('error: calculate quadratic function. %s' %e)
