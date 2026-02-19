@@ -260,7 +260,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         tf = self.settings.get('plot_identified_stars', False)
         b.plot_identified_guide_stars.set_state(tf)
-        b.plot_identified_guide_stars.set_tooltip("Plot the identified guide stars")
+        b.plot_identified_guide_stars.set_tooltip("Plot the identified guide stars in *red*")
         b.plot_identified_guide_stars.add_callback('activated',
                                                    self.toggle_plot_identified_stars_cb)
 
@@ -276,13 +276,14 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
 
         tf = self.settings.get('plot_catalog_stars', False)
         b.plot_catalog_stars.set_state(tf)
-        b.plot_catalog_stars.set_tooltip("Plot potential (not actual) guiding stars")
+        b.plot_catalog_stars.set_tooltip("Plot possible guiding stars in *cyan*\n"
+                                         "o (no flags), x (0x1000), + (other flags)")
         b.plot_catalog_stars.add_callback('activated',
                                            self.toggle_plot_catalog_stars_cb)
 
         tf = self.settings.get('plot_detected_not_identified', False)
         b.plot_ni_detected_stars.set_state(tf)
-        b.plot_ni_detected_stars.set_tooltip("Plot the detected stars that were not identified")
+        b.plot_ni_detected_stars.set_tooltip("Plot the detected stars that were not identified as guide stars in *yellow*")
         b.plot_ni_detected_stars.add_callback('activated',
                                               self.toggle_plot_ni_detected_stars_cb)
 
@@ -336,13 +337,25 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         btn1.set_state(self.mode == 'raw')
         btn1.add_callback('activated', self.set_mode_cb, 'raw')
         btn1.set_tooltip("Show raw frames")
+        self.w.btn_raw = btn1
         hbox.add_widget(btn1)
 
         btn2 = Widgets.RadioButton("Processed", group=btn1)
         btn2.set_state(self.mode == 'processed')
         btn2.add_callback('activated', self.set_mode_cb, 'processed')
         btn2.set_tooltip("Show processed frames")
+        self.w.btn_processed = btn2
         hbox.add_widget(btn2)
+
+        hbox.add_widget(Widgets.Label(""), stretch=1)
+        btn = Widgets.Button("Focusing")
+        btn.add_callback('activated', self.focusing_mode_cb)
+        btn.set_tooltip("Configure GUI for focusing")
+        hbox.add_widget(btn, stretch=0)
+        btn = Widgets.Button("Guiding")
+        btn.add_callback('activated', self.guiding_mode_cb)
+        btn.set_tooltip("Configure GUI for guiding")
+        hbox.add_widget(btn, stretch=0)
 
         fr = Widgets.Frame("AG Files")
         fr.set_widget(hbox)
@@ -1302,6 +1315,66 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
             if filepath is None or not os.path.exists(filepath):
                 return
             self.fv.nongui_do(self.process_file, filepath, set_1k=True)
+
+    def focusing_mode_cb(self, w):
+        self.w.plot_fov.set_state(False)
+        self.toggle_plot_fov_cb(self.w.plot_fov, False)
+
+        self.w.plot_identified_guide_stars.set_state(False)
+        self.toggle_plot_identified_stars_cb(self.w.plot_identified_guide_stars,
+                                             False)
+
+        self.w.plot_catalog_stars.set_state(False)
+        self.toggle_plot_catalog_stars_cb(self.w.plot_catalog_stars, False)
+
+        self.w.plot_offsets.set_state(False)
+        self.toggle_plot_offsets_cb(self.w.plot_offsets, False)
+
+        self.w.plot_ni_detected_stars.set_state(False)
+        self.toggle_plot_ni_detected_stars_cb(self.w.plot_ni_detected_stars,
+                                              False)
+
+        self.w.subtract_bias.set_state(True)
+        self.subtract_bias_cb(self.w.subtract_bias, True)
+
+        self.w.subtract_background.set_state(False)
+        self.subtract_bg_cb(self.w.subtract_background, False)
+
+        self.w.auto_orient.set_state(False)
+        self.auto_orient_cb(self.w.auto_orient, False)
+
+        self.w.btn_raw.set_state(True)
+        self.set_mode_cb(self.w.btn_raw, True, 'raw')
+
+    def guiding_mode_cb(self, w):
+        self.w.plot_fov.set_state(True)
+        self.toggle_plot_fov_cb(self.w.plot_fov, True)
+
+        self.w.plot_identified_guide_stars.set_state(True)
+        self.toggle_plot_identified_stars_cb(self.w.plot_identified_guide_stars,
+                                             True)
+
+        self.w.plot_catalog_stars.set_state(True)
+        self.toggle_plot_catalog_stars_cb(self.w.plot_catalog_stars, True)
+
+        self.w.plot_offsets.set_state(True)
+        self.toggle_plot_offsets_cb(self.w.plot_offsets, True)
+
+        self.w.plot_ni_detected_stars.set_state(True)
+        self.toggle_plot_ni_detected_stars_cb(self.w.plot_ni_detected_stars,
+                                              True)
+
+        self.w.subtract_bias.set_state(True)
+        self.subtract_bias_cb(self.w.subtract_bias, True)
+
+        self.w.subtract_background.set_state(False)
+        self.subtract_bg_cb(self.w.subtract_background, False)
+
+        self.w.auto_orient.set_state(True)
+        self.auto_orient_cb(self.w.auto_orient, True)
+
+        self.w.btn_processed.set_state(True)
+        self.set_mode_cb(self.w.btn_processed, True, 'processed')
 
     def pan_cam_cb(self, w, cam_num):
         channel = self.fv.get_channel(self.fov_chname)

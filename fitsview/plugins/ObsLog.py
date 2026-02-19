@@ -52,6 +52,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.file_prefixes = []
         self.auto_scroll = True
         self.sort_hdr = 'FrameID'
+        self.sort_kwd = 'FRAMEID'
 
         # columns to be shown in the table
         column_info = [dict(col_title="Obs Mod", fits_kwd='OBS-MOD'),
@@ -111,7 +112,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         tv.add_callback('activated', self.dblclick_cb)
         tv.add_callback('selected', self.select_cb)
 
-        tv.setup_table(self.rpt_columns, 1, 'FRAMEID')
+        tv.setup_table(self.rpt_columns, 1, self.sort_kwd)
 
         # set any specified column widths
         tv.set_optimal_column_widths()
@@ -204,7 +205,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         return d
 
     def add_to_obslog(self, header, image):
-        frameid = header['FRAMEID']
+        frameid = header[self.sort_kwd]
 
         if frameid in self.rpt_dict:
             # already an entry for this frame?
@@ -338,15 +339,15 @@ class ObsLog(GingaPlugin.GlobalPlugin):
 
             # merge loaded table (as dict) into save_dict
             for row in res.values():
-                frameid = row['FRAMEID']
+                frameid = row[self.sort_kwd]
                 d = OrderedDict([(kwd, row.get(kwd, ''))
                                  for col, kwd in self.rpt_columns])
                 save_dict[frameid] = d
 
             rows = list(save_dict.values())
-            rows.sort(key=lambda dct: dct['FRAMEID'])
+            rows.sort(key=lambda dct: dct[self.sort_kwd])
 
-            rpt_dict = OrderedDict([(row['FRAMEID'], row) for row in rows])
+            rpt_dict = OrderedDict([(row[self.sort_kwd], row) for row in rows])
 
             self.rpt_dict = rpt_dict
             self.w.rpt_tbl.set_tree(self.rpt_dict)
@@ -413,7 +414,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
             self.w.set_memo.set_enabled(True)
             # grab the first memo item we can find to populate the memo box
             for frame_id, d in res.items():
-                memo_txt = d['G_MEMO']
+                memo_txt = d.get('G_MEMO', '')
                 self.w.memo.set_text(memo_txt)
                 break
 

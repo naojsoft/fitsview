@@ -1,11 +1,9 @@
 #
-# Takeshi Inagaki (tinagaki@naoj.org)
+# T. Inagaki
 #
 import os
 import sys
 import numpy as np
-import scipy
-import matplotlib.pyplot as plt
 
 from g2base import ssdlog
 
@@ -116,14 +114,14 @@ def main(options,args):
     logger = ssdlog.make_logger(logname, options)
 
     # test data points
-    points = np.array([(1, -1), (1, 0), (1, 0.1), \
-                       (2, 2), (2, 1.85), (2, 2.01), \
-                       (3, 4.5), (3, 5.0), (3, 5.52), \
-                       (4, 8), (4, 7.85), (4, 8.11), \
-                       (5, 7), (5, 10.05), (5, 9.11), \
-                       (6, 8.2), (6, 7.95), (6, 6.01), \
-                       (7, 4.9), (7, 5.0), (7, 6.02), \
-                       (8, 2), (8, 1.95), (8, 1.31), \
+    points = np.array([(1, -1), (1, 0), (1, 0.1),
+                       (2, 2), (2, 1.85), (2, 2.01),
+                       (3, 4.5), (3, 5.0), (3, 5.52),
+                       (4, 8), (4, 7.85), (4, 8.11),
+                       (5, 7), (5, 10.05), (5, 9.11),
+                       (6, 8.2), (6, 7.95), (6, 6.01),
+                       (7, 4.9), (7, 5.0), (7, 6.02),
+                       (8, 2), (8, 1.95), (8, 1.31),
                        (9, 1.9), (9, 2.75), (9, 2.001),])
     # get x and y vectors
     x = points[:,0]
@@ -139,12 +137,12 @@ def main(options,args):
     x_new = np.linspace(x[0], x[-1], 100)
     y_new = func(x_new)
 
+    import matplotlib.pyplot as plt
     plt.plot(x, y, 'o', x_new, y_new, '-')
     #plt.plot(x, y, 'o', x_new, y_new, '-', x_new, y_est, '--')
     plt.xlim([x[0]-1, x[-1] + 1 ])
     #plt.plot(x, y, 'o-', x_new, y_est)
     plt.show()
-
 
 
 if __name__ == "__main__":

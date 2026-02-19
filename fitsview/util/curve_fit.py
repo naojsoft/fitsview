@@ -28,6 +28,7 @@ def make_CurveFittingCanvas(canvasClass):
         def __init__(self, figure, logger):
 
             self.fig = figure
+            self.fig.clear()
 
             super(CurveFittingCanvas, self).__init__(self.fig)
             self.axes = self.fig.add_subplot(111)
