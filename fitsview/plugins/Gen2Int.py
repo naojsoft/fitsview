@@ -64,7 +64,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         self.disp_cache = self.settings.get('disp_cache')
 
         self.host = ro.get_myhost(short=True)
-        self.ev_quit = threading.Event()
+        self.ev_quit = self.fv.ev_quit
         self.queue = Queue.Queue()
 
         # monitor channels we are interested in
@@ -90,7 +90,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         # Create a local pub sub instance
         self.monitor = Monitor.Monitor(mymonname, self.logger,
                                        threadPool=threadPool,
-                                       ev_quit=self.fv.ev_quit)
+                                       ev_quit=self.ev_quit)
 
         self.sndsink = SoundSink.SoundSource(monitor=self.monitor,
                                              logger=self.logger,
@@ -144,7 +144,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         self.viewsvc = ro.remoteObjectServer(svcname=self.svcname,
                                              obj=self,
                                              logger=self.logger,
-                                             ev_quit=self.fv.ev_quit,
+                                             ev_quit=self.ev_quit,
                                              port=self.port,
                                              usethread=True,
                                              threadPool=threadPool,
