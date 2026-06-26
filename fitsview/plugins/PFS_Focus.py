@@ -169,6 +169,8 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         w, b = Widgets.build_info(captions, orientation=orientation)
         self.w.update(b)
+        # SAs request default to be ON
+        b.auto.set_state(True)
         b.measure.add_callback('activated',
                                lambda w: self.update_values())
         b.measure.set_tooltip("Measure current image and add to table")
@@ -299,6 +301,9 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         self.gui_up = False
 
     def close(self):
+        # requested by SAs
+        self.clear_table()
+
         chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True

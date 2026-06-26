@@ -15,7 +15,7 @@ import matplotlib
 import matplotlib.figure as figure
 from matplotlib.patches import Ellipse
 
-from ginga.gw import Widgets, Plot
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 
 import fitsview.util.curvefit as curvefit
@@ -44,11 +44,12 @@ class FocusFit(GingaPlugin.LocalPlugin):
         self.plot = plots.Plot(logger=self.logger, width=300, height=700)
 
         # Make the focus fitting plot
-        self.ax = self.plot.add_axis()
+        self.ax = self.plot.get_axis()
         self.ax.set_title('Focus Fitting')
 
-        self.canvas = Plot.PlotWidget(self.plot, width=300, height=550)
-        splitter.add_widget(self.canvas)
+        canvas_w = self.plot.get_ginga_widget()
+        canvas_w.set_min_size(300, 550)
+        splitter.add_widget(canvas_w)
 
         # create a box to pack widgets into.
         vbox1 = Widgets.VBox()
@@ -102,7 +103,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
     def _draw(self):
         self.ax.grid(True)
-        self.plot.draw()
+        self.plot.redraw()
 
     def set_err_msg(self,msg,x,y):
         self.ax.text(x, y, msg, bbox=dict(facecolor='red',  alpha=0.1, ),

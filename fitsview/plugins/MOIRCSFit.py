@@ -18,10 +18,9 @@ import scipy.optimize as optimize
 import sewpy
 from astropy.io import fits as pyfits
 
-from ginga.gw import Plot, Widgets
+from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.util import plots
-from ginga.gw.Plot import PlotWidget
 from ginga import GingaPlugin
 
 from fitsview.util import polynomial
@@ -183,9 +182,10 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
 
             plot = plots.Plot(logger=self.logger, width=300, height=300)
             self.plots['%f-%d' % (focz, i)] = plot
-            canvas_w = PlotWidget(plot, width=300, height=300)
+            canvas_w = plot.get_ginga_widget()
+            canvas_w.set_min_size(300, 300)
             vbox.add_widget(canvas_w)
-            ax = plot.add_axis()
+            ax = plot.get_axis()
 
             raw_data = d['Raw Data']
             x_raw = raw_data['X_IMAGE']
@@ -234,7 +234,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             self.logger.info(title)
             ax.grid(True)
 
-            plot.draw()
+            plot.redraw()
 
         sw = Widgets.ScrollArea()
         sw.set_widget(vbox)
@@ -309,9 +309,10 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         for i, d in enumerate(best_data):
             plot = plots.Plot(logger=self.logger, width=300, height=300)
             self.plots['best-%d' % (i)] = plot
-            canvas_w = PlotWidget(plot, width=300, height=300)
+            canvas_w = plot.get_ginga_widget()
+            canvas_w.set_min_size(300, 300)
             vbox.add_widget(canvas_w)
-            ax = plot.add_axis()
+            ax = plot.get_axis()
 
             det_id = d['DET-ID']
             x = d['focz']
@@ -319,7 +320,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
             sdev = d['sdev']
             self.errorplot(det_id, ax, x, y, sdev,
                            best[det_id-1], x_fit[det_id-1], y_fit[det_id-1])
-            plot.draw()
+            plot.redraw()
 
         if np.isfinite(avg_best):
             msg = " Best:  %.3g" % (avg_best)

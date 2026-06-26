@@ -21,7 +21,6 @@ from ginga.gw import Widgets
 from ginga import GingaPlugin, colors
 
 try:
-    from ginga.gw import Plot
     from ginga.util import plots
 
     import matplotlib.dates as mpl_dt
@@ -80,9 +79,9 @@ class MOIRCSTrend(GingaPlugin.GlobalPlugin):
         # Make the trend plot
         self.trend_plot = plots.Plot(logger=self.logger,
                                      width=400, height=400)
-        pw = Plot.PlotWidget(self.trend_plot)
+        pw = self.trend_plot.get_ginga_widget()
         pw.resize(400, 400)
-        ax = self.trend_plot.add_axis()
+        ax = self.trend_plot.get_axis()
         ax.grid(True)
 
         vbox.add_widget(pw, stretch=1)
@@ -211,7 +210,7 @@ class MOIRCSTrend(GingaPlugin.GlobalPlugin):
                                   det2.points[k].median)
                                  for k in _keys])
 
-        ax = self.trend_plot.ax
+        ax = self.trend_plot.get_axis()
         ax.cla()
         ax.grid()
 
@@ -235,7 +234,7 @@ class MOIRCSTrend(GingaPlugin.GlobalPlugin):
         if self.settings.get('show_legend', False):
             self.add_legend()
 
-        self.trend_plot.draw()
+        self.trend_plot.redraw()
 
     def reset_trend_cb(self, w):
         self._data = dict(det1=SimpleNamespace(color='green', points={}),

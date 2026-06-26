@@ -277,7 +277,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         tf = self.settings.get('plot_catalog_stars', False)
         b.plot_catalog_stars.set_state(tf)
         b.plot_catalog_stars.set_tooltip("Plot possible guiding stars in *cyan*\n"
-                                         "o (no flags), x (0x1000), + (other flags)")
+                                         "o (no flags), x (galaxy), + (other flags)")
         b.plot_catalog_stars.add_callback('activated',
                                            self.toggle_plot_catalog_stars_cb)
 

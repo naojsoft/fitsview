@@ -32,7 +32,6 @@ from ginga.misc.Bunch import Bunch
 from ginga import GingaPlugin
 from ginga.gw import Widgets
 from ginga.gw import Viewers
-from ginga.gw import Plot
 from ginga.gw import GwHelp
 from ginga import AstroImage
 from ginga.util import plots
@@ -832,9 +831,11 @@ class MoircsAlign(MoircsAlignWindow):
         # add both plots to the frame
         self.plots = []
         for i in range(2):
-            self.plots.append(plots.Plot(logger=self.logger))
-            fig = Plot.PlotWidget(self.plots[i], width=300, height=300)
-            box.add_widget(fig)
+            plot = plots.Plot(logger=self.logger)
+            self.plots.append(plot)
+            plot_w = plot.get_ginga_widget()
+            plot_w.set_min_size(300, 300)
+            box.add_widget(plot_w)
         self.plots[0].fig.canvas.mpl_connect("button_press_event",
                                              self.toggle_active_x_cb)
         self.plots[1].fig.canvas.mpl_connect("button_press_event",
@@ -900,9 +901,6 @@ class MoircsAlign(MoircsAlignWindow):
         gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
 
-
-
-
     def stack_guis(self, stack, orientation='vertical'):
         """
         Get the GUIs from all the different departments of mesoffset, and stacks
@@ -916,7 +914,6 @@ class MoircsAlign(MoircsAlignWindow):
         for i, (name, gui) in enumerate(all_guis):
             stack.add_widget(gui)
             self.stack_idx[name] = i
-
 
     def build_control_layout(self, controls, callback=None):
         """
@@ -1005,7 +1002,6 @@ class MoircsAlign(MoircsAlignWindow):
                 grd.add_widget(wdg, i, 2)
 
         return grd, getters, setters
-
 
     def build_dict_labels(self,dictionary):
         """
@@ -1156,7 +1152,6 @@ class MoircsAlign(MoircsAlignWindow):
         # space appropriately and return
         gui.add_widget(Widgets.Label(''), stretch=1)
         return gui
-
 
     def make_gui_err(self, orientation='vertical'):
         """
@@ -1455,7 +1450,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.database['starhole_chip1'] = self.starhole_chip1+2
         self.go_to_mesoffset(1)
 
-
     def begin_mesoffset3(self):
         """
         Start the third, fine, star-hole location with updated mask locations.
@@ -1492,7 +1486,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.database['starhole_chip1'] = self.starhole_chip1 + 2
         self.go_to_mesoffset(0)
 
-
     def set_defaults(self, page_num):
         """
         Set the default values for the gui on page page_num
@@ -1522,7 +1515,6 @@ class MoircsAlign(MoircsAlignWindow):
         f.write(("dx = {:7,.2f} (pix) dy = {:7,.2f} (pix) "+
                  "rotate = {:7,.4f} (degree) \n").format(*values))
         f.close()
-
 
     def resume_process_cb(self, *args):
         """
@@ -1658,7 +1650,6 @@ class MoircsAlign(MoircsAlignWindow):
             if src_image is not None:
                 self.select_point(src_image, self.click_history[self.click_index])
 
-
     def redo1_cb(self, *args):
         """
         Respond to the redo button in step 1
@@ -1747,7 +1738,6 @@ class MoircsAlign(MoircsAlignWindow):
             r = 1.42*s
         return (xf+dx-s, yf+dy-s, xf+dx+s, yf+dy+s, r)
 
-
     def mark_current_obj(self, obj=None):
         """
         Puts a point and/or circle on the current object
@@ -1816,7 +1806,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.drag_start = (x,y)
         return True
 
-
     def end_drag_cb(self, c, k, xf, yf, kind):
         """
         Respond to the mouse finishing a left-drag by finalizing crop selection
@@ -1854,7 +1843,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.draw_mask(*self.drag_history[self.current_obj][-1])
         self.mark_current_obj()
 
-
     def viewer_redirect_cb(self, _, button, xv, yv, direction):
         """
         Respond to a click on the step2_viewer by adjusting x and y for the
@@ -1890,7 +1878,6 @@ class MoircsAlign(MoircsAlignWindow):
             self.drag_index[co] -= 1
             self.mark_current_obj()
 
-
     def redo2_cb(self, *args):
         """
         Respond to the redo button in step 2
@@ -1925,7 +1912,6 @@ class MoircsAlign(MoircsAlignWindow):
             self.mark_current_obj()
         else:
             self.step1_cb()
-
 
     def next_obj_cb(self, *args):
         """
@@ -1973,7 +1959,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.mark_current_obj([float('NaN')]*3)
         self.next_obj_cb()
 
-
     def use_measurements_cb(self, *args):
         """
         Execute self.next_step
@@ -1991,7 +1976,6 @@ class MoircsAlign(MoircsAlignWindow):
         if self.image_set_next_step != None:
             self.image_set_next_step()
         self.image_set_next_step = None
-
 
     def read_parameters(self):
         """
@@ -2056,8 +2040,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.canvas.clear_callback('draw-up')
         if right_click != None:
             self.canvas.add_callback('draw-up', right_click)
-
-
 
     def logwindow(self, *args, **kwargs):
         """
@@ -2184,7 +2166,6 @@ class MoircsAlign(MoircsAlignWindow):
 
         self.fv.nongui_do(task)
         self.terminate = e
-
 
     def processStarFits(self, t, log, next_step=None):
         """
@@ -2358,7 +2339,6 @@ class MoircsAlign(MoircsAlignWindow):
         if self.spinboxes['Y'].get_value() != y:
             self.spinboxes['Y'].set_value(y)
 
-
     def locate_obj(self, bounds, masks, image, viewer=None,
                    min_search_radius=None, thresh=3):
         """
@@ -2485,7 +2465,6 @@ class MoircsAlign(MoircsAlignWindow):
         # and then fill in the outside
         return dc.Polygon(vertices, color='black', fill=True, fillcolor='black')
 
-
     def tag(self, step, mod_1, mod_2=None):
         """
         Create a new tag given the step and some modifiers,
@@ -2608,7 +2587,6 @@ class MoircsAlign(MoircsAlignWindow):
 
         return data, np.ones(data.shape[0], dtype=bool)
 
-
     def setAnalyzecallbacks(self, step=3):
         """
         Assign all necessary callbacks to the canvas for the current step
@@ -2670,7 +2648,6 @@ class MoircsAlign(MoircsAlignWindow):
 
         return newX, newY
 
-
     def plot_residual(self, plot, z_observe, z_residual, active, var_name=""):
         """
         Plot the residual of this data against the real value.
@@ -2724,7 +2701,6 @@ class MoircsAlign(MoircsAlignWindow):
 
         plot.draw()
 
-
     # def step4_cb(self, *args):
     #     """
     #     Respond to the Next button in step 3 by displaying the offset values
@@ -2732,7 +2708,6 @@ class MoircsAlign(MoircsAlignWindow):
     #     self.setAnalyzecallbacks(step=4)
     #     self.go_to_gui('values')
     #     self.display_values()
-
 
     def set_active_cb(self, _, __, x, y, val):
         """
@@ -2776,7 +2751,6 @@ class MoircsAlign(MoircsAlignWindow):
     def toggle_active_y_cb(self, e):
         """ Redirect to toggle_active_cb """
         self.toggle_active_cb(e, self.plots[1])
-
 
     def toggle_active_cb(self, event, plt):
         """
@@ -2935,7 +2909,6 @@ class MoircsAlign(MoircsAlignWindow):
         self.final_displays["dPA"].set_text(u"{:,.4f}".format(thetaD))
         self.offset = (dx, dy, thetaD)
 
-
     def read_sbr_file(self, filename, logger):
         """
         Read the file and return the data within, structured as the position
@@ -3034,7 +3007,6 @@ class MoircsAlign(MoircsAlignWindow):
         obj_list[:,0:2] -= obj0
         return obj_list, obj0, xoffset, yoffset
 
-
     def startLocate(self, initial_data, mode, interact2=True,
               next_step=None):
         """
@@ -3115,7 +3087,7 @@ class MoircsAlign(MoircsAlignWindow):
                 if i < len(self.thumbnails):
                     wd, ht = self.thumbnails[i].get_desired_size()
                     pic = Viewers.GingaViewerWidget(viewer=self.thumbnails[i])
-                    pic.resize(wd, ht)
+                    pic.set_min_size(wd, ht)
                     self.viewer_grid.add_widget(pic, row, col, stretch=1)
 
         # set the mouse controls and automatically start if this is starhole mode
@@ -3223,7 +3195,6 @@ class MoircsAlign(MoircsAlignWindow):
         return False
 
 
-
 class MoircsAlignImage(object):
 
 
@@ -3318,8 +3289,6 @@ class MoircsAlignImage(object):
         if next_step != None:
             next_step()
 
-
-
     def processStarImage(self, terminate, log=nothing, next_step=None):
         self.loadImage()
 
@@ -3388,7 +3357,6 @@ class MoircsAlignImage(object):
             log("Swap the byte order...")
             self.star.mosaic.data=self.star.mosaic.data.byteswap().newbyteorder()
 
-
         log("Extracting stars on image...")
         if terminate.is_set():
             return
@@ -3422,7 +3390,6 @@ class MoircsAlignImage(object):
         circles = cv2.HoughCircles(img,\
               HOUGH_GRADIENT,1,100,param1=30,param2=30,minRadius=11,maxRadius=30)
 
-
         if maskKey == 'ch1':
             self.mask.ch1_gHoles=circles
         if maskKey == 'ch2':
@@ -3450,13 +3417,9 @@ class MoircsAlignImage(object):
         (xfit,yfit)=np.linalg.solve(np.array([[self.mc2.b,self.mc2.c],
                 [self.mc2.e,self.mc2.f]]),np.array([x-self.mc2.a,y-self.mc2.b]))
 
-
         (self.mask.ch2_gHolesCorr[0,:,0],self.mask.ch2_gHolesCorr[0,:,1])=(xfit,yfit)
 
-
         self.mask.gHoleMosaic=np.zeros((1,self.mask.ch1_gHolesCorr.shape[1]+self.mask.ch2_gHolesCorr.shape[1],3))
-
-
 
         self.mask.gHoleMosaic[0,:,0]=np.append(np.subtract(2046,self.mask.ch1_gHolesCorr[0,:,1]),\
                                                     np.subtract(2086.5,self.mask.ch2_gHolesCorr[0,:,1]))
@@ -3466,7 +3429,6 @@ class MoircsAlignImage(object):
                                                     self.mask.ch2_gHolesCorr[0,:,2])
 
         self.mask.gHoleMosaic=self.mask.gHoleMosaic
-
 
     def transformImage(self, remapKey, detrendKey, dc):
 
@@ -3488,10 +3450,8 @@ class MoircsAlignImage(object):
         xd=np.uint16(np.around(xd))
         yd=np.uint16(np.around(yd))
 
-
         indx=np.copy(xd)
         indy=np.copy(yd)
-
 
         #print(len(xd))
         for i in range(0,len(xd)):
@@ -3505,7 +3465,6 @@ class MoircsAlignImage(object):
                         indy[i]=yn[k]
 
         return indx,indy
-
 
     def transformLocation(self,uncorrectXY,dc):
 
@@ -3534,7 +3493,6 @@ class MoircsAlignImage(object):
             yfit[np.where(yfit > 2047)]=2047
         else:
             np.clip(yfit,0,2047)
-
 
         indx=np.uint(np.round(xfit))
         indy=np.uint(np.round(yfit))
@@ -3583,12 +3541,10 @@ class MoircsAlignImage(object):
 #        self.star.mosaic=fits.PrimaryHDU(data=np.rot90(img, k=3),
             header=self.star.raw1.header)
 
-
     def removeBackground(self):
 
         self.star.detrend1=fits.PrimaryHDU(data=self.star.raw1.data-self.star.bg1.data)
         self.star.detrend2=fits.PrimaryHDU(data=self.star.raw2.data-self.star.bg2.data)
-
 
     def loadImage(self):
 
@@ -3629,7 +3585,6 @@ class MoircsAlignImage(object):
         bkg = sep.Background(data, bw=64, bh=64, fw=3, fh=3)
         objs = sep.extract(data-bkg, 2.5, err=bkg.globalrms,minarea=20)
 
-
         aper_radius=8.0
 
         # Calculate the Kron Radius
@@ -3651,7 +3606,6 @@ class MoircsAlignImage(object):
         objs['flux'][einx]=flux
         objs['flux'][cinx]=cflux
 
-
         r, flag = sep.flux_radius(data, objs['x'], objs['y'], \
             aper_radius*objs['a'], 0.5,normflux=objs['flux'], subpix=5)
 
@@ -3667,11 +3621,9 @@ class MoircsAlignImage(object):
             np.logical_and(objs['y'] > 120, objs['y'] < 1800),\
             np.logical_and(objs['y'] > 1860, objs['y'] < 3530))))
 
-
         objects=objs[:][np.where(index == True)]
 
         self.starCat=objects[:]
-
 
         # fig, ax = plt.subplots()
         # im = ax.imshow(np.flipud(data), interpolation='nearest', cmap='gray',
@@ -3695,7 +3647,6 @@ class MoircsAlignImage(object):
         #             edgecolor='yellow', facecolor='none')
         #     ax.add_artist(r)
 
-
         # plt.show()
         # plt.close()
 
@@ -3712,7 +3663,6 @@ class MoircsAlignImage(object):
                 darray=d
             else:
                 darray=np.vstack((darray,d))
-
 
         # Extracting the nearest N stars for searching
         nearest_dis=np.array([])
@@ -3734,7 +3684,6 @@ class MoircsAlignImage(object):
         # It will be better if we select this value from a data set that
         #  stars are close to the hole
         si,sj=np.where(nearest_dis == np.min(nearest_dis))
-
 
         # Now looking for matched stars by checking distances, go through
         #  all N-th nearest stars and find their friends.
@@ -3805,7 +3754,6 @@ class MoircsAlignImage(object):
                 weight_min = i[1]
                 stars=match_set[i[0]]
 
-
         print(match_set)
         print(weight_set)
         print(stars)
@@ -3844,10 +3792,7 @@ class MoircsAlignImage(object):
         # plt.show()
         # plt.close()
 
-
     def closeImage(self):
-
-
         if self.star != 0:
             del self.star
 
@@ -3856,7 +3801,6 @@ class MoircsAlignImage(object):
 
         if self.badpix !=0:
             del self.badpix
-
 
     def __init__(self):
         #super(MoircsAlignConfig, self).__init__()
@@ -3875,11 +3819,10 @@ class MoircsAlignImage(object):
         self.star=Bunch(dict(raw1=0,raw2=0,bg1=0,bg2=0,
             detrend1=0,detrend2=0,rempa1=0,remap2=0,mosaic=0))
 
-
-
     def __del__(self):
         self.closeImage()
         gc.collect()
+
 
 class DistortionMap(object):
 
@@ -3940,6 +3883,7 @@ class DistortionMap(object):
         self.yc02=field1[int(ind[-1])+43]
         self.yc12=field1[int(ind[-1])+44]
         self.yc03=field1[int(ind[-1])+45]
+
 
 class MosaicPrarameter(object):
 
