@@ -188,21 +188,19 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         b.plot.set_tooltip("Plot the focus fitting curves from table")
         b.auto.set_tooltip("Automatically add measurements to table")
 
-        # for i in range(0, 8):
-        #     b.debug.append_text(str(i))
-        # b.debug.add_callback('activated', self._debug_set_table)
-
         vbox.add_widget(w, stretch=0)
         paned.add_widget(vbox)
 
         self.focus_plot = plots.Plot(logger=self.logger,
                                      width=400, height=400)
-        self.focus_plot.add_axis(facecolor='white')
+        self.focus_plot.set_background('white')
+        self.focus_plot.add_axis()
         self.init_plot()
 
         self.lmr_plot = plots.Plot(logger=self.logger,
                                    width=400, height=400)
-        self.lmr_plot.add_axis(facecolor='white')
+        self.lmr_plot.set_background('white')
+        self.lmr_plot.add_axis()
         self.init_lmr_plot()
 
         self.w.plot_w = Plot.PlotWidget(self.focus_plot)
