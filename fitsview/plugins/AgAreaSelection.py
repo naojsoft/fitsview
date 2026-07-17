@@ -4,9 +4,8 @@
 # E. Jeschke
 #
 
-from ginga.misc import Bunch
 from ginga.util import wcs
-from ginga.gw import Widgets, Plot
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 
 # Local application imports
@@ -16,7 +15,7 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(AgAreaSelection, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         self.layertag = 'qdas-agareaselection'
 
@@ -175,7 +174,7 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
         for tag in tags:
             try:
                 p_canvas.delete_object_by_tag(tag)
-            except:
+            except Exception:
                 pass
 
     def instructions(self):
@@ -250,7 +249,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
     def release_caller(self):
         try:
             self.close()
-        except:
+        except Exception:
             pass
         self.callerInfo.resolve(0)
 
@@ -469,7 +468,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         # Mark center of object and region on main image
         try:
             self.canvas.delete_object_by_tag(self.picktag, redraw=False)
-        except:
+        except Exception:
             pass
 
         x1, y1 = data_x - dx, data_y - dy
@@ -512,7 +511,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             # Replace compound image with rectangle
             try:
                 self.canvas.delete_object_by_tag(self.picktag, redraw=False)
-            except:
+            except Exception:
                 pass
 
             self.picktag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
@@ -534,7 +533,7 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
         if self.picktag:
             try:
                 canvas.delete_object_by_tag(self.picktag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         # determine center of rectangle

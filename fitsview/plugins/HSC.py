@@ -6,8 +6,6 @@
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
 #
-from ginga.misc import Widgets
-from ginga.util import dp
 
 from fitsview.util import hsc
 #from fitsview.plugins import SPCAM
@@ -18,7 +16,7 @@ class HSC(SPCAM.SPCAM):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(HSC, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         # Set preferences for destination channel
         prefs = self.fv.get_preferences()

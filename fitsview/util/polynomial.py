@@ -1,7 +1,6 @@
 #
 # T. Inagaki
 #
-import os
 import sys
 import numpy as np
 
@@ -11,7 +10,7 @@ class QuadraticError(Exception):
     pass
 
 
-class QuadraticFunction(object):
+class QuadraticFunction:
 
     def __init__(self, logger=None):
         self.a = 0

@@ -13,15 +13,15 @@ import numpy
 from ginga import AstroImage
 from ginga.misc import Bunch, log
 from ginga.util import dp
-from ginga.util import mosaic, wcs
+from ginga.util import wcs
 
 from g2base.astro.frame import Frame
 
 
-class SuprimeCamDR(object):
+class SuprimeCamDR:
 
     def __init__(self, logger=None):
-        super(SuprimeCamDR, self).__init__()
+        super().__init__()
 
         if logger is None:
             logger = log.get_logger(level=20, log_stderr=True)

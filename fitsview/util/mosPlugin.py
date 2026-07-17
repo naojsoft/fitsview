@@ -33,7 +33,7 @@ class MESPlugin(GingaPlugin.LocalPlugin):
             associated with the channel on which the plugin is being invoked
         """
         # superclass constructor defines self.fv, self.fitsimage, and self.logger:
-        super(MESPlugin, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         # now sets up the ginga.canvas.types.layer.DrawingCanvas self.canvas,
         # which is necessary to draw on the image:
@@ -159,7 +159,7 @@ class MESPlugin(GingaPlugin.LocalPlugin):
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.delete_object_by_tag('MOSA-canvas')
-        except:
+        except Exception:
             pass
         self.canvas.ui_set_active(False)
         self.clear_canvas()

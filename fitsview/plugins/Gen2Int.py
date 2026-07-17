@@ -8,7 +8,6 @@ import re
 import time
 import traceback
 from io import BytesIO
-import threading
 import queue as Queue
 
 from astropy.io import fits as pyfits
@@ -16,7 +15,7 @@ import numpy as np
 
 from ginga import GingaPlugin
 from ginga import AstroImage, BaseImage
-from ginga.util import loader, iohelper
+from ginga.util import iohelper
 from ginga.misc import Future, Bunch, Task
 
 # g2cam imports
@@ -44,7 +43,7 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
-        super(Gen2Int, self).__init__(fv)
+        super().__init__(fv)
 
         # get plugin settings
         prefs = self.fv.get_preferences()

@@ -26,7 +26,7 @@ SELECTION_MODES = ("Automatic", "Crop", "Mask")
 BOX_COLORS = ('green', 'red', 'blue', 'yellow', 'magenta', 'cyan', 'orange')
 
 
-class MESLocate(object):
+class MESLocate:
     """
     A class that locates a set of calibration objects, asks for users to help
     locate anomolies and artifacts on its images of those objects, and then

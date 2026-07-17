@@ -32,11 +32,8 @@ Double-click on a log entry.
 
 """
 import os
-from collections import OrderedDict
 
-from ginga import GingaPlugin, AstroImage
-from ginga.misc import Bunch
-from ginga.gw import Widgets
+from ginga import AstroImage
 
 from g2base.astro.frame import Frame
 
@@ -48,7 +45,7 @@ import ObsLog
 class QL_IRCS(ObsLog.ObsLog):
 
     def __init__(self, fv):
-        super(QL_IRCS, self).__init__(fv)
+        super().__init__(fv)
 
         self.chnames = ['IRCS']
         self.norm_chnames = ['IRCS_Norm_Cam', 'IRCS_Norm_Spg']
@@ -111,7 +108,7 @@ class QL_IRCS(ObsLog.ObsLog):
         self.process_columns(self.col_info)
 
     def build_gui(self, container):
-        super(QL_IRCS, self).build_gui(container)
+        super().build_gui(container)
 
         proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
         proc_dir_ircs = os.path.join(proc_dir, 'IRCS')
@@ -122,7 +119,7 @@ class QL_IRCS(ObsLog.ObsLog):
         self.w.auto_save.set_state(True)
 
     def replace_kwds(self, header):
-        d = super(QL_IRCS, self).replace_kwds(header)
+        d = super().replace_kwds(header)
 
         d['DET-ID'] = 'CAM' if str(d.get('DET-ID', 1)).strip() == '1' else 'SPG'
 

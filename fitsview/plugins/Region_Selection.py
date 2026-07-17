@@ -4,9 +4,8 @@
 # E. Jeschke
 #
 
-from ginga.misc import Bunch
 from ginga.util import wcs
-from ginga.gw import Widgets, Plot
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 
 # Local application imports
@@ -17,7 +16,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(Region_Selection, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         self.layertag = 'qdas-regionselection'
 
@@ -179,7 +178,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         for tag in tags:
             try:
                 p_canvas.delete_object_by_tag(tag)
-            except:
+            except Exception:
                 pass
 
     def instructions(self):
@@ -242,7 +241,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
     def release_caller(self):
         try:
             self.close()
-        except:
+        except Exception:
             pass
         self.callerInfo.resolve(0)
 
@@ -480,7 +479,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         # Mark center of object and region on main image
         try:
             self.canvas.delete_object_by_tag(self.objtag, redraw=False)
-        except:
+        except Exception:
             pass
 
         x1, y1 = data_x - dx, data_y - dy
@@ -523,7 +522,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
             # Replace compound image with rectangle
             try:
                 self.canvas.delete_object_by_tag(self.objtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
             self.objtag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
@@ -545,7 +544,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
         if self.objtag:
             try:
                 canvas.delete_object_by_tag(self.objtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         # make sure corners are LL, UR

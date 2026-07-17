@@ -4,15 +4,12 @@
 # Y. Sakakibara
 # E. Jeschke
 #
-import os.path
 from datetime import datetime
 
 import numpy as np
 
 from ginga.util import plots
 
-import matplotlib
-import matplotlib.figure as figure
 from matplotlib.patches import Ellipse
 
 from ginga.gw import Widgets
@@ -25,7 +22,7 @@ class FocusFit(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(FocusFit, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         self.lsf = curvefit.LeastSquareFits(self.logger)
 

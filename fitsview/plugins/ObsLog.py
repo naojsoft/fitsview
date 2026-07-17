@@ -35,7 +35,7 @@ from datetime import datetime
 from dateutil import tz
 from collections import OrderedDict
 
-from ginga import GingaPlugin, AstroImage
+from ginga import GingaPlugin
 from ginga.gw import Widgets
 
 from g2cam.INS import INSdata
@@ -46,7 +46,7 @@ __all__ = ['ObsLog']
 class ObsLog(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
-        super(ObsLog, self).__init__(fv)
+        super().__init__(fv)
 
         self.chnames = []
         self.file_prefixes = []

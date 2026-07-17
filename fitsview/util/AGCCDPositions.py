@@ -19,7 +19,7 @@ latitude_d = SUBARU_LATITUDE_DEG
 MJD_0 = 51544.5     # MJD at J2000.0 (2000/01/1.5)
 
 
-class SCAGCCDPositions(object):
+class SCAGCCDPositions:
 
     def __init__(self):
         self.ccdpos = self.ccdpositions()

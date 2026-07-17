@@ -6,7 +6,6 @@
 # E. Jeschke
 #
 
-import math
 import os
 
 from fitsview.util import g2calc
@@ -24,10 +23,10 @@ from g2base import Bunch
 #  Curve fitting
 #########################################################################
 
-class LeastSquareFits(object):
+class LeastSquareFits:
 
     def __init__(self, logger):
-        super(LeastSquareFits, self).__init__()
+        super().__init__()
 
         self.logger = logger
         #self.iqcalc = iqcalc.IQCalc(logger=self.logger)

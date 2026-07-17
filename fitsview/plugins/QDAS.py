@@ -4,12 +4,11 @@
 # E. Jeschke
 # T. Inagaki
 #
-import math
 import os
 import time
 
 from ginga import GingaPlugin, AstroImage
-from ginga.misc import Future, Bunch
+from ginga.misc import Future
 from ginga.util import wcs
 
 import g2base.astro.radec as radec
@@ -42,7 +41,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
-        super(QDAS, self).__init__(fv)
+        super().__init__(fv)
 
         self.count = 0
         #fv.set_callback('add-image', self.add_image)
@@ -742,7 +741,7 @@ class QDAS(GingaPlugin.GlobalPlugin):
         for tag in tags:
             try:
                 canvas.delete_object_by_tag(tag)
-            except:
+            except Exception:
                 pass
 
     def load_file(self, filepath, dst_chname):

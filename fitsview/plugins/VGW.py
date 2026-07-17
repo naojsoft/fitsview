@@ -61,7 +61,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
-        super(VGW, self).__init__(fv)
+        super().__init__(fv)
 
         self.count = 0
 
@@ -160,7 +160,7 @@ class VGW(GingaPlugin.GlobalPlugin):
 
         try:
             exptime = int(exptime)
-        except:
+        except Exception:
             exptime = 3000
 
         p = future.get_data()

@@ -7,10 +7,8 @@
 # Please see the file LICENSE.txt for details.
 #
 
-import math
 import time
 
-import numpy
 
 from ginga.misc import Bunch
 from ginga.util import iqcalc

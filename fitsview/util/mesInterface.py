@@ -12,7 +12,6 @@ from time import strftime
 
 # ginga imports
 from ginga.gw import Widgets
-from ginga.misc.Callback import CallbackError
 
 
 # constants
@@ -24,7 +23,7 @@ PAR_FILENAME = 'mesoffset_parameters.txt'
 VAR_FILENAME = 'mesoffset_directories.txt'
 
 
-class MESInterface(object):
+class MESInterface:
     """
     A class that takes parameters from the user in a user-friendly menu.
     Intended for use as part of the MOS Acquisition software for aligning
@@ -662,20 +661,20 @@ def build_control_layout(controls, callback=None):
             wdg.set_index(0)
             getters[name] = wdg.get_index
             setters[name] = wdg.set_index
-        elif param['type'] == int:
+        elif param['type'] is int:
             wdg = Widgets.SpinBox(dtype=int)
             wdg.set_limits(0, 99999999)
             wdg.set_value(0)
             getters[name] = wdg.get_value
             setters[name] = wdg.set_value
-        elif param['type'] == str:
+        elif param['type'] is str:
             wdg = Widgets.TextEntry(editable=True)
             wdg.set_text("")
             if callback is not None:
                 wdg.add_callback('activated', callback)
             getters[name] = wdg.get_text
             setters[name] = wdg.set_text
-        elif param['type'] == bool:
+        elif param['type'] is bool:
             wdg = Widgets.CheckBox()
             wdg.set_state(True)
             getters[name] = wdg.get_state

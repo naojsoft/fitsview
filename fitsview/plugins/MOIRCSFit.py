@@ -19,7 +19,6 @@ import sewpy
 from astropy.io import fits as pyfits
 
 from ginga.gw import Widgets
-from ginga.misc import Bunch
 from ginga.util import plots
 from ginga import GingaPlugin
 
@@ -48,7 +47,7 @@ def compute_median(x):
 class MOIRCSFit(GingaPlugin.LocalPlugin):
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(MOIRCSFit, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
         self.fwhm_factor = 0.117 # FWHM gets multiplied by this factor
 
         # Min/Max pixel values for the graphs.
@@ -68,7 +67,7 @@ class MOIRCSFit(GingaPlugin.LocalPlugin):
         for i, x in enumerate(self.bins):
             try:
                 self.x_pix_bins = np.append(self.x_pix_bins, (self.bins[i] + self.bins[i+1]) / 2)
-            except:
+            except Exception:
                 pass
 
         # Name of the file used to save data for each focus position

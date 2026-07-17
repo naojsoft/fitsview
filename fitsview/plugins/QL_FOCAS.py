@@ -8,9 +8,7 @@ import os
 import pathlib
 import threading
 
-from ginga import GingaPlugin
 from ginga.misc import Bunch
-from ginga.gw import Widgets, Viewers
 from ginga.AstroImage import AstroImage
 
 try:
@@ -18,7 +16,6 @@ try:
 except ImportError:
     raise ImportError("Please install naojutils with the 'focas' bits")
 
-from g2base.astro.frame import Frame
 
 __all__ = ['QL_FOCAS']
 

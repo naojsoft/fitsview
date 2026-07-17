@@ -54,7 +54,6 @@
 # > see are PFS focal plane coordinates.
 
 # stdlib
-import sys
 import os
 import re
 import time
@@ -69,8 +68,8 @@ import inotify.adapters
 import yaml
 
 # ginga
-from ginga import trcalc, cmap, imap
-from ginga.gw import ColorBar, Widgets, Viewers
+from ginga import trcalc
+from ginga.gw import Widgets
 from ginga.AstroImage import AstroImage
 from ginga.util.io.io_fits import FitsioFileHandler
 from ginga.util.wcsmod.wcs_astropy import AstropyWCS
@@ -383,7 +382,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         w = Widgets.Button("ALL")
         hbox.add_widget(w, stretch=1)
         w.add_callback('activated', self.pan_zoom_fit_cb)
-        w.set_tooltip(f"See all images the PFS_FOV viewer")
+        w.set_tooltip("See all images the PFS_FOV viewer")
         top.add_widget(hbox, stretch=0)
 
         # stretch spacer
@@ -1026,7 +1025,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
                                     io_row['guide_object_y_pix'])
                     # go_row = self.tbl_go[_go_row_num]
                     # gde_x, gde_y = (go_row['guide_object_xdet'],
-		    #                 go_row['guide_object_ydet'])
+                    #                 go_row['guide_object_ydet'])
 
                     error = np.sqrt((gde_y - ctr_y) ** 2 + (gde_x - ctr_x) ** 2)
                     # scale the error for better visibility
@@ -1380,7 +1379,7 @@ class PFS_AG(GingaPlugin.GlobalPlugin):
         channel = self.fv.get_channel(self.fov_chname)
         viewer = channel.viewer
         if cam_num not in self._fov_coords:
-            viewer.onscreen_message(f"CAM{cam_id+1} image not available",
+            viewer.onscreen_message(f"CAM{cam_num+1} image not available",
                                     delay=1.0)
             return
 

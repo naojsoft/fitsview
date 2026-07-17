@@ -23,7 +23,7 @@ class QL_CHARIS(GingaPlugin.GlobalPlugin):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
-        super(QL_CHARIS, self).__init__(fv)
+        super().__init__(fv)
 
         self.sb_hdu1 = True
         self.hdu1_path = None

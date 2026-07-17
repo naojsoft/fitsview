@@ -7,7 +7,6 @@ from ginga.misc import Bunch
 from ginga.rv.plugins import Catalogs
 
 # g2cam imports
-import g2base.astro.radec as radec
 
 from fitsview.util import g2catalog
 
@@ -15,7 +14,7 @@ from fitsview.util import g2catalog
 class AgAutoSelect(Catalogs.Catalogs):
 
     def __init__(self, fv, fitsimage):
-        super(AgAutoSelect, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         # thickness of the marked rings for FOV
         self.ring_thickness = 2
@@ -24,7 +23,7 @@ class AgAutoSelect(Catalogs.Catalogs):
         self.probe_vignette_radius = None
 
     def build_gui(self, container, future=None):
-        super(AgAutoSelect, self).build_gui(container, future=future)
+        super().build_gui(container, future=future)
 
         # add blocklist feature
         self.table.add_operation("add to blocklist", self.add_blocklist)
@@ -35,7 +34,7 @@ class AgAutoSelect(Catalogs.Catalogs):
 
     def start(self, future):
         self.callerInfo = future
-        super(AgAutoSelect, self).start()
+        super().start()
 
     def get_canvas(self):
         return self.canvas

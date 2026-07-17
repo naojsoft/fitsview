@@ -23,8 +23,6 @@ Examples:
 import os
 import glob
 import time
-import math
-import multiprocessing
 
 import numpy as np
 from astropy.io import fits
@@ -32,13 +30,13 @@ from astropy.io import fits
 from ginga.rv.plugins.Command import Command, CommandInterpreter
 from ginga import AstroImage, cmap
 from ginga.gw import Plot, Widgets
-from ginga.util import iqcalc, plots, wcs, dp, io_fits
+from ginga.util import iqcalc, plots, wcs
 from ginga.misc import Bunch
 
 # add any matplotlib colormaps we have lying around
 cmap.add_matplotlib_cmaps(fail_on_import_error=False)
 
-from naoj.hsc.hsc_dr import HyperSuprimeCamDR, hsc_ccd_data
+from naoj.hsc.hsc_dr import HyperSuprimeCamDR
 
 from hsc_mosaic import HSC_Mosaicer
 
@@ -48,7 +46,7 @@ class GView(Command):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
-        super(GView, self).__init__(fv)
+        super().__init__(fv)
 
         # get GView preferences
         prefs = self.fv.get_preferences()
@@ -195,7 +193,7 @@ class GView(Command):
 class GViewInterpreter(CommandInterpreter):
 
     def __init__(self, fv, plugin):
-        super(GViewInterpreter, self).__init__(fv, plugin)
+        super().__init__(fv, plugin)
 
         self.buffers = Bunch.Bunch()
 
@@ -417,7 +415,7 @@ class GViewInterpreter(CommandInterpreter):
         """
         bufname = self.get_buffer_name(bufname)
 
-        if not bufname in self.buffers:
+        if bufname not in self.buffers:
             self.log("!! No such buffer: '%s'" % (bufname))
             return
         image = self.buffers[bufname]
@@ -470,7 +468,7 @@ class GViewInterpreter(CommandInterpreter):
         # TODO: include the comments
         if len(args) > 0:
             for kwd in args:
-                if not kwd in header:
+                if kwd not in header:
                     res.append("%-8.8s  -- NOT FOUND IN HEADER --" % (kwd))
                 else:
                     res.append("%-8.8s  %s" % (kwd, str(header[kwd])))
@@ -576,7 +574,7 @@ class GViewInterpreter(CommandInterpreter):
         elif res in ('n', 'no', 'f', 'false', '0', 'off'):
             self.sub_bias = False
         else:
-            self.log("Don't understand parameter '%s'" % (onoff))
+            self.log(f"Don't understand parameter '{res}'")
 
     def cmd_flat(self, *args):
         """flat on | off
@@ -590,7 +588,7 @@ class GViewInterpreter(CommandInterpreter):
         elif res in ('n', 'no', 'f', 'false', '0', 'off'):
             self.use_flat = False
         else:
-            self.log("Don't understand parameter '%s'" % (onoff))
+            self.log(f"Don't understand parameter '{res}'")
 
     def cmd_flatdir(self, *args):
         """flatdir /some/path/to/flats

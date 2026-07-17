@@ -20,8 +20,6 @@ NOTE: this requires the "naojutils" module, available at
           https://github.com/naojsoft/naojutils
 """
 import os, re, glob
-import time
-import threading
 import queue as Queue
 
 from ginga import AstroImage
@@ -40,7 +38,7 @@ class SPCAM(Mosaic.Mosaic):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(SPCAM, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         # Set preferences for destination channel
         prefs = self.fv.get_preferences()
@@ -85,7 +83,7 @@ class SPCAM(Mosaic.Mosaic):
 
 
     def build_gui(self, container):
-        super(SPCAM, self).build_gui(container)
+        super().build_gui(container)
 
         if not self.fv.has_channel(self.mosaic_chname):
             self.fv.add_channel(self.mosaic_chname)

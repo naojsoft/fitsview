@@ -17,7 +17,7 @@ cvtypes = get_canvas_types()
 import SOSS.GuiderInt.ag_config as ag_config
 
 
-class TELESCOPEfov(object):
+class TELESCOPEfov:
     """A Generic telescope foci FOV object.
     """
 
@@ -78,8 +78,7 @@ class TELESCOPEfov(object):
             elif focus in ('NS_IR', ):
                 x1 = int(ctr_x - radius_px * math.cos(rad))
             else:
-                raise VGWError("Focus '%s' not yet implemented!" % (
-                    focus))
+                raise ValueError(f"Focus '{focus}' not yet implemented!")
 
             y1 = int(ctr_y - radius_px * math.sin(rad))
             return (x1, y1)
@@ -126,7 +125,7 @@ class GENERICfov(TELESCOPEfov):
     """
 
     def __init__(self, logger, image, p):
-        super(GENERICfov, self).__init__(logger, image, p)
+        super().__init__(logger, image, p)
 
         # calculate radius of instrument fov
         inst_radius = wcs.calc_radius_xy(image, p.ctr_x, p.ctr_y, p.inst_fov)
@@ -137,7 +136,7 @@ class GENERICfov(TELESCOPEfov):
 
 
     def draw(self, pluginObj):
-        super(GENERICfov, self).draw(pluginObj)
+        super().draw(pluginObj)
         canvas = pluginObj.get_canvas()
 
         p = self.p
@@ -152,7 +151,7 @@ class GENERICfov(TELESCOPEfov):
             redraw=False)
 
 
-class SHfov(object):
+class SHfov:
     """A Generic Shack-Hartmann FOV object.
     """
 
@@ -193,7 +192,7 @@ class MOIRCSfov(TELESCOPEfov):
     """
 
     def __init__(self, logger, image, p):
-        super(MOIRCSfov, self).__init__(logger, image, p)
+        super().__init__(logger, image, p)
 
         # TODO: read these from a config file
         fov = 0.033000
@@ -243,7 +242,7 @@ class MOIRCSfov(TELESCOPEfov):
 
 
     def draw(self, pluginObj):
-        super(MOIRCSfov, self).draw(pluginObj)
+        super().draw(pluginObj)
         canvas = pluginObj.get_canvas()
 
         thickness = self.ring_thickness
@@ -272,7 +271,7 @@ class MOIRCSfov(TELESCOPEfov):
         self.vig_obj.rotate_deg([vig_rot], (self.p.ctr_x, self.p.ctr_y))
 
 
-class SPCAMfov(object):
+class SPCAMfov:
     """A SPCAM (instrument) FOV object.
     """
 
@@ -384,7 +383,7 @@ class SPCAMfov(object):
         return self.pluginObj.filter_results(starlist, self.prb_area)
 
 
-class HSCfov(object):
+class HSCfov:
     """A Hyper Suprime-Cam (instrument) FOV object.
     """
 
@@ -504,7 +503,7 @@ class MIMIZUKUfov(TELESCOPEfov):
     """
 
     def __init__(self, logger, image, p, fv):
-        super(MIMIZUKUfov, self).__init__(logger, image, p)
+        super().__init__(logger, image, p)
 
         self.fv = fv
         d = self.fv.get_gen2_status({'MMZ.FS_PA_OFFSET': 0.0,
@@ -549,7 +548,7 @@ class MIMIZUKUfov(TELESCOPEfov):
         self.dith_obj = None
 
     def draw(self, pluginObj):
-        super(MIMIZUKUfov, self).draw(pluginObj)
+        super().draw(pluginObj)
         canvas = pluginObj.get_canvas()
         self.pluginObj = pluginObj
 

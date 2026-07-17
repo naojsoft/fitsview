@@ -32,13 +32,8 @@ Double-click on a log entry.
 
 """
 import os
-from collections import OrderedDict
 
-from astropy.io import fits
 
-from ginga import GingaPlugin, AstroImage
-from ginga.misc import Bunch
-from ginga.gw import Widgets
 
 from g2base.astro.frame import Frame
 

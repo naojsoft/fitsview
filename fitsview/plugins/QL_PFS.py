@@ -16,7 +16,6 @@
 import os
 import pathlib
 
-import numpy as np
 from astropy.io import fits
 
 #from ginga.gw import Widgets
@@ -75,7 +74,7 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
             self.logger.debug("Not a PFS file--skipping")
             return
 
-        if name.startswith('PFSB') and not '_QL' in name:
+        if name.startswith('PFSB') and '_QL' not in name:
             #a_img = self._reduce_ql(path)
             self.fv.nongui_do(self._reduce_ql, channel, path)
         else:
@@ -126,8 +125,8 @@ class QL_PFS(GingaPlugin.GlobalPlugin):
             else:
                 read_n = (pfsb_f[f'IMAGE_{nreads}'].data.astype('f4') -
                           pfsb_f[f'REF_{nreads}'].data)
-                read_1 = (pfsb_f[f'IMAGE_1'].data.astype('f4') -
-                          pfsb_f[f'REF_1'].data)
+                read_1 = (pfsb_f['IMAGE_1'].data.astype('f4') -
+                          pfsb_f['REF_1'].data)
                 ramp_img = read_n - read_1
                 a_img.set_data(ramp_img)
                 # what header should we use for this?

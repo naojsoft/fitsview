@@ -21,7 +21,7 @@ import numpy as np
 VALUE_NAMES = (("dX", "pix"), ("dY", "pix"), ("dPA", u"\u00B0"))
 
 
-class MESAnalyze(object):
+class MESAnalyze:
     """
     A class that graphs some data about some objects' positions and
     asks the user to modify the data if necessary. Intended for use as part of

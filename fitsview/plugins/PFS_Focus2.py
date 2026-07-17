@@ -1,6 +1,8 @@
 #
 # PFS_Focus.py -- Region selection plugin for fits viewer
 #
+# E. Jeschke
+#
 """Do a focus fitting for PFS images.
 
 **Plugin Type: Local**
@@ -49,10 +51,10 @@ analysis the color will be red.  Selectors can only be dragged within their
 respective side of the image.
 
 """
-import math
 import time
 from collections import OrderedDict
 import numpy as np
+import sep
 
 from ginga.misc import Bunch
 from ginga.util import wcs, plots
@@ -62,12 +64,8 @@ from ginga.util import iqcalc
 
 from fitsview.util.polynomial import QuadraticFunction
 
-# pixel scale of the PFS guide cameras
-pfs_guider_px_scale_X_px_deg = 0.00003944
-pfs_guider_px_scale_Y_px_deg = 0.00003694
 
-
-class PFS_Focus(GingaPlugin.LocalPlugin):
+class PFS_Focus2(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
@@ -125,7 +123,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
                         ('Z', 'z'),
                         ('L Size', 'lsize'),
                         ('R Size', 'rsize'),
-                        ('L-R Diff', 'lmrdiff'),
                         ]
         self.tree_dict = OrderedDict()
 
@@ -163,14 +160,12 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
                      'Delete', 'button', 'Clear Table', 'button',
                      'Auto', 'checkbox', 'Measure', 'button'),
                     ('Plot', 'button',
-                     ### 'Debug', 'combobox', # Comment-out for now
+                     'Debug', 'combobox',
                      ),
                     )
 
         w, b = Widgets.build_info(captions, orientation=orientation)
         self.w.update(b)
-        # SAs request default to be ON
-        b.auto.set_state(True)
         b.measure.add_callback('activated',
                                lambda w: self.update_values())
         b.measure.set_tooltip("Measure current image and add to table")
@@ -184,36 +179,25 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
                                    lambda w: self.clear_table())
         b.clear_table.set_tooltip("Clear the entire table")
         b.plot.add_callback('activated',
-                            lambda w: self.plot_data())
+                            lambda w: self.plot_curves())
         b.plot.set_tooltip("Plot the focus fitting curves from table")
         b.auto.set_tooltip("Automatically add measurements to table")
+
+        for i in range(0, 7):
+            b.debug.append_text(str(i))
+        b.debug.add_callback('activated', self._debug_set_table)
 
         vbox.add_widget(w, stretch=0)
         paned.add_widget(vbox)
 
         self.focus_plot = plots.Plot(logger=self.logger,
                                      width=400, height=400)
-        self.focus_plot.set_background('white')
-        self.focus_plot.add_axis()
+        self.focus_plot.add_axis(facecolor='white')
         self.init_plot()
-
-        self.lmr_plot = plots.Plot(logger=self.logger,
-                                   width=400, height=400)
-        self.lmr_plot.set_background('white')
-        self.lmr_plot.add_axis()
-        self.init_lmr_plot()
 
         self.w.plot_w = Plot.PlotWidget(self.focus_plot)
         self.w.plot_w.resize(400, 400)
-
-        self.w.lmr_plot_w = Plot.PlotWidget(self.lmr_plot)
-        self.w.lmr_plot_w.resize(400, 400)
-
-        self.tabWidget = Widgets.TabWidget()
-        self.tabWidget.add_widget(self.w.plot_w, title='Focus')
-        self.tabWidget.add_widget(self.w.lmr_plot_w, title='L-R')
-
-        paned.add_widget(self.tabWidget)
+        paned.add_widget(self.w.plot_w)
 
         top.add_widget(paned, stretch=1)
         #vbox.add_widget(Widgets.Label(''), stretch=1)
@@ -299,9 +283,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         self.gui_up = False
 
     def close(self):
-        # requested by SAs
-        self.clear_table()
-
         chname = self.fv.get_channel_name(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
@@ -335,15 +316,13 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             rsize = None
         else:
             rsize = float(rsize)
-        lmrdiff = lsize - rsize if lsize is not None and rsize is not None else None
-
         z = self.w.z.get_text().strip()
         if len(z) == 0 or z.lower() == 'none':
             z = None
         else:
             z = float(z)
         bnch = Bunch.Bunch(imname=imname, z=z,
-                           lsize=lsize, rsize=rsize, lmrdiff=lmrdiff)
+                           lsize=lsize, rsize=rsize)
 
         # add to table
         self.tree_dict[imname] = bnch
@@ -354,9 +333,9 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
     def edit_table_cb(self, widget, selection):
         bnch = list(selection.values())[0]
         self.w.imname.set_text(bnch.imname)
-        self.w.z.set_text("{z:.4f}".format(z=bnch.z))
-        self.w.lsize.set_text("{lsize:.4f}".format(lsize=bnch.lsize))
-        self.w.rsize.set_text("{rsize:.4f}".format(rsize=bnch.rsize))
+        self.w.z.set_text(str(bnch.z))
+        self.w.lsize.set_text(str(bnch.lsize))
+        self.w.rsize.set_text(str(bnch.rsize))
 
     def delete_entries(self):
         """Delete the selected entries from the table."""
@@ -392,25 +371,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         self.focus_plot.draw()
 
-    def init_lmr_plot(self):
-        # set up matplotlib axis here as needed
-        ax = self.lmr_plot.get_axis()
-        ax.cla()
-        ax.grid(True)
-        ax.set_title("PFS Focus L - R Diff",
-                     fontdict=dict(fontsize=14, fontweight='bold',
-                                   color='darkgreen'))
-        ax.set_xlabel("Z Position",
-                      fontdict=dict(fontsize=12, fontweight='bold'))
-        ax.set_ylabel("L - R",
-                      fontdict=dict(fontsize=12, fontweight='bold'))
-
-        self.lmr_plot.draw()
-
-    def plot_data(self):
-        self.plot_curves()
-        self.plot_lmr()
-
     def plot_curves(self):
         self.init_plot()
         values = [(val.z, val.lsize, val.rsize)
@@ -418,10 +378,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         values = np.array(values, dtype=float)
         x_points, lsize, rsize = values.T
-        #print(f'x={x_points}, l={lsize}, r={rsize}')
-        self.logger.info(f'x_points {x_points}')
-        self.logger.info(f'lsize {lsize}')
-        self.logger.info(f'rsize {rsize}')
 
         lidx = np.isfinite(x_points) & np.isfinite(lsize)
         ridx = np.isfinite(x_points) & np.isfinite(rsize)
@@ -459,24 +415,19 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
 
         try:
             self.qf_l.coefficient(x_points[lidx], lsize[lidx])
-            self.logger.info(f'qf_l coeffs={self.qf_l.coeffs}')
             qf_l_func = self.qf_l.quadratic()
             ax.plot(x_more_points, qf_l_func(x_more_points), 'y-', linewidth=2)
 
             l_min_x, l_min_y = self.qf_l.min_vertex()
-            #print(f'lside. l_min_x={l_min_x}, l_min_y={l_min_y}')
         except Exception as e:
-            #print(f'qf lsize to do {e}')
             errors.append(left)
 
         try:
             self.qf_r.coefficient(x_points[ridx], rsize[ridx])
-            self.logger.info(f'qf_r coeffs={self.qf_r.coeffs}')
             qf_r_func = self.qf_r.quadratic()
             ax.plot(x_more_points, qf_r_func(x_more_points), 'b-', linewidth=2)
 
             r_min_x, r_min_y = self.qf_r.min_vertex()
-            #print(f'rside. r_min_x={r_min_x}, r_min_y={r_min_y}')
         except Exception as e:
             errors.append(right)
 
@@ -486,7 +437,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             y = 0
             msg = "L/R coefficient calc errors"
             err_msg(msg, x, y)
-            self.logger.error(f'{msg}')
 
         elif any(left in e for e in errors):
             x = r_min_x
@@ -496,7 +446,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             msg = "Left coefficient calc error"
             y = rsize[ridx][-1]
             err_msg(msg, x, y)
-            self.logger.error(f'{msg}')
 
         elif any(right in e for e in errors):
             x = l_min_x
@@ -506,7 +455,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             msg = "Right coefficient calc error"
             y = lsize[lidx][-1]
             err_msg(msg, x, y)
-            self.logger.error(f'{msg}')
 
         else:
             # determine best Z position as mean of left and right minimums
@@ -514,80 +462,11 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             x = (l_min_x + r_min_x) * 0.5
 
             vertex(x, y)
-            self.logger.info(f'l_min_x {l_min_x} l_min_y {l_min_y}')
-            self.logger.info(f'r_min_x {r_min_x} r_min_y {r_min_y}')
-            self.logger.info(f'x {x} y {y}')
 
         best_z = x
-        self.w.best_z.set_text(f"Z = {best_z:.4f}")
-        self.logger.info(f'best_z {best_z}')
+        self.w.best_z.set_text("Z = %.4f" % best_z)
 
         self.focus_plot.draw()
-
-    def plot_lmr(self):
-        self.init_lmr_plot()
-        values = [(val.z, val.lmrdiff)
-                  for val in self.tree_dict.values()]
-
-        values = np.array(values, dtype=float)
-        x_points, lmrdiff = values.T
-        #print(f'x={x_points}, lmr={lmrdiff}')
-        self.logger.info(f'x_points {x_points}')
-        self.logger.info(f'lmrdiff {lmrdiff}')
-
-        lmridx = np.isfinite(x_points) & np.isfinite(lmrdiff)
-
-        # figure
-        fig = self.lmr_plot.get_figure()
-        ax = self.lmr_plot.get_axis()
-        # plot curves
-
-        ax.plot(x_points, lmrdiff, 'yo')
-
-        def zero_cross(zcross, x, y):
-            bbox_args = dict(boxstyle="round", fc="cyan", alpha=0.1)
-            ax.annotate('Zero Cross @ Z=%.2f'%(zcross), xy=(x,y), xytext=(x, y),
-                               size=20, color='g',
-                               bbox=bbox_args,
-                               ha='center',
-                               va='top')
-
-        def err_msg(msg, x, y):
-            bbox_args = dict(boxstyle="round", fc="red", alpha=0.6)
-            ax.annotate(msg, xy=(x, y), xytext=(x, y),
-                        size=20, color='g',
-                        bbox=bbox_args,
-                        ha='center',
-                        va='bottom')
-
-        xs = len(x_points) * 10 # 10 times more x points
-        x_more_points = np.linspace(x_points[0], x_points[-1], xs)
-
-        try:
-            coeffs = np.polyfit(x_points[lmridx], lmrdiff[lmridx], 1)
-            fit_fn = np.poly1d(coeffs)
-            self.logger.info(f'coeffs {coeffs}')
-            if math.isclose(coeffs[0], 0.0, abs_tol=0.001):
-                msg = 'Slope close to 0'
-                x = x_points.mean()
-                y = lmrdiff[lmridx][-1]
-                err_msg(msg, x, y)
-                self.logger.error(f'{msg}')
-            else:
-                zcross = -coeffs[1] / coeffs[0]
-                x = x_points.mean()
-                y = lmrdiff[lmridx][-1]
-                self.logger.info(f'zcross {zcross} y {y}')
-                zero_cross(zcross, x, y)
-            ax.plot(x_more_points, fit_fn(x_more_points), 'y-', linewidth=2)
-        except Exception as e:
-            msg = 'Error computing linear fit'
-            x = x_points.mean()
-            y = 0
-            err_msg(msg, x, y)
-            self.logger.error(f'{msg}: {str(e)}')
-
-        self.lmr_plot.draw()
 
     def _redo(self):
         # get image name
@@ -613,11 +492,8 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         # for testing/debugging
         #q.starsize += 2 ** np.random.random() * np.abs(z)
 
-        lsize = p.starsize
-        rsize = q.starsize
-        lmrdiff = lsize - rsize if lsize is not None and rsize is not None else None
         bnch = Bunch.Bunch(imname=imname, z=z,
-                           lsize=p.starsize, rsize=q.starsize, lmrdiff=lmrdiff)
+                           lsize=p.starsize, rsize=q.starsize)
 
         # add to table
         self.tree_dict[imname] = bnch
@@ -638,46 +514,67 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         point = obj.objects[1]
         try:
             image = self.fitsimage.get_image()
-            if image is None:
-                raise ValueError("No image is present in viewer")
 
-            qualsize = self.iqcalc.qualsize
-            qs = qualsize(image, x1, y1, x2, y2,
-                          radius=self.radius, threshold=self.threshold,
-                          minelipse=0.2)
+            # qualsize = self.iqcalc.qualsize
+            # qs = qualsize(image, x1, y1, x2, y2,
+            #               radius=self.radius, threshold=self.threshold)
+            # subtract the background
+            x1, y1, x2, y2 = [int(d) for d in (x1, y1, x2, y2)]
+            data_np = image.cutout_data(x1, y1, x2, y2)
+            # note: sep requires C contiguous array and not uint16
+            data_np = np.ascontiguousarray(data_np).astype(float)
+
+            # calculate background
+            bkg = sep.Background(data_np)
+            data_sub = data_np - bkg
+
+            objects = sep.extract(data_sub, 1.5, err=bkg.globalrms,
+                                  deblend_cont=0.5, minarea=12)
+            if len(objects) == 0:
+                raise ValueError("No objects matching parameters")
+
+            # find object with the largest flux
+            #i = np.argmax(objects['flux'])
+            # simple circular aperture photometry to determine largest flux
+            # which probably indicates which is desired object
+            px_radius = 3.0
+            flux, fluxerr, flag = sep.sum_circle(data_sub,
+                                                 objects['x'], objects['y'],
+                                                 px_radius,
+                                                 err=bkg.globalrms)
+            i = np.argmax(flux)
+
+            # obtain positions within source image
+            objx = x1 + objects['x'][i]
+            objy = y1 + objects['y'][i]
 
             xl1, yl1, xl2, yl2 = bbox_limits.get_llur()
-            if not (xl1 <= qs.objx <= xl2) or not (yl1 <= qs.objy <= yl2):
+            if not (xl1 <= objx <= xl2) or not (yl1 <= objy <= yl2):
                 raise ValueError("object center outside of search area")
 
             point.color = 'cyan'
             # Calculate X/Y of center of star
-            circle.x = point.x = qs.objx
-            circle.y = point.y = qs.objy
+            circle.x = point.x = objx
+            circle.y = point.y = objy
 
+            # see https://github.com/kbarbary/sep/issues/34
+            # attrs 'x2', 'y2' and 'xy' are supposedly the second moments
+            # However (see link) recommended is 'a' and 'b', which seem
+            # to give more sensible results
+            fwhm = 2 * np.sqrt(np.log(2) *
+                               (objects['a'][i]**2 + objects['b'][i]**2))
+                               #(objects['x2'][i]**2 + objects['y2'][i]**2))
             header = image.get_header()
             rot, cdelt1, cdelt2 = wcs.get_rotation_and_scale(header)
-            pscale_x, pscale_y = np.abs(cdelt1), np.abs(cdelt2)
-            self.logger.info(f"fwhm_x: {qs.fwhm_x}, fwhm_y: {qs.fwhm_y}")
-            self.logger.info(f"px scale measured from WCS ({pscale_x},{pscale_y})")
-            starsize = self.iqcalc.starsize(qs.fwhm_x, pscale_x,
-                                            qs.fwhm_y, pscale_y)
-            self.logger.info(f"WCS computed star size ({starsize})")
-            # TEMP: pixel scale encoded in PFS AG images is not correct
-            # Manually override with pixel scale provided by Kawanomoto-san
-            pscale_x = pfs_guider_px_scale_X_px_deg
-            pscale_y = pfs_guider_px_scale_Y_px_deg
-            self.logger.info(f"px scale override ({pscale_x},{pscale_y})")
-            starsize = self.iqcalc.starsize(qs.fwhm_x, pscale_x,
-                                            qs.fwhm_y, pscale_y)
-            self.logger.info(f"override computed star size ({starsize})")
+            starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
 
-            p.fwhm = qs.fwhm
+            p.fwhm = fwhm
             p.starsize = starsize
-            p.brightness = qs.brightness
-            p.skylevel = qs.skylevel
-            p.obj_x = qs.objx
-            p.obj_y = qs.objy
+            #p.skylevel = np.median(np.array(bkg))
+            p.skylevel = bkg.globalback
+            p.brightness = objects['peak'][i]
+            p.obj_x = objx
+            p.obj_y = objy
 
         except Exception as e:
             self.logger.error("Error calculating quality metrics: %s" % (
@@ -708,10 +605,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.left.obj.objects[1].y = obj.y
 
             p = self.setup_side(obj, self.left.obj, self.left.bbox)
-            if p.starsize is None:
-                self.w.lsize.set_text("Error")
-            else:
-                self.w.lsize.set_text("{lsize:.4f}".format(lsize=p.starsize))
+            self.w.lsize.set_text(str(p.starsize))
 
         elif obj is self.right.obj.objects[0]:
             x1, y1, x2, y2 = self.right.bbox.get_llur()
@@ -723,10 +617,7 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             self.right.obj.objects[1].y = obj.y
 
             q = self.setup_side(obj, self.right.obj, self.right.bbox)
-            if q.starsize is None:
-                self.w.rsize.set_text("Error")
-            else:
-                self.w.rsize.set_text("{rsize:.4f}".format(rsize=q.starsize))
+            self.w.rsize.set_text(str(q.starsize))
 
         #self.redo()
 
@@ -758,10 +649,6 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
             # left/right side errors
             values = [(-3.0, None, None), (-3.0, None, None), (-2.0, None, None), (-2.0, None, None),  (-1.0, None, None),  (-1.0, None, None), (0.0, None, None), (0.0, None, None), (1.0, None, None), (1.0, None, None), (2.0, None, None), (2.0, None, None), (3.0, None, None), (3.0, None, None)]
 
-        elif idx == 7:
-            # Real data from HST 23 July 2023 23:24:41
-            values = [(2.95, 2.63596, 2.48303), (2.95, 2.5551, 3.041967), (2.95, 2.24997, 2.39144978), (3.05, 2.474475, 2.483757), (3.05, 1.4191977, 1.72046), (3.05, 1.54348, 1.9384089), (3.15, 2.31308, 1.733852796)]
-
         else:
             # single data per X point
             values = [(-3.0, 4.0, 3.0), (-2.0, 3.0, 2.0), (-1.0, 2.0, 1.0), (0.0, 1.5, 0.5), (1.0, 2.0, 1.0), (2.0, 3.0, 2.0), (3.0, 4.0, 3.0)]
@@ -770,11 +657,10 @@ class PFS_Focus(GingaPlugin.LocalPlugin):
         self.clear_table()
         for i, tup in enumerate(values):
             z, lsize, rsize = tup
-            lmrdiff = lsize - rsize if lsize is not None and rsize is not None else None
             imname = f"AG{i}"
             self.tree_dict[imname] = Bunch.Bunch(imname=imname, z=z,
-                                                 lsize=lsize, rsize=rsize, lmrdiff=lmrdiff)
+                                                 lsize=lsize, rsize=rsize)
         self.w.table.set_tree(self.tree_dict)
 
     def __str__(self):
-        return 'pfs_focus'
+        return 'pfs_focus2'

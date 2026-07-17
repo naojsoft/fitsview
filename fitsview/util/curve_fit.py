@@ -2,7 +2,6 @@
 #
 # Takeshi Inagaki (tinagaki@naoj.org)
 #
-import os
 import sys
 
 
@@ -30,7 +29,7 @@ def make_CurveFittingCanvas(canvasClass):
             self.fig = figure
             self.fig.clear()
 
-            super(CurveFittingCanvas, self).__init__(self.fig)
+            super().__init__(self.fig)
             self.axes = self.fig.add_subplot(111)
             #self.set_size_request(-1, 400)
 
@@ -102,7 +101,7 @@ def make_CurveFitting(klass):
     class CurveFitting(klass):
         def __init__(self, figure,  logger=None):
 
-            super(CurveFitting, self).__init__(figure, logger=logger)
+            super().__init__(figure, logger=logger)
 
             self.num_points = 10
             self.qf = QuadraticFunction(logger=logger)
@@ -229,7 +228,7 @@ def main(options,args):
     class MainWindow(QtGui.QMainWindow):
 
         def __init__(self, logger):
-            super(MainWindow, self).__init__()
+            super().__init__()
 
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 

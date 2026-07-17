@@ -193,7 +193,7 @@ class MESOffset(mosPlugin.MESPlugin):
             A reference to the specific ginga.qtw.ImageViewCanvas object
             associated with the channel on which the plugin is being invoked
         """
-        super(MESOffset, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         # these three classes are the three departments of MESOffset;
         # each one handles a different set of tasks, and this

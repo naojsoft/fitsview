@@ -4,26 +4,18 @@
 import os
 import threading
 
-import sys
-import logging
-import time
 from time import strftime
 import math
 import sep
 import cv2
-import copy
 import gc
 import numpy as np
-import time
 from numpy import ma
 
 
 import astropy.io.fits as fits
 from astropy.io import ascii
 import astropy.utils.introspection
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
-from scipy import signal
 
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import shift
@@ -38,7 +30,6 @@ from ginga.util import plots
 
 
 # ginga imports
-from ginga.misc.Callback import CallbackError
 
 # The HOUGH_GRADIENT value is in a different location in OpenCV 3
 # compared to OpenCV 2. Determine which version of OpenCV has been
@@ -99,7 +90,7 @@ class MoircsAlignWindow(GingaPlugin.LocalPlugin):
             associated with the channel on which the plugin is being invoked
         """
         # superclass constructor defines self.fv, self.fitsimage, and self.logger:
-        super(MoircsAlignWindow, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         # now sets up the ginga.canvas.types.layer.DrawingCanvas self.canvas,
         # which is necessary to draw on the image:
@@ -225,7 +216,7 @@ class MoircsAlignWindow(GingaPlugin.LocalPlugin):
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.delete_object_by_tag('MOSA-canvas')
-        except:
+        except Exception:
             pass
         self.canvas.ui_set_active(False)
         self.clear_canvas()
@@ -370,7 +361,7 @@ class MoircsAlign(MoircsAlignWindow):
     moircsAlignImage = 0
 
     def __init__(self, fv, fitsimage):
-        super(MoircsAlign, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         print(self.NORMAL_FONT)
         self.DIR_MCSRED = DIR_MCSRED
@@ -491,7 +482,7 @@ class MoircsAlign(MoircsAlignWindow):
         exp = Widgets.Expander(title="Instructions")
         gui.add_widget(exp)
         txt = Widgets.TextArea(wrap=True, editable=False)
-        txt.set_font(super(MoircsAlign, self).NORMAL_FONT)
+        txt.set_font(super().NORMAL_FONT)
         txt.set_text("Use the widgets below to specify the parameters for "+
                      name+". Hover over each one to get a description of "+
                      "what it means. When you are finished, press the 'Go!' "+
@@ -595,7 +586,7 @@ class MoircsAlign(MoircsAlignWindow):
         exp = Widgets.Expander(title="Instructions")
         gui.add_widget(exp)
         txt = Widgets.TextArea(wrap=True, editable=False)
-        txt.set_font(super(MoircsAlign, self).NORMAL_FONT)
+        txt.set_font(super().NORMAL_FONT)
         txt.set_text("Left click on the object closest to the box labeled "+
                      "'1'. The other objects should appear in the boxes "+
                      "below. Click again to select another position. Click "+
@@ -695,7 +686,7 @@ class MoircsAlign(MoircsAlignWindow):
         exp = Widgets.Expander(title="Instructions")
         gui.add_widget(exp)
         txt = Widgets.TextArea(wrap=True, editable=False)
-        txt.set_font(super(MoircsAlign, self).NORMAL_FONT)
+        txt.set_font(super().NORMAL_FONT)
         txt.set_text("Help the computer find the centroid of this object. "+
                      "Click and drag to include or exclude regions; "+
                      "left-click will crop to selection and middle-click will "+
@@ -814,7 +805,7 @@ class MoircsAlign(MoircsAlignWindow):
         exp = Widgets.Expander(title="Instructions")
         gui.add_widget(exp)
         txt = Widgets.TextArea(wrap=True, editable=False)
-        txt.set_font(super(MoircsAlign, self).NORMAL_FONT)
+        txt.set_font(super().NORMAL_FONT)
         txt.set_text("Look at the graphs. Remove any data with residuals "+
                      "greater than 1.0 or less than -1.0. Delete points by "+
                      "right clicking, and restore them by left-clicking. "+
@@ -845,7 +836,7 @@ class MoircsAlign(MoircsAlignWindow):
         exp = Widgets.Expander(title="Instructions")
         gui.add_widget(exp)
         txt = Widgets.TextArea(wrap=True, editable=False)
-        txt.set_font(super(MoircsAlign, self).NORMAL_FONT)
+        txt.set_font(super().NORMAL_FONT)
         txt.set_text("Enter the numbers you see below into the ANA window. dx "+
                      "and dy values are in pixels, and rotation value is in "+
                      "degrees. Values of less than 0.5 pixels and 0.01 "+
@@ -955,20 +946,20 @@ class MoircsAlign(MoircsAlignWindow):
                 wdg.set_index(0)
                 getters[name] = wdg.get_index
                 setters[name] = wdg.set_index
-            elif param['type'] == int:
+            elif param['type'] is int:
                 wdg = Widgets.SpinBox(dtype=int)
                 wdg.set_limits(0, 99999999)
                 wdg.set_value(0)
                 getters[name] = wdg.get_value
                 setters[name] = wdg.set_value
-            elif param['type'] == str:
+            elif param['type'] is str:
                 wdg = Widgets.TextEntry(editable=True)
                 wdg.set_text("")
-                if callback != None:
+                if callback is not None:
                     wdg.add_callback('activated', callback)
                 getters[name] = wdg.get_text
                 setters[name] = wdg.set_text
-            elif param['type'] == bool:
+            elif param['type'] is bool:
                 wdg = Widgets.CheckBox()
                 wdg.set_state(True)
                 getters[name] = wdg.get_state
@@ -978,7 +969,7 @@ class MoircsAlign(MoircsAlignWindow):
 
             # apply the description and default
             wdg.set_tooltip(param['desc'])
-            if old_pars != None and param['name'] in old_pars:
+            if old_pars is not None and param['name'] in old_pars:
                 try:
                     old_value = param['type'](old_pars[param['name']])
                     setters[param['name']](old_value)
@@ -1104,7 +1095,7 @@ class MoircsAlign(MoircsAlignWindow):
         exp = Widgets.Expander(title="Instructions")
         gui.add_widget(exp)
         txt = Widgets.TextArea(wrap=True, editable=False)
-        txt.set_font(super(MoircsAlign, self).NORMAL_FONT)
+        txt.set_font(super().NORMAL_FONT)
         txt.set_text("Look at the results below. If they seem correct, click "+
                      "'Continue' to proceed to the next step. If they seem "+
                      "inadequate, click 'Try Again', and you will be taken "+
@@ -1242,7 +1233,7 @@ class MoircsAlign(MoircsAlignWindow):
         new_params = {}
         for key, get_val in getters.items():
             value = get_val()
-            if par_file != None:
+            if par_file is not None:
                 par_file.write('{},{}\n'.format(key,value))
             if isinstance(value, str):
                 value = self.process_filename(value, self.variables)
@@ -1729,7 +1720,7 @@ class MoircsAlign(MoircsAlignWindow):
         @returns x1, y1, x2, y2, r:
             The float bounds and radius of the current box
         """
-        if idx == None:
+        if idx is None:
             idx = self.current_obj
         xf, yf = self.click_history[self.click_index]
         dx, dy, r = self.obj_arr[idx]
@@ -1751,7 +1742,7 @@ class MoircsAlign(MoircsAlignWindow):
 
         # then locate and draw the point (if it exists)
         sq_size = self.square_size
-        if obj == None:
+        if obj is None:
             co = self.current_obj
             obj = self.locate_obj(self.get_current_box(),
                              self.drag_history[co][:self.drag_index[co]+1],
@@ -1785,7 +1776,7 @@ class MoircsAlign(MoircsAlignWindow):
 
         # tell the manager to do whatever comes next
         self.output_data = np.array(self.obj_centroids)
-        if self.next_step != None:
+        if self.next_step is not None:
             self.next_step()
 
     def start_drag_cb(self, c, k, x, y, kind):
@@ -1970,10 +1961,10 @@ class MoircsAlign(MoircsAlignWindow):
         """
         Respond to an image being loaded by executing whatever function
         """
-        if self.fitsimage.get_image() == None:
+        if self.fitsimage.get_image() is None:
             # image was cleared (possibly) in the channel
             return
-        if self.image_set_next_step != None:
+        if self.image_set_next_step is not None:
             self.image_set_next_step()
         self.image_set_next_step = None
 
@@ -2035,10 +2026,10 @@ class MoircsAlign(MoircsAlignWindow):
         """
         self.clear_canvas(keep_objects=True)
         self.canvas.clear_callback('cursor-up')
-        if left_click != None:
+        if left_click is not None:
             self.canvas.add_callback('cursor-up', left_click)
         self.canvas.clear_callback('draw-up')
-        if right_click != None:
+        if right_click is not None:
             self.canvas.add_callback('draw-up', right_click)
 
     def logwindow(self, *args, **kwargs):
@@ -2079,7 +2070,7 @@ class MoircsAlign(MoircsAlignWindow):
         @raises NameError:
             If there is an undefined variable
         """
-        if variables == None:
+        if variables is None:
             variables = self.read_variables()
 
         # scan the filename for dollar signs
@@ -2132,7 +2123,7 @@ class MoircsAlign(MoircsAlignWindow):
         # if regenerate is off, don't bother with any of this
         # if not recalc:
         #     if os.path.isfile(out_filename):
-        #         if next_step != None:
+        #         if next_step is not None:
         #             next_step()
         #     else:
         #         self.logwindow("No previous image found at "+
@@ -2159,10 +2150,16 @@ class MoircsAlign(MoircsAlignWindow):
 
         if mode == 'star' or mode == 'mask':
             self.logger.info("Starting to processing star images")
-            task = lambda: self.processStarFits(e, self.logwindow, next_step=next_step)
+
+            def task():
+                return self.processStarFits(e, self.logwindow,
+                                            next_step=next_step)
         elif mode == 'starhole':
             self.logger.info("Starting to processing star images")
-            task = lambda: self.processStarHoleFits(e,self.logwindow, next_step=next_step)
+
+            def task():
+                return self.processStarHoleFits(e, self.logwindow,
+                                                next_step=next_step)
 
         self.fv.nongui_do(task)
         self.terminate = e
@@ -2396,7 +2393,7 @@ class MoircsAlign(MoircsAlignWindow):
         data = ma.clip(data, 0, float('inf'))
 
         # display the new data on the viewer, if necessary
-        if viewer != None:
+        if viewer is not None:
             #viewer.get_settings().set(autocut_method='minmax')
             viewer.set_autocut_params('minmax')
             viewer.set_data(data)
@@ -2406,7 +2403,7 @@ class MoircsAlign(MoircsAlignWindow):
             return (float('NaN'), float('NaN'), float('NaN'))
 
         # iterate over progressively smaller search radii
-        if min_search_radius == None:
+        if min_search_radius is None:
             min_search_radius = search_radius/2
         has_not_executed_yet = True
         while search_radius >= min_search_radius or has_not_executed_yet:
@@ -2481,7 +2478,7 @@ class MoircsAlign(MoircsAlignWindow):
         >>> tag(1, 3, 'pt')
         '@1:3:pt'
         """
-        if mod_2 == None:
+        if mod_2 is None:
             return '@{}:{}'.format(step, mod_1)
         else:
             return '@{}:{}:{}'.format(step, mod_1, mod_2)
@@ -2635,7 +2632,7 @@ class MoircsAlign(MoircsAlignWindow):
         Algorithm is from IRAF geomap documentation at
         http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?geomap#description
         """
-        if trans == None:
+        if trans is None:
             return float('NaN'), float('NaN')
 
         xshift, yshift, thetaR = trans
@@ -2730,7 +2727,7 @@ class MoircsAlign(MoircsAlignWindow):
     def relocate_cb(self, *args):
 
         proc_num = self.parameter_tabs.get_index()
-        if proc_num == 0 or proc == 2:
+        if proc_num in (0, 2):
             self.mes_star
         if proc_num == 1:
             self.mes_starhole
@@ -2740,7 +2737,7 @@ class MoircsAlign(MoircsAlignWindow):
         Respond to the 'Finish' button in step 4 by finishing up
         """
         self.clear_canvas()
-        if self.next_step != None:
+        if self.next_step is not None:
             self.next_step()
 
     def toggle_active_x_cb(self, e):
@@ -2764,7 +2761,7 @@ class MoircsAlign(MoircsAlignWindow):
         """
         # first check that the click was on a plot
         x_click, y_click = event.xdata, event.ydata
-        if x_click == None or y_click == None:
+        if x_click is None or y_click is None:
             return
 
         # extract some info from plt and use it to calculate distances
@@ -3195,7 +3192,7 @@ class MoircsAlign(MoircsAlignWindow):
         return False
 
 
-class MoircsAlignImage(object):
+class MoircsAlignImage:
 
 
     # Keyword for setting re-calculate mosaic map
@@ -3286,7 +3283,7 @@ class MoircsAlignImage(object):
         if terminate.is_set():
             return
 
-        if next_step != None:
+        if next_step is not None:
             next_step()
 
     def processStarImage(self, terminate, log=nothing, next_step=None):
@@ -3303,12 +3300,14 @@ class MoircsAlignImage(object):
                             44.1), level='warning')
 
         log("Looking for mask holes...")
-        if terminate.is_set():  return
+        if terminate.is_set():
+            return
         self.findGuidingHole('ch1',self.dcc1)
         self.findGuidingHole('ch2',self.dcc2)
 
         log("Combine mask locations...")
-        if terminate.is_set():  return
+        if terminate.is_set():
+            return
         self.combineHoleLacation()
 
         if self.MAKEMOSAIC is True:
@@ -3334,7 +3333,8 @@ class MoircsAlignImage(object):
 
             # apply gaussian blsr
             log("Blurring image...")
-            if terminate.is_set():  return
+            if terminate.is_set():
+                return
             self.star.mosaic.data = gaussian_filter(self.star.mosaic.data, 1.0)
 
             out_filename = os.path.join(self.output_path, self.rootname+"_star.fits")
@@ -3371,7 +3371,7 @@ class MoircsAlignImage(object):
         if terminate.is_set():
             return
 
-        if next_step != None:
+        if next_step is not None:
             next_step()
 
     def findGuidingHole(self, maskKey, dc):
@@ -3621,7 +3621,7 @@ class MoircsAlignImage(object):
             np.logical_and(objs['y'] > 120, objs['y'] < 1800),\
             np.logical_and(objs['y'] > 1860, objs['y'] < 3530))))
 
-        objects=objs[:][np.where(index == True)]
+        objects=objs[:][np.where(index)]
 
         self.starCat=objects[:]
 
@@ -3714,15 +3714,15 @@ class MoircsAlignImage(object):
                     temp_dis == np.min(temp_dis))
 
                 #print(temp_dis)
-                #print(temp_ind[np.where(index == True)])
-                if len(temp_ind[np.where(index == True)]) == 0:
+                #print(temp_ind[np.where(index)])
+                if len(temp_ind[np.where(index)]) == 0:
                     sub_match_set=np.append(sub_match_set,np.nan)
                     sub_distance=np.append(sub_distance,np.nan)
                 else:
                     sub_match_set=np.append(sub_match_set,\
-                        temp_ind[np.where(index == True)])
+                        temp_ind[np.where(index)])
                     sub_distance=np.append(sub_distance,\
-                        temp_dis[np.where(index == True)])
+                        temp_dis[np.where(index)])
 
                 #print(sub_match_set)
                 #print('-------')
@@ -3732,14 +3732,14 @@ class MoircsAlignImage(object):
             #  it in original array.  The weighting is based on 1) the standard
             #  deviation, 2) the number of associated stars and 3) the distances.
             match_set['set'+str(i)]=np.uint16(
-                sub_match_set[np.where(~np.isnan(sub_match_set) == True)]
+                sub_match_set[np.where(~np.isnan(sub_match_set))]
                 )
             weight_set['set'+str(i)]=\
-                np.std(sub_distance[np.where(~np.isnan(sub_distance) == True)])*\
+                np.std(sub_distance[np.where(~np.isnan(sub_distance))])*\
                 float(dmin_template[0])*\
                 (np.count_nonzero(np.isnan(sub_distance))+1)**3
-            print(np.std(sub_distance[np.where(~np.isnan(sub_distance) == True)]))
-            print(np.mean(sub_distance[np.where(~np.isnan(sub_distance) == True)]))
+            print(np.std(sub_distance[np.where(~np.isnan(sub_distance))]))
+            print(np.mean(sub_distance[np.where(~np.isnan(sub_distance))]))
             print((np.count_nonzero(np.isnan(sub_distance))+1))
             print(dmin_template)
 
@@ -3803,7 +3803,7 @@ class MoircsAlignImage(object):
             del self.badpix
 
     def __init__(self):
-        #super(MoircsAlignConfig, self).__init__()
+        #super().__init__()
         #self.imagepath=MoircsAlignConfig().imagepath
         #self.dcc1=MoircsAlignConfig().dcc1
         #self.dcc2=MoircsAlignConfig().dcc2
@@ -3824,7 +3824,7 @@ class MoircsAlignImage(object):
         gc.collect()
 
 
-class DistortionMap(object):
+class DistortionMap:
 
     filename=""
 
@@ -3851,7 +3851,7 @@ class DistortionMap(object):
 
         np.sum(data['begin'] == 'begin')
         if np.sum(data['begin'] == 'begin') != 0:
-            ind=np.array(np.where((data['begin'] == 'begin') == True))
+            ind=np.array(np.where(data['begin'] == 'begin'))
         else:
             ind = np.array([-1])
 
@@ -3885,7 +3885,7 @@ class DistortionMap(object):
         self.yc03=field1[int(ind[-1])+45]
 
 
-class MosaicPrarameter(object):
+class MosaicPrarameter:
 
     filename=""
 
@@ -3912,7 +3912,7 @@ class MosaicPrarameter(object):
 
         np.sum(data['begin'] == 'begin')
         if np.sum(data['begin'] == 'begin') != 0:
-            ind=np.array(np.where((data['begin'] == 'begin') == True))
+            ind=np.array(np.where(data['begin'] == 'begin'))
         else:
             ind = np.array([-1])
 

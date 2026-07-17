@@ -1,34 +1,31 @@
 #
 # g2catalog.py -- Fits viewer interface to the Gen2 star catalog
 #
-# Eric Jeschke (eric@naoj.org)
+# E. Jeschke
 # T. Inagaki
 #
 
 from math import radians
 import time
-import json
 import requests
 
-from numpy import power as pow
 
 from ginga.util import wcs
 from ginga.util import catalog as StarCatalog
-from ginga.misc import Bunch, Task
+from ginga.misc import Bunch
 
 from Gen2.starlist import starlist
 from Gen2.starlist import starfilter
 
-from astroquery.mast import Catalogs
 from astropy.coordinates import SkyCoord
+from astropy.coordinates import Angle
 import astropy.units as u
 
-from astroquery.utils.tap.core import TapPlus
+from astroquery.mast import Catalogs
 from astroquery.irsa import Irsa
 from astroquery.gaia import Gaia as GaiaCatalog
-from astropy.coordinates import Angle
 from astroquery.vizier import Vizier
-
+from astroquery.utils.tap.core import TapPlus
 
 TAP_service = TapPlus(url="http://vao.stsci.edu/PS1DR2/tapservice.aspx")
 
@@ -37,7 +34,7 @@ class CatalogServerError(Exception):
     pass
 
 
-class CatalogServer(object):
+class CatalogServer:
 
     def __init__(self, logger, full_name, key, dbhost, description):
         self.logger = logger
@@ -97,7 +94,7 @@ class CatalogServer(object):
 
         self.logger.debug('params={}'.format(params))
         ra, dec = params['ra'], params['dec']
-        if not (':' in ra):
+        if ':' not in ra:
             # Assume RA and DEC are in degrees
             ra_deg = float(ra)
             dec_deg = float(dec)
@@ -130,6 +127,8 @@ class CatalogServer(object):
 
         if catname.upper() == 'SUBARU':
             catalog = "usnob,gsc,sao"
+            # default catalog is gaia as of 20250303, reverted 20250304
+            #catalog = 'gaia'
         elif catname.upper() == 'PANSTARRS':
             catalog = "panstarrs"
         elif catname.upper() == 'UCAC4':
@@ -142,6 +141,7 @@ class CatalogServer(object):
         elif catname ==  '':
             catname = "subaru"
             catalog = "usnob,gsc,sao"
+            #catalog = 'gaia'
         else:
             #catname = "SUBARU"
             #catalog = "usnob,gsc,sao"
@@ -216,7 +216,7 @@ class CatalogServer(object):
                 # Standardize on the convention for RA/DEC.  ra/dec are in
                 # traditional notation as strings and ra_deg/dec_deg are
                 # floats
-                if (self.format == 'deg') or not (':' in args['ra']):
+                if (self.format == 'deg') or ':' not in args['ra']:
                     # Assume RA and DEC are in degrees
                     ra_deg = float(args['ra'])
                     dec_deg = float(args['dec'])
@@ -924,7 +924,7 @@ class ShCatalogServer(CatalogServer):
         return query_result
 
 
-class GuideStarBlocklist(object):
+class GuideStarBlocklist:
 
     def __init__(self, filepath):
         # TODO: read in the blocklist from file
@@ -942,12 +942,13 @@ class GuideStarBlocklist(object):
                 if '#' in line:
                     fields = line.split('#')
                     line = fields[0]
-                    value = fields[1:]
+                    comment = fields[1]
                 else:
-                    value = True
+                    comment = '???'
                 cat, cat_id = line.split(',')
-                cat_id = int(cat_id)
-                self.blocklist[(cat, cat_id)] = value
+                cat_id = int(cat_id.strip())
+                cat = cat.strip()
+                self.blocklist[(cat, cat_id)] = comment
 
         except IOError as e:
             pass
@@ -961,22 +962,30 @@ class GuideStarBlocklist(object):
 
     def checkpoint_file(self, logger):
         # TODO: find a reasonable file format library
-        with open(self.filepath, 'w') as out_f:
-            for key, value in self.blocklist.items():
-                logger.debug(f'key={key}, value={value}')
-                catalog, cat_id = key
-                out_f.write(f"{catalog},{cat_id}   # {value}\n")
+        try:
+            with open(self.filepath, 'w') as out_f:
+                for key, comment in self.blocklist.items():
+                    catalog, cat_id = key
+                    out_f.write(f"{catalog},{cat_id}   # {comment}\n")
+        except Exception as e:
+            logger.error("error writing blocklist: {e}", exc_info=True)
 
     def add_blocklist(self, star, logger):
-        info = (star['ra'], star['dec'], star['name'])
-        logger.debug(f'add blocklist. info={info}')
-        self.blocklist[self.mk_key(star)] = info
-        logger.debug(f'blocklist={blocklist}')
+        comment = f"({star['ra']}, {star['dec']}, {star['name']})"
+        key = self.mk_key(star)
+        logger.info(f"add blocklist: {str(key)}  # {comment}")
+        self.blocklist[key] = comment
         self.checkpoint_file(logger)
 
     def remove_blocklist(self, star, logger):
-        del self.blocklist[self.mk_key(star)]
-        self.checkpoint_file(logger)
+        key = self.mk_key(star)
+        if key in self.blocklist:
+            comment = self.blocklist[key]
+            logger.info(f"del blocklist: {str(key)}  # {comment}")
+            del self.blocklist[key]
+            self.checkpoint_file(logger)
+        else:
+            logger.info(f"del blocklist: key '{str(key)}' not in blocklist")
 
 
 # This implements the global blocklist for guide stars

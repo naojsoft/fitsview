@@ -4,7 +4,6 @@
 # T. Inagaki
 # E. Jeschke
 #
-import os.path
 
 import numpy
 
@@ -18,7 +17,7 @@ class CurveFit(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(CurveFit, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
     def build_gui(self, container, future=None):
         # Paned container is just to provide a way to size the graph

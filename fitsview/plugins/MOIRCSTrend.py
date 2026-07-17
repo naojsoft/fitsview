@@ -15,17 +15,14 @@ from types import SimpleNamespace
 import dateutil.parser
 from dateutil import tz
 import numpy as np
-import threading
 
 from ginga.gw import Widgets
-from ginga import GingaPlugin, colors
+from ginga import GingaPlugin
 
 try:
     from ginga.util import plots
 
     import matplotlib.dates as mpl_dt
-    import matplotlib as mpl
-    from matplotlib.ticker import FormatStrFormatter
 
     have_mpl = True
 except ImportError:

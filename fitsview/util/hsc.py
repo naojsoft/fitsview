@@ -22,7 +22,7 @@ fov = 2.0
 class HyperSuprimeCamDR(spcam.SuprimeCamDR):
 
     def __init__(self, logger=None):
-        super(HyperSuprimeCamDR, self).__init__(logger=logger)
+        super().__init__(logger=logger)
 
         self.pfx = 'T'
         self.num_frames = num_frames

@@ -4,7 +4,6 @@
 # E. Jeschke
 #
 
-from ginga.misc import Bunch
 from ginga.gw import Widgets
 from ginga import GingaPlugin
 
@@ -16,7 +15,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
 
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
-        super(Sv_Drive, self).__init__(fv, fitsimage)
+        super().__init__(fv, fitsimage)
 
         self.layertag = 'qdas-svdrive'
 
@@ -289,7 +288,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         for tag in tags:
             try:
                 p_canvas.delete_object_by_tag(tag)
-            except:
+            except Exception:
                 pass
 
     def instructions(self):
@@ -381,7 +380,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
     def release_caller(self):
         try:
             self.close()
-        except:
+        except Exception:
             pass
         self.callerInfo.resolve(0)
 
@@ -455,7 +454,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         if self.dsttag:
             try:
                 canvas.delete_object_by_tag(self.dsttag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         x, y = data_x, data_y
@@ -491,7 +490,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         if self.objtag:
             try:
                 canvas.delete_object_by_tag(self.objtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         x, y = data_x, data_y
@@ -529,12 +528,14 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         if self.regiontag:
             try:
                 canvas.delete_object_by_tag(self.regiontag, redraw=False)
-            except:
+            except Exception:
                 pass
 
-        color = 'cyan'; style = 'solid'
+        color = 'cyan'
+        style = 'solid'
         if error:
-            color = 'red'; style = 'dash'
+            color = 'red'
+            style = 'dash'
         # Mark acquisition region on image
         self.regiontag = canvas.add(self.dc.CompoundObject(
             self.dc.Rectangle(x1, y1, x2, y2, color=color,
@@ -619,7 +620,7 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         if self.objtag:
             try:
                 canvas.delete_object_by_tag(self.objtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         # sanity check on region
