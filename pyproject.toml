@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64",
+requires = ["setuptools>=77",
             "setuptools_scm[toml]>=7",
             "wheel"]
 build-backend = "setuptools.build_meta"
@@ -16,7 +16,7 @@ dependencies = [
     "matplotlib>=3.8",
     "inotify>=0.2.10",
     "python-dateutil>=2.8.2",
-    "ginga>=7.1.0",
+    "ginga>=7.3.0",
 ]
 
 [project.optional-dependencies]
