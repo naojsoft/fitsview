@@ -1285,6 +1285,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                 starcat = self.catalogs.get_catalog_server(catname)
 
                 # Query catalog
+                i = 0
                 for (ra, dec, radius) in queries:
                     self.logger.debug("Querying star catalog (ccd %d): ra=%f dec=%f r=%f" % (
                         i, ra, dec, radius_deg))
@@ -1293,6 +1294,7 @@ class VGW(GingaPlugin.GlobalPlugin):
                         catalog=p.catalog, m2=str(p.limitmag), m1=str(p.goodmag))
 
                     all_stars.extend(starlist)
+                    i += 1
                     p.info = info
                     self.logger.debug("info=%s" % (str(info)))
 
