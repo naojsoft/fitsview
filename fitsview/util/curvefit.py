@@ -9,10 +9,19 @@
 import os
 
 from fitsview.util import g2calc
-from esolib import iqe
 
 from ginga import AstroImage
 from ginga.util import wcs
+
+# The 2D elliptical Gaussian image quality estimate is IQCalc.iqe() as of
+# Ginga 7.5.  Older versions of Ginga do not have it, in which case we fall
+# back on the ESO iqe() routine wrapped by esolib -- which may not be built
+# or installed.  Having neither is only an error if the iqe algorithm is
+# actually asked for; the qualsize algorithms do not need either one.
+try:
+    from esolib import iqe as esolib_iqe
+except ImportError:
+    esolib_iqe = None
 
 import numpy as np
 from astropy.io import fits as pyfits
@@ -190,12 +199,43 @@ class LeastSquareFits:
             raise ValueError(errmsg)
 
     def iqe(self, image, x1, y1, x2, y2, filename, **kwargs):
-        self.logger.info('Computing FWHM for input data %s using iqe algorithm' % filename)
+        """Fit the object in the given region and return its FWHM.
+
+        Returns the major and minor axis FWHM of the fitted ellipse, in
+        pixels.  Note these are not the widths along X and Y: both
+        implementations fit a rotated 2D elliptical Gaussian and report it
+        in its own frame, with the position angle as a separate output.
+
+        Prefers Ginga's IQCalc.iqe(), falling back to the ESO routine when
+        the installed Ginga predates it.
+        """
         hdulist = [image.as_hdu()]
         data = self._extract_data(hdulist, x1, y1, x2, y2)
-        (row, col) = data.shape
-        iqe_res = iqe.iqe(data.flat, int(row), int(col))
-        self.logger.info('iqe res<%s>' %(str(iqe_res)))
+
+        if hasattr(self.iqcalc, 'iqe'):
+            self.logger.info("Computing FWHM for input data %s using Ginga's "
+                             "iqe algorithm" % filename)
+            res = self.iqcalc.iqe(data)
+            self.logger.info('iqe res<%s>' % (str(res)))
+            return (res.fwhm_maj, res.fwhm_min)
+
+        if esolib_iqe is None:
+            raise RuntimeError(
+                "Cannot compute FWHM with the iqe algorithm: the installed "
+                "Ginga has no IQCalc.iqe() (needs Ginga 7.5 or later) and "
+                "the 'esolib' package providing the older iqe() could not "
+                "be imported.  Install one of them, or choose one of the "
+                "qualsize algorithms instead.")
+
+        self.logger.info('Computing FWHM for input data %s using the ESO '
+                         'iqe algorithm' % filename)
+        # NOTE: esolib's iqe() takes the dimensions x first, as (mx, my);
+        # data.shape is (ny, nx).  Passing them the other way round silently
+        # reinterprets the buffer and returns nonsense for any region that
+        # is not square.
+        (ny, nx) = data.shape
+        iqe_res = esolib_iqe.iqe(data.flat, int(nx), int(ny))
+        self.logger.info('iqe res<%s>' % (str(iqe_res)))
         return (iqe_res[1][0], iqe_res[3][0])
 
     def qualsize(self, image, x1, y1, x2, y2, filename, **kwargs):
@@ -208,7 +248,15 @@ class LeastSquareFits:
             self.logger.info('Computing FWHM for input data %s using old qualsize algorithm' % filename)
             qs = self.iqcalc.qualsize_old(image, x1, y1, x2, y2, **kwargs)
 
-        return (qs.fwhm, qs.fwhm)
+        # NOTE: the caller pairs these with CDELT1 and CDELT2 in starsize(),
+        # so they have to be the per-axis widths.  qs.fwhm is a single
+        # combined value -- the quadratic mean of the two -- and using it for
+        # both over-reports an elongated object; for an 8x4 pixel star it
+        # comes out about 5% high.  The old eclipse-based qualsize measures
+        # only that one combined value, so there it is all we have.
+        fwhm_x = qs.get('fwhm_x', qs.fwhm)
+        fwhm_y = qs.get('fwhm_y', qs.fwhm)
+        return (fwhm_x, fwhm_y)
 
 
     def buildDataPoints(self, file_list, x1=None, y1=None, x2=None, y2=None, cutout=None, algorithm='iqe'):
