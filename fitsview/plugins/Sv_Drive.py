@@ -52,10 +52,14 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
         self.use_new_algorithm = False
         self.radius = 10
         self.threshold = None
-        self.min_fwhm = 2.0
-        self.max_fwhm = 50.0
-        self.min_ellipse = 0.5
-        self.edgew = 0.01
+        # NOTE: these default to the selection limits the SOSS algorithm has
+        # compiled in, so that both algorithms start out accepting the same
+        # stars.  They are deliberately permissive -- raise them from the GUI
+        # to reject small, elongated or edge-of-frame candidates.
+        self.min_fwhm = g2calc.MINFWHM
+        self.max_fwhm = g2calc.MAXFWHM
+        self.min_ellipse = g2calc.MINELIPS
+        self.edgew = g2calc.EDGEW
 
         # this is the maximum size a side can be in bounding box
         self.max_len = 1024
@@ -650,7 +654,16 @@ class Sv_Drive(GingaPlugin.LocalPlugin):
                                           minelipse=self.min_ellipse,
                                           edgew=self.edgew)
             else:
-                qs = self.iqcalc.qualsize_old(image, x1, y1, x2, y2)
+                # NOTE: the SOSS algorithm has these limits compiled in, so
+                # they only take effect when qualsize_old() has fallen back to
+                # IQCalc for want of the "eclipse" extension.  They default to
+                # that algorithm's own values, so the fallback starts out
+                # accepting the same stars it would.
+                qs = self.iqcalc.qualsize_old(image, x1, y1, x2, y2,
+                                              minfwhm=self.min_fwhm,
+                                              maxfwhm=self.max_fwhm,
+                                              minelipse=self.min_ellipse,
+                                              edgew=self.edgew)
 
             # Calculate X/Y of center of star
             obj_x = qs.objx

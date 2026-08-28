@@ -30,3 +30,25 @@ Since v0.9.0 (unreleased)
   an elongated object, by about 2.7% at 8:5 and 5% at 8:4.  Round objects
   are unaffected.  The older eclipse-based ``qualsize`` measures only the
   one combined value, so it continues to use it for both.
+- ``g2calc`` imports ``eclipse`` leniently, and ``IQCalc.qualsize_old()``
+  measures with ``IQCalc.qualsize()`` where that compiled extension is not
+  built.  ``eclipse`` is not a declared dependency, so importing it
+  unconditionally stopped ``g2calc`` -- and with it the ``VGW``, ``QDAS``,
+  ``AgAreaSelection``, ``Region_Selection`` and ``Sv_Drive`` plugins, none
+  of which need it for anything else -- from importing at all wherever it
+  was missing.  The result carries the same ``x``, ``y``, ``fwhm``,
+  ``brightness``, ``objx`` and ``objy`` either way, which is everything
+  those plugins read.
+- ``qualsize_old()`` takes ``minfwhm``, ``maxfwhm``, ``minelipse`` and
+  ``edgew``, defaulting to the limits the SOSS algorithm has compiled in
+  (now exported as ``g2calc.MINFWHM`` and friends).  Without this the
+  fallback silently applied ``IQCalc``'s much stricter defaults and
+  rejected candidates the SOSS routine measures happily -- a 1.5 pixel
+  star, and anything more elongated than 2:1, failed outright.  The
+  limits reach only the fallback; the SOSS routine cannot be told
+  anything but its compiled-in values.
+- The ``Sv_Drive`` plugin passes its FWHM, ellipticity and edge controls
+  to ``qualsize_old()``, and those controls now default to the SOSS
+  limits rather than to ``IQCalc``'s.  The old algorithm's branch had
+  ignored them entirely.  Note this makes the new algorithm's branch,
+  which shares the same controls, start out permissive as well.
