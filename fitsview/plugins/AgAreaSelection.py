@@ -80,6 +80,8 @@ class AgAreaSelection(GingaPlugin.LocalPlugin):
                     ('Equinox:', 'label', 'Equinox', 'llabel'),
                     ('Sky Level:', 'label', 'Sky Level', 'entry',
                      'Brightness:', 'label', 'Brightness', 'entry'),
+                    ('FWHM_x:', 'label', 'FWHM_x', 'llabel',
+                     'FWHM_y:', 'label', 'FWHM_y', 'llabel'),
                     ('FWHM:', 'label', 'FWHM', 'llabel',
                      'Star Size:', 'label', 'Star Size', 'llabel'),
                     ('Sample Area:', 'label', 'Sample Area', 'llabel'),
@@ -395,12 +397,15 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
             p.y2 = min(height - 1, p.y + dy)
 
             p.fwhm = qs.fwhm
+            fwhm_x, fwhm_y = qs.fwhm_x, qs.fwhm_y
             p.brightness = qs.brightness
             p.skylevel = qs.skylevel
             p.objx = qs.objx
             p.objy = qs.objy
 
             self.wdetail.fwhm.set_text('%.3f' % fwhm)
+            self.wdetail.fwhm_x.set_text('%.3f' % fwhm_x)
+            self.wdetail.fwhm_y.set_text('%.3f' % fwhm_y)
             self.wdetail.object_x.set_text('%.3f' % (obj_x+1))
             self.wdetail.object_y.set_text('%.3f' % (obj_y+1))
             self.wdetail.sky_level.set_text('%.3f' % qs.skylevel)
@@ -419,12 +424,10 @@ Draw (or redraw) an area with the right mouse button.  Move the area with the le
 
             self.pick_qs = qs
 
-            # TODO: Get separate FWHM for X and Y
             #cdelt1, cdelt2 = image.get_keywords_list('CDELT1', 'CDELT2')
-            #starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
             header = image.get_header()
             rot, cdelt = wcs.get_xy_rotation_and_scale(header)
-            starsize = self.iqcalc.starsize(fwhm, cdelt[0], fwhm, cdelt[1])
+            starsize = self.iqcalc.starsize(fwhm_x, cdelt[0], fwhm_y, cdelt[1])
             self.wdetail.star_size.set_text('%.3f' % starsize)
 
         except Exception as e:

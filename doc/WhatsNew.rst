@@ -61,3 +61,7 @@ Since v0.9.0 (unreleased)
   value and does not resolve the two axes, so both fields carry it; for
   non-square pixels that yields the mean of the two plate scales, and the
   IQCalc algorithm is the one that measures the axes properly.
+- ``AgAreaSelection`` and ``Region_Selection`` show FWHM_x and FWHM_y in
+  their readouts, and compute "Star Size" from the two of them paired with
+  ``CDELT1`` and ``CDELT2`` rather than from the combined FWHM twice.  That
+  is the correct conversion where the pixels are not square.

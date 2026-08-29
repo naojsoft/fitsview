@@ -87,6 +87,8 @@ class Region_Selection(GingaPlugin.LocalPlugin):
                     ('Equinox:', 'label', 'Equinox', 'llabel'),
                     ('Sky Level:', 'label', 'Sky Level', 'entry',
                      'Brightness:', 'label', 'Brightness', 'entry'),
+                    ('FWHM_x:', 'label', 'FWHM_x', 'llabel',
+                     'FWHM_y:', 'label', 'FWHM_y', 'llabel'),
                     ('FWHM:', 'label', 'FWHM', 'llabel',
                      'Star Size:', 'label', 'Star Size', 'llabel'),
                     ('Sample Area:', 'label', 'Sample Area', 'llabel'),
@@ -390,6 +392,7 @@ class Region_Selection(GingaPlugin.LocalPlugin):
             obj_x = qs.objx
             obj_y = qs.objy
             fwhm = qs.fwhm
+            fwhm_x, fwhm_y = qs.fwhm_x, qs.fwhm_y
             # set region from center of detected object
             p.x1, p.y1 = max(0, p.x - dx), max(0, p.y - dy)
             width = image.width
@@ -403,6 +406,8 @@ class Region_Selection(GingaPlugin.LocalPlugin):
             p.obj_x = qs.objx
             p.obj_y = qs.objy
 
+            self.wdetail.fwhm_x.set_text('%.3f' % fwhm_x)
+            self.wdetail.fwhm_y.set_text('%.3f' % fwhm_y)
             self.wdetail.fwhm.set_text('%.3f' % fwhm)
             self.wdetail.object_x.set_text('%.3f' % (obj_x+1))
             self.wdetail.object_y.set_text('%.3f' % (obj_y+1))
@@ -420,12 +425,11 @@ class Region_Selection(GingaPlugin.LocalPlugin):
                 equinox = image.get_keyword('EQUINOX', 'UNKNOWN')
                 self.wdetail.equinox.set_text(str(equinox))
 
-                # TODO: Get separate FWHM for X and Y
                 #cdelt1, cdelt2 = image.get_keywords_list('CDELT1', 'CDELT2')
-                #starsize = self.iqcalc.starsize(fwhm, cdelt1, fwhm, cdelt2)
                 header = image.get_header()
                 rot, cdelt = wcs.get_xy_rotation_and_scale(header)
-                starsize = self.iqcalc.starsize(fwhm, cdelt[0], fwhm, cdelt[1])
+                starsize = self.iqcalc.starsize(fwhm_x, cdelt[0],
+                                                fwhm_y, cdelt[1])
                 self.wdetail.star_size.set_text('%.3f' % starsize)
 
             except Exception as e:
