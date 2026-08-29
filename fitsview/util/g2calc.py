@@ -66,7 +66,14 @@ class IQCalc(iqcalc.IQCalc):
         start_time = time.time()
         (x, y, fwhm, brightness, skylevel,
          objx, objy) = eclipse_qualsize.qualsize(data)
-        qs = Bunch.Bunch(x=x, y=y, fwhm=fwhm, brightness=brightness,
+        # NOTE: fwhm_x and fwhm_y carry the one combined value the SOSS
+        # routine measures -- it does not resolve the two axes separately.
+        # They are here so that the result has the same shape whichever
+        # algorithm ran, since callers pair them with CDELT1 and CDELT2.
+        # For non-square pixels this can only give the mean of the two
+        # scales; use the IQCalc algorithm to measure the axes properly.
+        qs = Bunch.Bunch(x=x, y=y, fwhm=fwhm, fwhm_x=fwhm, fwhm_y=fwhm,
+                         brightness=brightness,
                          skylevel=skylevel, objx=objx, objy=objy)
         elapsed = time.time() - start_time
 

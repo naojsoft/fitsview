@@ -52,3 +52,12 @@ Since v0.9.0 (unreleased)
   limits rather than to ``IQCalc``'s.  The old algorithm's branch had
   ignored them entirely.  Note this makes the new algorithm's branch,
   which shares the same controls, start out permissive as well.
+- ``qualsize_old()`` reports ``fwhm_x`` and ``fwhm_y`` on the SOSS path as
+  well, so that the result has the same shape whichever algorithm ran.
+  ``AgAreaSelection`` and ``Region_Selection`` read those two directly and
+  raised ``AttributeError`` -- caught, so the FWHM X, FWHM Y and Star Size
+  readouts simply stayed empty -- whenever the old algorithm ran with
+  ``eclipse`` installed.  The SOSS routine measures a single combined
+  value and does not resolve the two axes, so both fields carry it; for
+  non-square pixels that yields the mean of the two plate scales, and the
+  IQCalc algorithm is the one that measures the axes properly.
