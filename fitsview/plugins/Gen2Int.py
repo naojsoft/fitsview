@@ -140,12 +140,18 @@ class Gen2Int(GingaPlugin.GlobalPlugin):
         # methods that can be called from outside via our service
         method_list = ['callGlobalPlugin', 'callGlobalPlugin2',
                        'display_fitsbuf2', 'display_fitsbuf3']
+        # Called by clients of both ages, so it answers both ways;
+        # ro.compat_transports puts XML-RPC first, which is what keeps it
+        # the primary an un-upgraded caller reads.  The monitor above needs
+        # no such thing -- it is ours, and only the new stack subscribes
+        # to it.
         self.viewsvc = ro.remoteObjectServer(svcname=self.svcname,
                                              obj=self,
                                              logger=self.logger,
                                              ev_quit=self.ev_quit,
                                              port=self.port,
                                              usethread=True,
+                                             transport=ro.compat_transports,
                                              threadPool=threadPool,
                                              method_list=method_list)
 
