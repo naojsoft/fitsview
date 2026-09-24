@@ -220,7 +220,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         self.rpt_dict[frameid] = d
         self.logger.info("adding to dict [{}]: {}".format(frameid, str(d)))
 
-        self.update_obslog()
+        self.update_obslog(frameids=[frameid])
 
     def start(self):
         super().start()
@@ -267,14 +267,34 @@ class ObsLog(GingaPlugin.GlobalPlugin):
             self.logger.error("Failed to process image: {}".format(e),
                               exc_info=True)
 
-    def update_obslog(self):
+    def update_obslog(self, frameids=None, scroll=True):
+        """Show changes to the log in the table, and auto-save it.
+
+        `frameids` names the rows that were added or changed, which are
+        all the table needs to be told about; ``None`` brings the whole
+        table into line with the log.  Either way the table is updated
+        in place rather than rebuilt, so a selection the user is making
+        (e.g. to set a memo) survives a new frame arriving.
+        """
         if not self.gui_up:
             return
 
-        self.w.rpt_tbl.set_tree(self.rpt_dict)
+        tv = self.w.rpt_tbl
+        if frameids is None:
+            tv.update_tree(self.rpt_dict)
+        else:
+            tv.add_tree(OrderedDict([(frameid, self.rpt_dict[frameid])
+                                     for frameid in frameids]))
 
-        if self.auto_scroll:
-            self.w.rpt_tbl.scroll_to_end()
+        if self.auto_scroll and scroll and len(self.rpt_dict) > 0:
+            # Scroll to the newest frame rather than to the bottom row:
+            # the user may have sorted the table on another column (or
+            # descending), and then the newest frame is not at the end.
+            if frameids:
+                newest = frameids[-1]
+            else:
+                newest = next(reversed(self.rpt_dict))
+            tv.scroll_to_path([newest])
 
         if self.w.auto_save.get_state():
             obslog_name = self.w.obslog_name.get_text().strip()
@@ -428,7 +448,7 @@ class ObsLog(GingaPlugin.GlobalPlugin):
         for key in res.keys():
             self.rpt_dict[key]['G_MEMO'] = memo_txt
 
-        self.update_obslog()
+        self.update_obslog(frameids=list(res.keys()), scroll=False)
 
     def copy_memo_cb(self, widget):
         self.memo_txt = self.w.memo.get_text().strip()
